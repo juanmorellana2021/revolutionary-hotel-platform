@@ -1,0 +1,63 @@
+# Hotel Management System - Git Ignore File
+
+# Sensitive Configuration Files
+config.php
+database_config.php
+.env
+.env.local
+
+# User uploaded content
+uploads/rooms/*
+!uploads/rooms/.gitkeep
+
+# Logs
+*.log
+logs/
+error.log
+access.log
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Cache files
+cache/
+tmp/
+
+# Session files
+sessions/
+session_*
+
+# Database dumps
+*.sql.backup
+database_backup_*
+
+# XAMPP specific
+.htaccess.backup
+
+# Windows specific
+desktop.ini
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node modules (if any)
+node_modules/
+
+# Composer dependencies (if any)
+vendor/
