@@ -32,16 +32,39 @@ $currentYear = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
 if ($currentMonth < 1) { $currentMonth = 12; $currentYear--; }
 if ($currentMonth > 12) { $currentMonth = 1; $currentYear++; }
 
-// Get all rooms
-$rooms = $roomManager->getAllRooms();
-
-// Get primary photos for rooms
-$roomPhotos = [];
-$stmt = $connection->prepare("SELECT room_id, photo_path FROM room_photos WHERE is_primary = 1");
+// Get all rooms with all fields including discount settings
+$database = new Database();
+$connection = $database->getConnection();
+$stmt = $connection->prepare("SELECT * FROM rooms ORDER BY room_number");
 $stmt->execute();
-$photos = $stmt->fetchAll();
-foreach ($photos as $photo) {
-    $roomPhotos[$photo['room_id']] = $photo['photo_path'];
+$rooms = $stmt->fetchAll();
+
+// Get existing room photos that are already uploaded
+$database = new Database();
+$connection = $database->getConnection();
+$roomPhotos = [];
+try {
+    // Get all room photos (prioritize primary, but get any photo if no primary)
+    $stmt = $connection->prepare("
+        SELECT room_id, photo_path, is_primary 
+        FROM room_photos 
+        WHERE photo_path IS NOT NULL AND photo_path != ''
+        ORDER BY is_primary DESC, id ASC
+    ");
+    $stmt->execute();
+    $allPhotos = $stmt->fetchAll();
+    
+    $usedRooms = [];
+    foreach ($allPhotos as $photo) {
+        // Only use the first photo for each room (primary gets priority due to ORDER BY)
+        if (!isset($usedRooms[$photo['room_id']])) {
+            $roomPhotos[$photo['room_id']] = $photo['photo_path'];
+            $usedRooms[$photo['room_id']] = true;
+        }
+    }
+} catch (Exception $e) {
+    // Fallback to empty array if there are issues
+    $roomPhotos = [];
 }
 
 // Get bookings for current month (and a bit before/after for overlap)
@@ -229,19 +252,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
                               ", Total final: $" . number_format($totalPrice, 2) . " / S/ " . number_format($totalPrice * 3.75, 2) . ". ";
         }
         
-        // Create booking
-        $booking = new Booking();
-        $result = $booking->createBooking($guestId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $discountAmount);
+        // Handle payment information
+        $paymentStatus = $_POST['payment_status'] ?? 'pending';
+        $paymentMethod = $_POST['payment_method'] ?? null;
+        $paidAmount = !empty($_POST['paid_amount']) ? (float)$_POST['paid_amount'] : 0.00;
         
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+        // Create booking with payment info
+        $booking = new Booking();
+        
+        // Generate booking reference
+        $bookingReference = 'HTL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        
+        // Create booking directly in database since we need more control
+        $stmt = $connection->prepare("INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, payment_status, payment_method, paid_amount, booking_reference, guest_name, guest_email, guest_phone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
+        
+        $success = $stmt->execute([
+            $guestId, 
+            $roomId, 
+            $checkIn, 
+            $checkOut, 
+            $totalPrice, 
+            $specialRequests, 
+            $discountAmount,
+            $paymentStatus,
+            $paymentMethod,
+            $paidAmount,
+            $bookingReference,
+            $guestName,
+            $guestEmail,
+            $guestPhone
+        ]);
+        
+        if ($success) {
+            $bookingId = $connection->lastInsertId();
+            $message = 'Booking created successfully! Reference: ' . $bookingReference;
+            $messageType = 'success';
+            
+            // Store booking ID for receipt generation
+            $_SESSION['last_booking_id'] = $bookingId;
+        } else {
+            $message = 'Failed to create booking';
+            $messageType = 'error';
+        }
         
         // Refresh bookings if successful
-        if ($result['success']) {
-            header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
-            exit;
+        if ($success) {
+            // Instead of redirecting immediately, show receipt option
+            $showReceipt = true;
         }
     }
+}
+
+// Handle mark as paid functionality
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_as_paid'])) {
+    $bookingId = $_POST['booking_id'];
+    $paidAmount = $_POST['paid_amount'];
+    
+    try {
+        $stmt = $connection->prepare("UPDATE bookings SET payment_status = 'paid', paid_amount = ?, payment_method = 'cash' WHERE id = ?");
+        $success = $stmt->execute([$paidAmount, $bookingId]);
+        
+        if ($success) {
+            $message = 'Booking marked as paid successfully!';
+            $messageType = 'success';
+        } else {
+            $message = 'Failed to update payment status';
+            $messageType = 'error';
+        }
+    } catch (Exception $e) {
+        $message = 'Error updating payment status: ' . $e->getMessage();
+        $messageType = 'error';
+    }
+    
+    // Refresh the page to show updated status
+    header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
+    exit;
 }
 
 // Calendar helper functions
@@ -476,10 +561,11 @@ function getMonthName($month) {
 
         .calendar-table th.room-header {
             background: #495057;
-            width: 200px;
+            width: 180px;
             text-align: left;
-            padding-left: 20px;
-            min-width: 200px;
+            padding-left: 15px;
+            min-width: 180px;
+            max-width: 180px;
         }
 
         .calendar-table td {
@@ -492,32 +578,88 @@ function getMonthName($month) {
             min-width: 50px;
         }
 
+        .calendar-table td.room-info {
+            height: auto;
+            min-height: 80px;
+        }
+
+        .room-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex-grow: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
         .room-info {
             background: #f8f9fa;
-            padding: 15px 20px;
+            padding: 8px 10px;
             border-right: 2px solid #dee2e6;
             position: sticky;
             left: 0;
             z-index: 5;
-            width: 200px;
-            min-width: 200px;
+            width: 180px;
+            min-width: 180px;
+            max-width: 180px;
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
+            overflow: hidden;
         }
 
         .room-number {
             font-weight: bold;
             color: #007bff;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .room-type {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #6c757d;
-            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .room-price {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #28a745;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .room-image {
+            width: 50px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .room-image:hover {
+            transform: scale(1.05);
+            border-color: #007bff;
+        }
+
+        .room-image-placeholder {
+            width: 80px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
             font-weight: 600;
         }
 
@@ -734,6 +876,35 @@ function getMonthName($month) {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
+        
+        /* Print Styles for Receipt */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            .receipt-section, .receipt-section * {
+                visibility: visible;
+            }
+            
+            .receipt-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            
+            .receipt-section button {
+                display: none !important;
+            }
+            
+            .receipt-section a {
+                display: none !important;
+            }
+        }
 
         .stat-item {
             text-align: center;
@@ -782,6 +953,134 @@ function getMonthName($month) {
             <div class="alert <?php echo $messageType; ?>">
                 <?php echo htmlspecialchars($message); ?>
             </div>
+        <?php endif; ?>
+
+        <?php if (isset($showReceipt) && $showReceipt && isset($_SESSION['last_booking_id'])): ?>
+            <?php
+            // Get booking details for receipt
+            $stmt = $connection->prepare("
+                SELECT b.*, r.room_number, r.room_type, r.price as room_price,
+                       u.first_name, u.last_name, u.email, u.phone
+                FROM bookings b 
+                JOIN rooms r ON b.room_id = r.id 
+                JOIN users u ON b.user_id = u.id 
+                WHERE b.id = ?
+            ");
+            $stmt->execute([$_SESSION['last_booking_id']]);
+            $receiptBooking = $stmt->fetch();
+            
+            if ($receiptBooking):
+                $nights = (strtotime($receiptBooking['check_out_date']) - strtotime($receiptBooking['check_in_date'])) / (60 * 60 * 24);
+            ?>
+            
+            <!-- Receipt Display -->
+            <div class="receipt-section" style="background: #f8f9fa; border: 2px solid #28a745; border-radius: 8px; padding: 20px; margin: 20px 0; max-width: 800px; margin: 20px auto;">
+                <div style="text-align: center; border-bottom: 2px solid #28a745; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 style="color: #28a745; margin: 0;">🏨 AiNi Hotel Booking Receipt</h2>
+                    <p style="margin: 5px 0; color: #666;">Booking Reference: <strong><?php echo $receiptBooking['booking_reference']; ?></strong></p>
+                    <p style="margin: 5px 0; color: #666; font-size: 0.9em;">Created: <?php echo date('F j, Y g:i A', strtotime($receiptBooking['created_at'])); ?></p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
+                    <!-- Hotel Information -->
+                    <div>
+                        <h4 style="color: #333; margin-bottom: 10px; border-bottom: 1px solid #ddd;">🏨 Hotel Information</h4>
+                        <p><strong>AiNi Hotel</strong><br>
+                        123 Main Street<br>
+                        Lima, Peru<br>
+                        Phone: +51 1 234 5678<br>
+                        Email: reservas@ainihotel.com</p>
+                    </div>
+
+                    <!-- Guest Information -->
+                    <div>
+                        <h4 style="color: #333; margin-bottom: 10px; border-bottom: 1px solid #ddd;">👤 Guest Information</h4>
+                        <p><strong><?php echo htmlspecialchars($receiptBooking['guest_name']); ?></strong><br>
+                        📧 <?php echo htmlspecialchars($receiptBooking['guest_email']); ?><br>
+                        <?php if ($receiptBooking['guest_phone']): ?>
+                        📱 <?php echo htmlspecialchars($receiptBooking['guest_phone']); ?><br>
+                        <?php endif; ?></p>
+                    </div>
+                </div>
+
+                <!-- Booking Details -->
+                <div style="background: white; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: #333; margin-bottom: 15px; border-bottom: 1px solid #ddd;">📋 Booking Details</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <p><strong>🏠 Room:</strong> <?php echo htmlspecialchars($receiptBooking['room_number']); ?> - <?php echo htmlspecialchars($receiptBooking['room_type']); ?></p>
+                            <p><strong>📅 Check-in:</strong> <?php echo date('F j, Y', strtotime($receiptBooking['check_in_date'])); ?></p>
+                            <p><strong>📅 Check-out:</strong> <?php echo date('F j, Y', strtotime($receiptBooking['check_out_date'])); ?></p>
+                            <p><strong>🌙 Nights:</strong> <?php echo $nights; ?></p>
+                        </div>
+                        <div>
+                            <p><strong>💳 Payment Status:</strong> 
+                                <?php 
+                                $statusEmoji = [
+                                    'pending' => '⏳ Pending',
+                                    'paid' => '✅ Paid',
+                                    'partial' => '⚡ Partial',
+                                    'refunded' => '↩️ Refunded'
+                                ];
+                                echo $statusEmoji[$receiptBooking['payment_status']] ?? $receiptBooking['payment_status'];
+                                ?>
+                            </p>
+                            <?php if ($receiptBooking['payment_method']): ?>
+                            <p><strong>💰 Payment Method:</strong> <?php echo ucfirst($receiptBooking['payment_method']); ?></p>
+                            <?php endif; ?>
+                            <?php if ($receiptBooking['paid_amount'] > 0): ?>
+                            <p><strong>💵 Amount Paid:</strong> $<?php echo number_format($receiptBooking['paid_amount'], 2); ?> USD / S/ <?php echo number_format($receiptBooking['paid_amount'] * 3.75, 2); ?> PEN</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Breakdown -->
+                <div style="background: white; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="color: #333; margin-bottom: 15px; border-bottom: 1px solid #ddd;">💰 Price Breakdown</h4>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Room Rate (<?php echo $nights; ?> night<?php echo $nights > 1 ? 's' : ''; ?>):</span>
+                        <span>$<?php echo number_format(($receiptBooking['total_price'] + $receiptBooking['discount_amount']), 2); ?> USD</span>
+                    </div>
+                    
+                    <?php if ($receiptBooking['discount_amount'] > 0): ?>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #28a745;">
+                        <span>Discount Applied:</span>
+                        <span>-$<?php echo number_format($receiptBooking['discount_amount'], 2); ?> USD</span>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <hr style="margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em;">
+                        <span>Total Amount:</span>
+                        <span>$<?php echo number_format($receiptBooking['total_price'], 2); ?> USD / S/ <?php echo number_format($receiptBooking['total_price'] * 3.75, 2); ?> PEN</span>
+                    </div>
+                    
+                    <?php if ($receiptBooking['payment_status'] === 'partial'): ?>
+                    <div style="display: flex; justify-content: space-between; color: #dc3545; font-weight: bold; margin-top: 5px;">
+                        <span>Outstanding Balance:</span>
+                        <span>$<?php echo number_format($receiptBooking['total_price'] - $receiptBooking['paid_amount'], 2); ?> USD</span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="text-align: center; border-top: 1px solid #ddd; padding-top: 15px;">
+                    <a href="receipt_handler.php?booking_id=<?php echo $_SESSION['last_booking_id']; ?>" target="_blank" class="btn btn-primary" style="margin: 5px;">🧾 View Receipt</a>
+                    <a href="receipt_handler.php?booking_id=<?php echo $_SESSION['last_booking_id']; ?>&action=print&print=1" target="_blank" class="btn btn-success" style="margin: 5px;">�️ Print Receipt</a>
+                    <a href="receipt_handler.php?booking_id=<?php echo $_SESSION['last_booking_id']; ?>&action=pdf" target="_blank" class="btn" style="margin: 5px; background: #dc3545; color: white;">📄 Download PDF</a>
+                    <button onclick="emailReceiptFromSuccess()" class="btn btn-info" style="margin: 5px;">� Email Receipt</button>
+                    <a href="calendar_view.php?month=<?php echo $currentMonth; ?>&year=<?php echo $currentYear; ?>" class="btn" style="margin: 5px; background: #6c757d; color: white;">📅 Back to Calendar</a>
+                </div>
+            </div>
+
+            <?php 
+            endif; 
+            // Clear the session variable
+            unset($_SESSION['last_booking_id']);
+            ?>
         <?php endif; ?>
 
         <?php
@@ -857,9 +1156,24 @@ function getMonthName($month) {
                     <?php foreach ($rooms as $room): ?>
                         <tr>
                             <td class="room-info">
-                                <div class="room-number">Room <?php echo htmlspecialchars($room['room_number']); ?></div>
-                                <div class="room-type"><?php echo htmlspecialchars($room['room_type']); ?></div>
-                                <div class="room-price">$<?php echo number_format($room['price'] ?? 0, 0); ?>/night</div>
+                                <div class="room-details">
+                                    <div class="room-number">Room <?php echo htmlspecialchars($room['room_number']); ?></div>
+                                    <div class="room-type"><?php echo htmlspecialchars($room['room_type']); ?></div>
+                                    <div class="room-price">$<?php echo number_format($room['price'] ?? 0, 0); ?>/night</div>
+                                </div>
+                                <?php if (isset($roomPhotos[$room['id']]) && !empty($roomPhotos[$room['id']])): ?>
+                                    <img src="<?php echo htmlspecialchars($roomPhotos[$room['id']]); ?>" 
+                                         alt="Room <?php echo htmlspecialchars($room['room_number']); ?>" 
+                                         class="room-image"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="room-image-placeholder" style="display: none;">
+                                        🏨
+                                    </div>
+                                <?php else: ?>
+                                    <div class="room-image-placeholder">
+                                        🏨
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <?php
                             for ($day = 1; $day <= $daysInMonth; $day++) {
@@ -898,7 +1212,11 @@ function getMonthName($month) {
                                         'total_amount' => $booking['total_price'],
                                         'status' => $booking['status'],
                                         'special_requests' => $booking['special_requests'] ?? '',
-                                        'booking_date' => $booking['created_at']
+                                        'booking_date' => $booking['created_at'],
+                                        'payment_status' => $booking['payment_status'] ?? 'pending',
+                                        'payment_method' => $booking['payment_method'] ?? '',
+                                        'paid_amount' => $booking['paid_amount'] ?? 0,
+                                        'booking_reference' => $booking['booking_reference'] ?? ''
                                     ]);
                                 } else {
                                     $cellClass .= ' available';
@@ -954,7 +1272,7 @@ function getMonthName($month) {
                 <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
                     <div class="form-group">
                         <label for="room_id">🏨 Room</label>
-                        <select id="room_id" name="room_id" required>
+                        <select id="room_id" name="room_id" required onchange="updateGuestOptions(); calculateTotal();">
                             <option value="">Select Room</option>
                             <?php foreach ($rooms as $room): ?>
                                 <option value="<?php echo $room['id']; ?>">
@@ -976,17 +1294,28 @@ function getMonthName($month) {
                     </div>
                 </div>
                 
-                <!-- All main fields in one compact 4-column row -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <!-- All main fields in one compact 5-column row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 0.8fr 1fr 0.8fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label for="check_in_date" style="font-size: 0.9em;">📅 Check-in</label>
                         <input type="date" id="check_in_date" name="check_in_date" required 
-                               min="<?php echo date('Y-m-d'); ?>" style="font-size: 0.9em;">
+                               min="<?php echo date('Y-m-d'); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
                     <div class="form-group">
                         <label for="check_out_date" style="font-size: 0.9em;">📅 Check-out</label>
                         <input type="date" id="check_out_date" name="check_out_date" required
-                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" style="font-size: 0.9em;">
+                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
+                    </div>
+                    <div class="form-group">
+                        <label for="guest_count" style="font-size: 0.9em;">👥 Guests</label>
+                        <select id="guest_count" name="guest_count" onchange="calculateTotal()" style="font-size: 0.9em;" required>
+                            <option value="1">1 Guest</option>
+                            <option value="2" selected>2 Guests</option>
+                            <option value="3">3 Guests</option>
+                            <option value="4">4 Guests</option>
+                            <option value="5">5 Guests</option>
+                            <option value="6">6 Guests</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="guest_name" style="font-size: 0.9em;">👤 Guest Name</label>
@@ -1046,6 +1375,12 @@ function getMonthName($month) {
                                     <span id="discountAmount">-$0.00</span>
                                 </div>
                             </div>
+                            <div id="customerDiscountDisplay" style="display: none; color: #ff6b6b; margin-bottom: 3px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Customer Discount:</span>
+                                    <span id="customerDiscountAmount">-$0.00</span>
+                                </div>
+                            </div>
                             <hr style="margin: 5px 0;">
                             <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 0.95em;">
                                 <span>Total:</span>
@@ -1053,18 +1388,58 @@ function getMonthName($month) {
                             </div>
                         </div>
                         
+                        <!-- Customer Discount -->
+                        <div class="form-group">
+                            <label style="font-size: 0.9em; margin-bottom: 5px; display: block;">
+                                🏷️ Customer Discount
+                            </label>
+                            <select id="customer_discount_type" onchange="toggleCustomerDiscount()" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
+                                <option value="">No Discount</option>
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount ($)</option>
+                            </select>
+                            <input type="number" id="customer_discount_value" 
+                                   step="0.01" min="0" max="100" placeholder="e.g., 10 for 10% or $10" disabled
+                                   onchange="calculateTotal()" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
+                            <input type="text" id="customer_discount_reason" 
+                                   placeholder="Reason (e.g., Loyal customer)" disabled
+                                   style="font-size: 0.8em; padding: 4px; width: 100%;">
+                        </div>
+                        
                         <!-- Custom Pricing -->
                         <div class="form-group">
                             <label style="font-size: 0.9em; margin-bottom: 5px; display: block;">
-                                <input type="checkbox" id="use_custom_price" onchange="toggleCustomPrice()"> 
-                                💲 Custom Price
+                                💲 Custom Pricing
                             </label>
-                            <input type="number" id="custom_price_usd" name="custom_price_usd" 
-                                   step="0.01" min="0" placeholder="USD" disabled 
-                                   onchange="updateCustomPrice('USD')" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
-                            <input type="number" id="custom_price_pen" name="custom_price_pen" 
-                                   step="0.01" min="0" placeholder="PEN" disabled 
-                                   onchange="updateCustomPrice('PEN')" style="font-size: 0.8em; padding: 4px; width: 100%;">
+                            <select id="custom_price_type" onchange="toggleCustomPricing()" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
+                                <option value="">Use Calculated Price</option>
+                                <option value="override">Override Total Price</option>
+                                <option value="adjustment">Price Adjustment (+/-)</option>
+                            </select>
+                            
+                            <!-- Override Price Section -->
+                            <div id="override_price_section" style="display: none;">
+                                <input type="number" id="override_price_usd" name="override_price_usd" 
+                                       step="0.01" min="0" placeholder="Total USD price" disabled 
+                                       onchange="calculateTotal()" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
+                                <input type="number" id="override_price_pen" name="override_price_pen" 
+                                       step="0.01" min="0" placeholder="Total PEN price" disabled 
+                                       onchange="calculateTotal()" style="font-size: 0.8em; padding: 4px; width: 100%;">
+                            </div>
+                            
+                            <!-- Price Adjustment Section -->
+                            <div id="adjustment_price_section" style="display: none;">
+                                <select id="adjustment_type" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;" onchange="calculateTotal()">
+                                    <option value="add">Add to Price (+)</option>
+                                    <option value="subtract">Subtract from Price (-)</option>
+                                </select>
+                                <input type="number" id="adjustment_amount" 
+                                       step="0.01" min="0" placeholder="Adjustment amount" 
+                                       onchange="calculateTotal()" style="font-size: 0.8em; padding: 4px; margin-bottom: 3px; width: 100%;">
+                                <input type="text" id="adjustment_reason" 
+                                       placeholder="Reason (e.g., Weekend surcharge, Special rate)" 
+                                       style="font-size: 0.8em; padding: 4px; width: 100%;">
+                            </div>
                         </div>
                         
                         <!-- Discount Type -->
@@ -1096,8 +1471,47 @@ function getMonthName($month) {
                     </div>
                 </div>
                 
-                <!-- Hidden currency field for form submission -->
+                <!-- Payment Information Section -->
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
+                    <h4 style="color: #155724; margin-bottom: 12px; font-size: 1.1em;">💳 Payment Information</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: end;">
+                        <div class="form-group">
+                            <label for="payment_status" style="font-size: 0.9em;">Payment Status</label>
+                            <select id="payment_status" name="payment_status" onchange="togglePaymentFields()" style="font-size: 0.9em;">
+                                <option value="pending">💳 Pending Payment</option>
+                                <option value="paid">✅ Mark as Paid</option>
+                                <option value="partial">⚡ Partial Payment</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="payment_method_group" style="display: none;">
+                            <label for="payment_method" style="font-size: 0.9em;">Payment Method</label>
+                            <select id="payment_method" name="payment_method" style="font-size: 0.9em;">
+                                <option value="">Select Method</option>
+                                <option value="cash">💵 Cash</option>
+                                <option value="card">💳 Credit/Debit Card</option>
+                                <option value="transfer">🏦 Bank Transfer</option>
+                                <option value="paypal">📱 PayPal</option>
+                                <option value="crypto">₿ Cryptocurrency</option>
+                                <option value="other">🔄 Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="paid_amount_group" style="display: none;">
+                            <label for="paid_amount" style="font-size: 0.9em;">Amount Paid</label>
+                            <input type="number" id="paid_amount" name="paid_amount" 
+                                   step="0.01" min="0" placeholder="0.00" 
+                                   style="font-size: 0.9em;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden fields for form submission -->
                 <input type="hidden" id="currency_type_hidden" name="currency_type" value="USD">
+                <input type="hidden" id="custom_pricing_type_hidden" name="custom_pricing_type" value="">
+                <input type="hidden" id="custom_pricing_value_hidden" name="custom_pricing_value" value="">
+                <input type="hidden" id="custom_pricing_reason_hidden" name="custom_pricing_reason" value="">
                 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" name="quick_booking" class="btn btn-success">💾 Create Booking</button>
@@ -1117,6 +1531,13 @@ function getMonthName($month) {
             </div>
             <div style="margin-top: 20px; text-align: center;">
                 <button type="button" onclick="editBooking()" class="btn btn-primary">✏️ Editar Reserva</button>
+                <button type="button" onclick="markAsPaid()" class="btn btn-success" id="markPaidBtn">💳 Marcar como Pagado</button>
+                <br style="margin: 10px 0;">
+                <button type="button" onclick="generateReceipt()" class="btn btn-info">🧾 Ver Recibo</button>
+                <button type="button" onclick="printReceipt()" class="btn" style="background: #28a745; color: white;">🖨️ Imprimir</button>
+                <button type="button" onclick="downloadPDF()" class="btn" style="background: #dc3545; color: white;">📄 PDF</button>
+                <button type="button" onclick="emailReceipt()" class="btn" style="background: #17a2b8; color: white;">📧 Email</button>
+                <br style="margin: 10px 0;">
                 <button type="button" onclick="closeGuestInfoModal()" class="btn" style="background: #6c757d; color: white;">🚪 Cerrar</button>
             </div>
         </div>
@@ -1195,6 +1616,9 @@ function getMonthName($month) {
 
     <script>
         let currentBookingData = null;
+        
+        // Room data with pricing information
+        const roomsData = <?php echo json_encode($rooms); ?>;
         
         // Exchange rate USD to PEN (Soles)
         const USD_TO_PEN_RATE = 3.75; // This should be updated regularly or fetched from API
@@ -1338,6 +1762,8 @@ function getMonthName($month) {
                             <p><strong>Habitación:</strong> ${booking.room_number}</p>
                             <p><strong>Tipo:</strong> ${booking.room_type}</p>
                             <p><strong>Precio Total:</strong> ${formatDualCurrency(booking.total_amount)}</p>
+                            <p><strong>Estado de Pago:</strong> <span style="background: ${getPaymentStatusColor(booking.payment_status)}; padding: 2px 8px; border-radius: 4px; color: white;">${getPaymentStatusText(booking.payment_status)}</span></p>
+                            ${booking.paid_amount > 0 ? `<p><strong>Monto Pagado:</strong> ${formatDualCurrency(booking.paid_amount)}</p>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1393,6 +1819,9 @@ function getMonthName($month) {
         
         function openBookingModal() {
             document.getElementById('bookingModal').style.display = 'block';
+            
+            // Initialize custom pricing event listeners
+            addCustomPricingListeners();
         }
         
         function closeBookingModal() {
@@ -1497,35 +1926,242 @@ function getMonthName($month) {
             roomPrices['<?php echo $room['id']; ?>'] = <?php echo $room['price'] ?? 0; ?>;
         <?php endforeach; ?>
 
-        function toggleCustomPrice() {
-            const checkbox = document.getElementById('use_custom_price');
-            const usdInput = document.getElementById('custom_price_usd');
-            const penInput = document.getElementById('custom_price_pen');
-            const selectedCurrency = document.getElementById('currency_type').value;
+        function toggleCustomPricing() {
+            const customType = document.getElementById('custom_price_type').value;
+            const overrideSection = document.getElementById('override_price_section');
+            const adjustmentSection = document.getElementById('adjustment_price_section');
             
-            if (checkbox.checked) {
-                usdInput.disabled = false;
-                penInput.disabled = false;
+            // Hide all sections first
+            overrideSection.style.display = 'none';
+            adjustmentSection.style.display = 'none';
+            
+            // Clear all inputs
+            document.getElementById('override_price_usd').value = '';
+            document.getElementById('override_price_pen').value = '';
+            document.getElementById('adjustment_amount').value = '';
+            document.getElementById('adjustment_reason').value = '';
+            
+            if (customType === 'override') {
+                // Show override price section
+                overrideSection.style.display = 'block';
+                const selectedCurrency = document.getElementById('booking_currency').value;
                 
-                // Focus on the appropriate currency input based on selection
                 if (selectedCurrency === 'USD') {
-                    usdInput.required = true;
-                    penInput.required = false;
-                    usdInput.focus();
+                    document.getElementById('override_price_usd').disabled = false;
+                    document.getElementById('override_price_pen').disabled = true;
+                    document.getElementById('override_price_usd').focus();
                 } else {
-                    penInput.required = true;
-                    usdInput.required = false;
-                    penInput.focus();
+                    document.getElementById('override_price_usd').disabled = true;
+                    document.getElementById('override_price_pen').disabled = false;
+                    document.getElementById('override_price_pen').focus();
+                }
+            } else if (customType === 'adjustment') {
+                // Show adjustment section
+                adjustmentSection.style.display = 'block';
+                document.getElementById('adjustment_amount').focus();
+            }
+            
+            calculateTotal();
+        }
+        
+        // Add event listeners for real-time custom pricing updates
+        function addCustomPricingListeners() {
+            // Override price inputs
+            document.getElementById('override_price_usd').addEventListener('input', calculateTotal);
+            document.getElementById('override_price_pen').addEventListener('input', calculateTotal);
+            
+            // Adjustment inputs
+            document.getElementById('adjustment_type').addEventListener('change', calculateTotal);
+            document.getElementById('adjustment_amount').addEventListener('input', calculateTotal);
+            document.getElementById('adjustment_reason').addEventListener('input', calculateTotal);
+        }
+        
+        function togglePaymentFields() {
+            const paymentStatus = document.getElementById('payment_status').value;
+            const paymentMethodGroup = document.getElementById('payment_method_group');
+            const paidAmountGroup = document.getElementById('paid_amount_group');
+            const paidAmountInput = document.getElementById('paid_amount');
+            
+            if (paymentStatus === 'paid' || paymentStatus === 'partial') {
+                paymentMethodGroup.style.display = 'block';
+                paidAmountGroup.style.display = 'block';
+                
+                // Auto-fill paid amount with total if marking as fully paid
+                if (paymentStatus === 'paid') {
+                    const totalPriceText = document.getElementById('totalPrice').textContent;
+                    const totalAmount = parseFloat(totalPriceText.replace(/[^0-9.]/g, '')) || 0;
+                    paidAmountInput.value = totalAmount.toFixed(2);
+                } else {
+                    paidAmountInput.value = '';
                 }
             } else {
-                usdInput.disabled = true;
-                penInput.disabled = true;
-                usdInput.required = false;
-                penInput.required = false;
-                usdInput.value = '';
-                penInput.value = '';
+                paymentMethodGroup.style.display = 'none';
+                paidAmountGroup.style.display = 'none';
+                paidAmountInput.value = '';
             }
-            calculateTotal();
+        }
+        
+        // Payment Status Helper Functions
+        function getPaymentStatusColor(status) {
+            const colors = {
+                'pending': '#ffc107',
+                'paid': '#28a745',
+                'partial': '#17a2b8',
+                'refunded': '#6c757d'
+            };
+            return colors[status] || '#6c757d';
+        }
+        
+        function getPaymentStatusText(status) {
+            const texts = {
+                'pending': '⏳ Pendiente',
+                'paid': '✅ Pagado',
+                'partial': '⚡ Parcial',
+                'refunded': '↩️ Reembolsado'
+            };
+            return texts[status] || status;
+        }
+        
+        // Payment Action Functions
+        function markAsPaid() {
+            if (!currentBookingData) {
+                alert('No hay datos de reserva disponibles.');
+                return;
+            }
+            
+            if (currentBookingData.payment_status === 'paid') {
+                alert('Esta reserva ya está marcada como pagada.');
+                return;
+            }
+            
+            const confirmation = confirm(`¿Marcar la reserva #${currentBookingData.id} como PAGADA?\n\nMonto total: ${formatDualCurrency(currentBookingData.total_amount)}`);
+            
+            if (confirmation) {
+                // Create a form to submit the payment update
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.innerHTML = `
+                    <input type="hidden" name="mark_as_paid" value="1">
+                    <input type="hidden" name="booking_id" value="${currentBookingData.id}">
+                    <input type="hidden" name="paid_amount" value="${currentBookingData.total_amount}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function generateReceipt() {
+            if (!currentBookingData) {
+                alert('No hay datos de reserva disponibles.');
+                return;
+            }
+            
+            // Open receipt in new window
+            const receiptUrl = `receipt_handler.php?booking_id=${currentBookingData.id}`;
+            window.open(receiptUrl, '_blank', 'width=900,height=700,scrollbars=yes');
+        }
+        
+        // Receipt Functions
+        function printReceipt() {
+            if (!currentBookingData) {
+                alert('No hay datos de reserva disponibles.');
+                return;
+            }
+            
+            // Open print version in new window
+            const printUrl = `receipt_handler.php?booking_id=${currentBookingData.id}&action=print&print=1`;
+            const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+            
+            // Auto-print when loaded
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
+        
+        function emailReceipt() {
+            if (!currentBookingData) {
+                alert('No hay datos de reserva disponibles.');
+                return;
+            }
+            
+            const email = prompt('Ingrese la dirección de email:', currentBookingData.guest_email || '');
+            if (!email) return;
+            
+            if (!isValidEmail(email)) {
+                alert('Por favor ingrese una dirección de email válida.');
+                return;
+            }
+            
+            // Show loading state
+            const originalAlert = alert;
+            alert = function() {}; // Temporarily disable alerts
+            
+            // Send email via fetch
+            fetch(`receipt_handler.php?booking_id=${currentBookingData.id}&action=email&email=${encodeURIComponent(email)}&ajax=1`)
+                .then(response => response.json())
+                .then(data => {
+                    alert = originalAlert; // Restore alerts
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert = originalAlert; // Restore alerts
+                    alert('❌ Error sending email: ' + error.message);
+                });
+        }
+        
+        function downloadPDF() {
+            if (!currentBookingData) {
+                alert('No hay datos de reserva disponibles.');
+                return;
+            }
+            
+            // Open PDF download
+            const pdfUrl = `receipt_handler.php?booking_id=${currentBookingData.id}&action=pdf`;
+            window.open(pdfUrl, '_blank');
+        }
+        
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        function whatsappReceipt() {
+            alert('📱 WhatsApp functionality will be implemented in the next phase.');
+            // TODO: Implement WhatsApp sending functionality
+        }
+        
+        function emailReceiptFromSuccess() {
+            const guestEmail = document.getElementById('guest_email').value;
+            const email = prompt('Ingrese la dirección de email:', guestEmail || '');
+            
+            if (!email) return;
+            
+            if (!isValidEmail(email)) {
+                alert('Por favor ingrese una dirección de email válida.');
+                return;
+            }
+            
+            <?php if (isset($_SESSION['last_booking_id'])): ?>
+            // Send email via fetch
+            fetch(`receipt_handler.php?booking_id=<?php echo $_SESSION['last_booking_id']; ?>&action=email&email=${encodeURIComponent(email)}&ajax=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + data.message);
+                    } else {
+                        alert('❌ ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Error sending email: ' + error.message);
+                });
+            <?php else: ?>
+            alert('❌ No booking ID available for email sending.');
+            <?php endif; ?>
         }
 
         function toggleDiscountInput() {
@@ -1551,11 +2187,80 @@ function getMonthName($month) {
             calculateTotal();
         }
 
+        function toggleCustomerDiscount() {
+            const discountType = document.getElementById('customer_discount_type').value;
+            const discountValue = document.getElementById('customer_discount_value');
+            const discountReason = document.getElementById('customer_discount_reason');
+            
+            if (discountType) {
+                discountValue.disabled = false;
+                discountReason.disabled = false;
+                
+                if (discountType === 'percentage') {
+                    discountValue.placeholder = 'e.g., 10 for 10%';
+                    discountValue.max = '100';
+                } else {
+                    discountValue.placeholder = 'e.g., 15 for $15 off';
+                    discountValue.max = '9999';
+                }
+                discountValue.focus();
+            } else {
+                discountValue.disabled = true;
+                discountReason.disabled = true;
+                discountValue.value = '';
+                discountReason.value = '';
+            }
+            calculateTotal();
+        }
+
+        function updateGuestOptions() {
+            const roomId = document.getElementById('room_id').value;
+            const guestSelect = document.getElementById('guest_count');
+            
+            if (!roomId) {
+                return;
+            }
+            
+            const selectedRoom = roomsData.find(room => room.id == roomId);
+            if (!selectedRoom) {
+                return;
+            }
+            
+            const maxOccupancy = parseInt(selectedRoom.max_occupancy) || 2;
+            const extraBedAvailable = selectedRoom.extra_bed_available == 1;
+            const maxGuests = extraBedAvailable ? maxOccupancy + 1 : maxOccupancy;
+            
+            // Clear existing options
+            guestSelect.innerHTML = '';
+            
+            // Add guest options
+            for (let i = 1; i <= Math.max(maxGuests, 6); i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i} Guest${i > 1 ? 's' : ''}`;
+                
+                if (i > maxGuests) {
+                    option.textContent += ' ⚠️ (Exceeds capacity)';
+                    option.style.color = '#dc3545';
+                } else if (i > maxOccupancy) {
+                    option.textContent += ' (Extra bed)';
+                    option.style.color = '#ffc107';
+                }
+                
+                if (i === 2) {
+                    option.selected = true;
+                }
+                
+                guestSelect.appendChild(option);
+            }
+        }
+
         function calculateTotal() {
             const roomId = document.getElementById('room_id').value;
             const checkIn = document.getElementById('check_in_date').value;
             const checkOut = document.getElementById('check_out_date').value;
-            const useCustomPrice = document.getElementById('use_custom_price').checked;
+            const guestCount = parseInt(document.getElementById('guest_count').value) || 2;
+            const customPriceType = document.getElementById('custom_price_type').value;
             const selectedCurrency = document.getElementById('booking_currency').value;
             const discountType = document.getElementById('discount_type').value;
             const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
@@ -1574,28 +2279,128 @@ function getMonthName($month) {
                 return;
             }
 
-            let pricePerNightUSD = 0;
+            // Find the selected room data
+            const selectedRoom = roomsData.find(room => room.id == roomId);
+            if (!selectedRoom) {
+                resetPriceDisplay();
+                return;
+            }
             
-            if (useCustomPrice) {
-                // Use custom pricing based on selected currency
-                const customPriceUSD = parseFloat(document.getElementById('custom_price_usd').value) || 0;
-                const customPricePEN = parseFloat(document.getElementById('custom_price_pen').value) || 0;
-                
-                if (selectedCurrency === 'USD' && customPriceUSD > 0) {
-                    pricePerNightUSD = customPriceUSD;
-                } else if (selectedCurrency === 'PEN' && customPricePEN > 0) {
-                    pricePerNightUSD = customPricePEN / 3.75; // Convert PEN to USD for calculation
+            // Debug logging
+            console.log('Selected Room Data:', selectedRoom);
+            console.log('Guest Count:', guestCount);
+
+            let pricePerNightUSD = 0;
+            let dynamicPricingApplied = false;
+            let pricingBreakdown = '';
+            
+            // Calculate base price using normal dynamic pricing logic
+            const basePrice = parseFloat(selectedRoom.price) || 0;
+            const maxOccupancy = parseInt(selectedRoom.max_occupancy) || 2;
+            const extraBedAvailable = selectedRoom.extra_bed_available == 1;
+            const extraBedPrice = parseFloat(selectedRoom.extra_bed_price) || 0;
+            const singleDiscountType = selectedRoom.single_discount_type || 'percentage';
+            const singleDiscountValue = parseFloat(selectedRoom.single_discount_value) || 0;
+
+            console.log('Pricing Logic:', {
+                basePrice,
+                maxOccupancy,
+                extraBedAvailable,
+                extraBedPrice,
+                guestCount,
+                comparison: guestCount > maxOccupancy,
+                extraBedCondition: extraBedAvailable && guestCount <= maxOccupancy + 1
+            });
+
+            // Calculate the base calculated price per night
+            let baseCalculatedPricePerNight = basePrice;
+            let baseCalculatedBreakdown = '';
+            
+            if (guestCount === 1 && singleDiscountValue > 0) {
+                // Single occupancy discount
+                dynamicPricingApplied = true;
+                if (singleDiscountType === 'percentage') {
+                    const discountAmount = basePrice * (singleDiscountValue / 100);
+                    baseCalculatedPricePerNight = basePrice - discountAmount;
+                    baseCalculatedBreakdown = `Single guest (${singleDiscountValue}% off)`;
                 } else {
-                    pricePerNightUSD = customPriceUSD || (customPricePEN / 3.75) || 0;
+                    baseCalculatedPricePerNight = Math.max(0, basePrice - singleDiscountValue);
+                    baseCalculatedBreakdown = `Single guest ($${singleDiscountValue.toFixed(2)} off)`;
+                }
+            } else if (guestCount <= maxOccupancy) {
+                // Standard pricing
+                baseCalculatedBreakdown = `${guestCount} guest${guestCount > 1 ? 's' : ''} (standard rate)`;
+            } else if (guestCount > maxOccupancy) {
+                // Guest count exceeds base capacity
+                if (extraBedAvailable && guestCount <= maxOccupancy + 1) {
+                    // Extra bed pricing - exactly 1 person over capacity
+                    dynamicPricingApplied = true;
+                    baseCalculatedPricePerNight = basePrice + extraBedPrice;
+                    baseCalculatedBreakdown = `${guestCount} guests (extra bed +$${extraBedPrice.toFixed(2)})`;
+                    console.log('Extra bed pricing applied:', baseCalculatedPricePerNight);
+                } else if (extraBedAvailable && guestCount > maxOccupancy + 1) {
+                    // Exceeds even with extra bed
+                    baseCalculatedBreakdown = `⚠️ Exceeds room capacity (max ${maxOccupancy + 1} with extra bed)`;
+                } else {
+                    // No extra bed available but exceeds capacity
+                    baseCalculatedBreakdown = `⚠️ Exceeds room capacity (max ${maxOccupancy}, no extra bed available)`;
+                }
+            }
+
+            // Now apply custom pricing logic if enabled
+            let finalPricePerNightUSD = baseCalculatedPricePerNight;
+            let customPricingApplied = false;
+            
+            if (customPriceType === 'override') {
+                // Override with custom total price
+                const overridePriceUSD = parseFloat(document.getElementById('override_price_usd').value) || 0;
+                const overridePricePEN = parseFloat(document.getElementById('override_price_pen').value) || 0;
+                
+                if (selectedCurrency === 'USD' && overridePriceUSD > 0) {
+                    finalPricePerNightUSD = overridePriceUSD / nights; // Convert total to per night
+                    pricingBreakdown = `Custom override: $${overridePriceUSD.toFixed(2)} total`;
+                    customPricingApplied = true;
+                } else if (selectedCurrency === 'PEN' && overridePricePEN > 0) {
+                    finalPricePerNightUSD = (overridePricePEN / 3.75) / nights; // Convert PEN to USD and total to per night
+                    pricingBreakdown = `Custom override: S/ ${overridePricePEN.toFixed(2)} total`;
+                    customPricingApplied = true;
+                } else {
+                    pricingBreakdown = baseCalculatedBreakdown;
+                }
+            } else if (customPriceType === 'adjustment') {
+                // Apply price adjustment
+                const adjustmentType = document.getElementById('adjustment_type').value;
+                const adjustmentAmount = parseFloat(document.getElementById('adjustment_amount').value) || 0;
+                const adjustmentReason = document.getElementById('adjustment_reason').value;
+                
+                if (adjustmentAmount > 0) {
+                    if (adjustmentType === 'add') {
+                        finalPricePerNightUSD = baseCalculatedPricePerNight + adjustmentAmount;
+                        pricingBreakdown = baseCalculatedBreakdown + ` + $${adjustmentAmount.toFixed(2)}`;
+                    } else {
+                        finalPricePerNightUSD = Math.max(0, baseCalculatedPricePerNight - adjustmentAmount);
+                        pricingBreakdown = baseCalculatedBreakdown + ` - $${adjustmentAmount.toFixed(2)}`;
+                    }
+                    
+                    if (adjustmentReason) {
+                        pricingBreakdown += ` (${adjustmentReason})`;
+                    }
+                    customPricingApplied = true;
+                } else {
+                    pricingBreakdown = baseCalculatedBreakdown;
                 }
             } else {
-                // Use room default price (assumed to be in USD)
-                pricePerNightUSD = roomPrices[roomId] || 0;
+                // Use calculated price
+                pricingBreakdown = baseCalculatedBreakdown;
             }
+            
+            pricePerNightUSD = finalPricePerNightUSD;
 
             let subtotalUSD = pricePerNightUSD * nights;
             let discountAmountUSD = 0;
+            let customerDiscountUSD = 0;
 
+            // Handle existing discount system
             if (discountType && discountValue > 0) {
                 if (discountType === 'percentage') {
                     discountAmountUSD = subtotalUSD * (discountValue / 100);
@@ -1606,10 +2411,37 @@ function getMonthName($month) {
                 }
             }
 
-            const totalUSD = subtotalUSD - discountAmountUSD;
+            // Handle customer discount
+            const customerDiscountType = document.getElementById('customer_discount_type').value;
+            const customerDiscountValue = parseFloat(document.getElementById('customer_discount_value').value) || 0;
+            
+            if (customerDiscountType && customerDiscountValue > 0) {
+                if (customerDiscountType === 'percentage') {
+                    customerDiscountUSD = subtotalUSD * (customerDiscountValue / 100);
+                } else if (customerDiscountType === 'fixed') {
+                    customerDiscountUSD = Math.min(customerDiscountValue, subtotalUSD);
+                }
+            }
 
-            // Update display with dual currency
-            document.getElementById('basePrice').innerHTML = formatCurrencyInput(pricePerNightUSD);
+            const totalDiscountUSD = discountAmountUSD + customerDiscountUSD;
+            const totalUSD = Math.max(0, subtotalUSD - totalDiscountUSD);
+
+            // Update display with dual currency and pricing breakdown
+            let pricingDisplayText = pricingBreakdown;
+            
+            // Add pricing type indicators
+            if (customPricingApplied) {
+                if (customPriceType === 'override') {
+                    pricingDisplayText += ' [CUSTOM OVERRIDE]';
+                } else if (customPriceType === 'adjustment') {
+                    pricingDisplayText += ' [PRICE ADJUSTED]';
+                }
+            } else if (dynamicPricingApplied) {
+                pricingDisplayText += ' [DYNAMIC PRICING]';
+            }
+            
+            document.getElementById('basePrice').innerHTML = formatCurrencyInput(pricePerNightUSD) + 
+                (pricingDisplayText ? `<br><small style="color: #666; font-size: 0.8em;">${pricingDisplayText}</small>` : '');
             document.getElementById('nightCount').textContent = nights;
             document.getElementById('subtotal').innerHTML = formatCurrencyInput(subtotalUSD);
             
@@ -1621,7 +2453,55 @@ function getMonthName($month) {
                 discountDisplay.style.display = 'none';
             }
             
+            const customerDiscountDisplay = document.getElementById('customerDiscountDisplay');
+            if (customerDiscountUSD > 0) {
+                const customerDiscountReason = document.getElementById('customer_discount_reason').value;
+                const discountLabel = customerDiscountReason ? `${customerDiscountReason}:` : 'Customer Discount:';
+                customerDiscountDisplay.querySelector('span').textContent = discountLabel;
+                document.getElementById('customerDiscountAmount').innerHTML = '-' + formatCurrencyInput(customerDiscountUSD);
+                customerDiscountDisplay.style.display = 'block';
+            } else {
+                customerDiscountDisplay.style.display = 'none';
+            }
+            
             document.getElementById('totalPrice').innerHTML = '<strong>' + formatCurrencyInput(totalUSD) + '</strong>';
+            
+            // Show dynamic pricing indicator if applied
+            if (dynamicPricingApplied || customerDiscountUSD > 0 || customPricingApplied) {
+                let indicator = '';
+                if (dynamicPricingApplied) indicator += '✨ Dynamic pricing';
+                if (customerDiscountUSD > 0) {
+                    indicator += (indicator ? ' + ' : '') + '🏷️ Customer discount';
+                }
+                if (customPricingApplied) {
+                    if (customPriceType === 'override') indicator += (indicator ? ' + ' : '') + '💲 Custom override';
+                    else if (customPriceType === 'adjustment') indicator += (indicator ? ' + ' : '') + '📊 Price adjusted';
+                }
+                document.getElementById('totalPrice').innerHTML += `<br><small style="color: #28a745; font-size: 0.8em;">${indicator} applied</small>`;
+            }
+            
+            // Update hidden fields for form submission
+            document.getElementById('custom_pricing_type_hidden').value = customPriceType || '';
+            
+            if (customPriceType === 'override') {
+                const selectedCurrency = document.getElementById('booking_currency').value;
+                if (selectedCurrency === 'USD') {
+                    document.getElementById('custom_pricing_value_hidden').value = document.getElementById('override_price_usd').value || '';
+                } else {
+                    document.getElementById('custom_pricing_value_hidden').value = document.getElementById('override_price_pen').value || '';
+                }
+                document.getElementById('custom_pricing_reason_hidden').value = 'Custom price override';
+            } else if (customPriceType === 'adjustment') {
+                const adjustmentType = document.getElementById('adjustment_type').value;
+                const adjustmentAmount = document.getElementById('adjustment_amount').value || '';
+                const adjustmentReason = document.getElementById('adjustment_reason').value || '';
+                
+                document.getElementById('custom_pricing_value_hidden').value = (adjustmentType === 'add' ? '+' : '-') + adjustmentAmount;
+                document.getElementById('custom_pricing_reason_hidden').value = adjustmentReason || 'Price adjustment';
+            } else {
+                document.getElementById('custom_pricing_value_hidden').value = '';
+                document.getElementById('custom_pricing_reason_hidden').value = '';
+            }
         }
 
         function resetPriceDisplay() {
