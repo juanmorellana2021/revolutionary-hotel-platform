@@ -38,7 +38,12 @@ class User {
         $this->connection = $this->db->getConnection();
     }
 
-    public function register($firstName, $lastName, $email, $password) {
+    public function register($firstName, $lastName, $email, $password, $termsAccepted = false, $termsVersion = '1.0') {
+        // Check if terms are accepted
+        if (!$termsAccepted) {
+            return ['success' => false, 'message' => 'You must accept the terms and conditions to register'];
+        }
+
         // Check if user already exists
         $stmt = $this->connection->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
@@ -50,13 +55,13 @@ class User {
         // Hash password
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        // Insert new user
+        // Insert new user with terms acceptance
         $stmt = $this->connection->prepare("
-            INSERT INTO users (first_name, last_name, email, password) 
-            VALUES (?, ?, ?, ?)
+            INSERT INTO users (first_name, last_name, email, password, terms_accepted, terms_accepted_at, terms_version) 
+            VALUES (?, ?, ?, ?, ?, NOW(), ?)
         ");
         
-        if ($stmt->execute([$firstName, $lastName, $email, $hashedPassword])) {
+        if ($stmt->execute([$firstName, $lastName, $email, $hashedPassword, 1, $termsVersion])) {
             $userId = $this->connection->lastInsertId();
             return [
                 'success' => true, 

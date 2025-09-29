@@ -147,14 +147,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
 
 // Handle quick booking creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
-    $roomId = $_POST['room_id'];
-    $checkIn = $_POST['check_in_date'];
-    $checkOut = $_POST['check_out_date'];
-    $guestName = $_POST['guest_name'];
-    $guestEmail = $_POST['guest_email'];
-    $guestPhone = $_POST['guest_phone'] ?? '';
-    $passportNumber = $_POST['passport_number'] ?? '';
-    $idNumber = $_POST['id_number'] ?? '';
+    // Check terms acceptance first
+    $termsAccepted = isset($_POST['terms_accepted']) && $_POST['terms_accepted'] === 'on';
+    
+    if (!$termsAccepted) {
+        $message = 'You must accept the Terms & Conditions and Guest Responsibility Agreement to create a booking.';
+        $messageType = 'error';
+    } else {
+        $roomId = $_POST['room_id'];
+        $checkIn = $_POST['check_in_date'];
+        $checkOut = $_POST['check_out_date'];
+        $guestName = $_POST['guest_name'];
+        $guestEmail = $_POST['guest_email'];
+        $guestPhone = $_POST['guest_phone'] ?? '';
+        $passportNumber = $_POST['passport_number'] ?? '';
+        $idNumber = $_POST['id_number'] ?? '';
     
     // Create a temporary guest user or use existing
     $userManager = new User();
@@ -167,12 +174,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
     if ($existingUser) {
         $guestId = $existingUser['id'];
     } else {
-        // Create new guest user
+        // Create new guest user with terms acceptance
         $names = explode(' ', $guestName, 2);
         $firstName = $names[0];
         $lastName = isset($names[1]) ? $names[1] : '';
         
-        $result = $userManager->register($firstName, $lastName, $guestEmail, 'temp123');
+        $result = $userManager->register($firstName, $lastName, $guestEmail, 'temp123', true, '1.0');
         if ($result['success']) {
             $guestId = $result['user_id'];
             
@@ -307,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
             $showReceipt = true;
         }
     }
+    } // End of terms acceptance check
 }
 
 // Handle mark as paid functionality
@@ -1544,8 +1552,26 @@ function getMonthName($month) {
                 <input type="hidden" id="custom_pricing_value_hidden" name="custom_pricing_value" value="">
                 <input type="hidden" id="custom_pricing_reason_hidden" name="custom_pricing_reason" value="">
                 
+                <!-- Terms and Conditions Agreement -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #e9ecef;">
+                    <div style="display: flex; align-items: start; gap: 10px;">
+                        <input type="checkbox" id="terms_accepted" name="terms_accepted" required 
+                               style="margin-top: 4px; transform: scale(1.2);">
+                        <label for="terms_accepted" style="font-size: 0.9em; line-height: 1.4; color: #495057;">
+                            <strong>📋 Agreement Required:</strong> I acknowledge that I have read, understood, and agree to be legally bound by the 
+                            <a href="terms_and_conditions.php" target="_blank" style="color: #007bff; text-decoration: underline;">
+                                Terms & Conditions, Guest Responsibility Agreement, and Property Damage Policy
+                            </a>. 
+                            I accept full financial responsibility for any damages to hotel property during my stay and agree to maintain appropriate behavior standards.
+                        </label>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.8em; color: #6c757d; padding-left: 30px;">
+                        ⚠️ <strong>Important:</strong> Checking this box confirms your legal agreement to all hotel policies including damage liability and guest conduct standards.
+                    </div>
+                </div>
+                
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" name="quick_booking" class="btn btn-success">💾 Create Booking</button>
+                    <button type="submit" name="quick_booking" class="btn btn-success" id="create_booking_btn" disabled>💾 Create Booking</button>
                     <button type="button" onclick="closeBookingModal()" class="btn" style="background: #6c757d; color: white;">❌ Cancel</button>
                 </div>
             </form>
@@ -1963,6 +1989,20 @@ function getMonthName($month) {
             
             if (document.getElementById('check_out_date').value <= this.value) {
                 document.getElementById('check_out_date').value = checkOut.toISOString().split('T')[0];
+            }
+        });
+
+        // Terms and conditions checkbox functionality
+        document.getElementById('terms_accepted').addEventListener('change', function() {
+            const createBookingBtn = document.getElementById('create_booking_btn');
+            if (this.checked) {
+                createBookingBtn.disabled = false;
+                createBookingBtn.style.opacity = '1';
+                createBookingBtn.style.cursor = 'pointer';
+            } else {
+                createBookingBtn.disabled = true;
+                createBookingBtn.style.opacity = '0.5';
+                createBookingBtn.style.cursor = 'not-allowed';
             }
         });
 
