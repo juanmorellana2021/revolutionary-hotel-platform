@@ -781,12 +781,12 @@ function getMonthName($month) {
         }
 
         .available {
-            background: #28a745;
+            background: #17a2b8;
             color: white;
         }
 
         .available:hover {
-            background: #218838;
+            background: #138496;
         }
 
         .room-dirty {
@@ -1366,28 +1366,32 @@ function getMonthName($month) {
 
         <div class="legend">
             <div class="legend-item">
+                <div class="legend-color" style="background: #17a2b8;"></div>
+                <span>💧 Available</span>
+            </div>
+            <div class="legend-item">
                 <div class="legend-color" style="background: #28a745;"></div>
-                <span>Available / Paid</span>
+                <span>✅ Paid Booking</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #dc3545;"></div>
-                <span>Booked (Pending)</span>
+                <span>❌ Pending Payment</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #ffc107;"></div>
-                <span>Partial Payment</span>
+                <span>⚠️ Partial Payment</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #fd7e14;"></div>
-                <span>Check-out</span>
+                <span>🚪 Check-out</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #fff3cd; border: 1px solid #ffeaa7;"></div>
-                <span>Today</span>
+                <span>📅 Today</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #f8f9fa; border: 1px solid #dee2e6;"></div>
-                <span>Weekend</span>
+                <span>📆 Weekend</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: white; border: 3px solid #dc3545;"></div>
