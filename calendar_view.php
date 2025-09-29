@@ -75,7 +75,8 @@ $db = new Database();
 $connection = $db->getConnection();
 
 $stmt = $connection->prepare("
-    SELECT b.*, r.room_number, r.room_type, u.first_name, u.last_name, u.email, u.phone
+    SELECT b.*, r.room_number, r.room_type, r.room_status, r.last_cleaned, r.cleaned_by, 
+           u.first_name, u.last_name, u.email, u.phone
     FROM bookings b
     JOIN rooms r ON b.room_id = r.id
     JOIN users u ON b.user_id = u.id
@@ -335,6 +336,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_as_paid'])) {
         }
     } catch (Exception $e) {
         $message = 'Error updating payment status: ' . $e->getMessage();
+        $messageType = 'error';
+    }
+    
+    // Refresh the page to show updated status
+    header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
+    exit;
+}
+
+// Handle room status updates
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_room_status'])) {
+    $roomId = $_POST['manage_room_id'];
+    $roomStatus = $_POST['room_status'];
+    $cleaningNotes = $_POST['cleaning_notes'] ?? '';
+    
+    try {
+        // Update room status
+        $stmt = $connection->prepare("UPDATE rooms SET room_status = ?, last_cleaned = IF(? = 'clean', NOW(), last_cleaned), cleaned_by = IF(? = 'clean', 'System', cleaned_by) WHERE id = ?");
+        $success = $stmt->execute([$roomStatus, $roomStatus, $roomStatus, $roomId]);
+        
+        if ($success) {
+            // Log the status change
+            $stmt = $connection->prepare("INSERT INTO room_status_log (room_id, status, notes, changed_by, created_at) VALUES (?, ?, ?, 'Manager', NOW())");
+            $stmt->execute([$roomId, $roomStatus, $cleaningNotes]);
+            
+            // Send notification based on status
+            switch ($roomStatus) {
+                case 'dirty':
+                    $message = 'Room marked as dirty. Cleaning staff will be notified.';
+                    // Here you could add WhatsApp notification to cleaning staff
+                    break;
+                case 'maintenance':
+                    $message = 'Room marked for maintenance. Maintenance team will be alerted.';
+                    break;
+                case 'out_of_order':
+                    $message = 'Room marked as out of order. Management has been notified.';
+                    break;
+                case 'clean':
+                    $message = 'Room marked as clean and ready for guests.';
+                    break;
+            }
+            $messageType = 'success';
+        } else {
+            $message = 'Failed to update room status';
+            $messageType = 'error';
+        }
+    } catch (Exception $e) {
+        $message = 'Error updating room status: ' . $e->getMessage();
         $messageType = 'error';
     }
     
@@ -709,6 +757,24 @@ function getMonthName($month) {
             background: #c82333 !important;
         }
 
+        .booked.paid {
+            background: #28a745 !important;
+            color: white;
+        }
+
+        .booked.paid:hover {
+            background: #218838 !important;
+        }
+
+        .booked.partial {
+            background: #ffc107 !important;
+            color: #212529;
+        }
+
+        .booked.partial:hover {
+            background: #e0a800 !important;
+        }
+
         .checkout {
             background: #fd7e14 !important;
             color: white;
@@ -721,6 +787,22 @@ function getMonthName($month) {
 
         .available:hover {
             background: #218838;
+        }
+
+        .room-dirty {
+            border: 3px solid #dc3545 !important;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+
+        .room-maintenance {
+            border: 3px solid #fd7e14 !important;
+            box-shadow: 0 0 10px rgba(253, 126, 20, 0.5);
+        }
+
+        .room-out-of-order {
+            border: 3px solid #6c757d !important;
+            box-shadow: 0 0 10px rgba(108, 117, 125, 0.5);
+            opacity: 0.7;
         }
 
         .booking-info {
@@ -1175,9 +1257,23 @@ function getMonthName($month) {
                 <tbody>
                     <?php foreach ($rooms as $room): ?>
                         <tr>
-                            <td class="room-info">
+                            <td class="room-info <?php 
+                                $roomStatus = $room['room_status'] ?? 'clean';
+                                if ($roomStatus === 'dirty') echo 'room-dirty';
+                                elseif ($roomStatus === 'maintenance') echo 'room-maintenance';
+                                elseif ($roomStatus === 'out_of_order') echo 'room-out-of-order';
+                            ?>">
                                 <div class="room-details">
-                                    <div class="room-number">Room <?php echo htmlspecialchars($room['room_number']); ?></div>
+                                    <div class="room-number">
+                                        Room <?php echo htmlspecialchars($room['room_number']); ?>
+                                        <?php if ($roomStatus === 'dirty'): ?>
+                                            <span style="color: #dc3545; font-weight: bold;">🧹</span>
+                                        <?php elseif ($roomStatus === 'maintenance'): ?>
+                                            <span style="color: #fd7e14; font-weight: bold;">🔧</span>
+                                        <?php elseif ($roomStatus === 'out_of_order'): ?>
+                                            <span style="color: #6c757d; font-weight: bold;">⚠️</span>
+                                        <?php endif; ?>
+                                    </div>
                                     <div class="room-type"><?php echo htmlspecialchars($room['room_type']); ?></div>
                                     <div class="room-price">$<?php echo number_format($room['price'] ?? 0, 0); ?>/night</div>
                                 </div>
@@ -1213,6 +1309,15 @@ function getMonthName($month) {
                                         $cellContent = '<div class="booking-info">OUT</div>';
                                     } else {
                                         $cellClass .= ' booked';
+                                        
+                                        // Add payment status to cell class
+                                        $paymentStatus = $booking['payment_status'] ?? 'pending';
+                                        if ($paymentStatus === 'paid') {
+                                            $cellClass .= ' paid';
+                                        } elseif ($paymentStatus === 'partial') {
+                                            $cellClass .= ' partial';
+                                        }
+                                        
                                         $cellContent = '<div class="booking-info">' . 
                                                      substr($booking['first_name'], 0, 1) . 
                                                      substr($booking['last_name'], 0, 1) . '</div>';
@@ -1262,11 +1367,15 @@ function getMonthName($month) {
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color" style="background: #28a745;"></div>
-                <span>Available</span>
+                <span>Available / Paid</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #dc3545;"></div>
-                <span>Booked</span>
+                <span>Booked (Pending)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffc107;"></div>
+                <span>Partial Payment</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #fd7e14;"></div>
@@ -1279,6 +1388,14 @@ function getMonthName($month) {
             <div class="legend-item">
                 <div class="legend-color" style="background: #f8f9fa; border: 1px solid #dee2e6;"></div>
                 <span>Weekend</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: white; border: 3px solid #dc3545;"></div>
+                <span>🧹 Dirty Room</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: white; border: 3px solid #fd7e14;"></div>
+                <span>🔧 Maintenance</span>
             </div>
         </div>
     </div>
@@ -1681,6 +1798,56 @@ function getMonthName($month) {
                     <button type="submit" class="btn btn-success">💾 Update Booking</button>
                     <button type="button" onclick="deleteBooking()" class="btn" style="background: #dc3545; color: white;">🗑️ Delete Booking</button>
                     <button type="button" onclick="closeEditBookingModal()" class="btn" style="background: #6c757d; color: white;">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Room Management Modal -->
+    <div id="roomManagementModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="closeRoomManagementModal()">&times;</span>
+            <h2>🧹 Room Management</h2>
+            <form method="POST" action="">
+                <input type="hidden" id="manage_room_id" name="manage_room_id">
+                <input type="hidden" name="update_room_status" value="1">
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <h3 id="room_management_title">Room Details</h3>
+                    <div id="room_management_info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <!-- Room info will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="room_status">🏠 Room Status</label>
+                    <select id="room_status" name="room_status" required style="padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
+                        <option value="clean">✅ Clean & Ready</option>
+                        <option value="dirty">🧹 Needs Cleaning</option>
+                        <option value="maintenance">🔧 Maintenance Required</option>
+                        <option value="out_of_order">⚠️ Out of Order</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cleaning_notes">📝 Notes</label>
+                    <textarea id="cleaning_notes" name="cleaning_notes" rows="3" 
+                              placeholder="Add notes about room condition, cleaning requirements, or maintenance issues..."
+                              style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;"></textarea>
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h4 style="color: #1976d2; margin-bottom: 10px;">📱 Automatic Notifications</h4>
+                    <div style="font-size: 0.9em; color: #555;">
+                        <p><strong>Dirty Room:</strong> Cleaning staff will be notified via WhatsApp</p>
+                        <p><strong>Maintenance:</strong> Maintenance team will be alerted</p>
+                        <p><strong>Out of Order:</strong> Management will be notified immediately</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">💾 Update Room Status</button>
+                    <button type="button" onclick="closeRoomManagementModal()" class="btn" style="background: #6c757d; color: white;">❌ Cancel</button>
                 </div>
             </form>
         </div>
@@ -2618,6 +2785,71 @@ function getMonthName($month) {
             calculateTotal();
         });
         document.getElementById('check_out_date').addEventListener('change', calculateTotal);
+
+        // Room Management Functions
+        function openRoomManagementModal(roomData) {
+            console.log('Opening room management modal for:', roomData);
+            
+            // Populate modal with room data
+            document.getElementById('manage_room_id').value = roomData.id;
+            document.getElementById('room_management_title').textContent = `Room ${roomData.room_number} Management`;
+            
+            // Populate room info
+            const roomInfo = document.getElementById('room_management_info');
+            roomInfo.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <strong>🏨 Room:</strong> ${roomData.room_number}<br>
+                        <strong>🛏️ Type:</strong> ${roomData.room_type}<br>
+                        <strong>💰 Price:</strong> $${parseFloat(roomData.price || 0).toFixed(0)}/night
+                    </div>
+                    <div>
+                        <strong>📊 Current Status:</strong> ${getRoomStatusText(roomData.room_status || 'clean')}<br>
+                        <strong>🧹 Last Cleaned:</strong> ${roomData.last_cleaned || 'Not recorded'}<br>
+                        <strong>👤 Cleaned By:</strong> ${roomData.cleaned_by || 'N/A'}
+                    </div>
+                </div>
+            `;
+            
+            // Set current status in dropdown
+            document.getElementById('room_status').value = roomData.room_status || 'clean';
+            
+            // Clear notes
+            document.getElementById('cleaning_notes').value = '';
+            
+            // Show modal
+            document.getElementById('roomManagementModal').style.display = 'block';
+        }
+        
+        function closeRoomManagementModal() {
+            document.getElementById('roomManagementModal').style.display = 'none';
+        }
+        
+        function getRoomStatusText(status) {
+            switch(status) {
+                case 'clean': return '✅ Clean & Ready';
+                case 'dirty': return '🧹 Needs Cleaning';
+                case 'maintenance': return '🔧 Maintenance Required';
+                case 'out_of_order': return '⚠️ Out of Order';
+                default: return '✅ Clean & Ready';
+            }
+        }
+        
+        // Add double-click event to room info cells to open room management
+        document.addEventListener('DOMContentLoaded', function() {
+            const roomInfoCells = document.querySelectorAll('.room-info');
+            roomInfoCells.forEach(function(cell, index) {
+                cell.addEventListener('dblclick', function() {
+                    if (roomsData[index]) {
+                        openRoomManagementModal(roomsData[index]);
+                    }
+                });
+                
+                // Add tooltip
+                cell.title = 'Double-click to manage room status';
+                cell.style.cursor = 'pointer';
+            });
+        });
 
     </script>
 </body>
