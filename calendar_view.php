@@ -111,6 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
     $guestName = $_POST['edit_guest_name'];
     $guestEmail = $_POST['edit_guest_email'];
     $guestPhone = $_POST['edit_guest_phone'] ?? '';
+    $passportNumber = $_POST['edit_passport_number'] ?? '';
+    $idNumber = $_POST['edit_id_number'] ?? '';
     $totalPrice = (float)$_POST['edit_total_price'];
     $specialRequests = $_POST['edit_special_requests'];
     
@@ -118,10 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         // Update booking
         $stmt = $connection->prepare("
             UPDATE bookings 
-            SET room_id = ?, check_in_date = ?, check_out_date = ?, total_price = ?, special_requests = ?
+            SET room_id = ?, check_in_date = ?, check_out_date = ?, total_price = ?, special_requests = ?, guest_name = ?, guest_email = ?, guest_phone = ?, passport_number = ?, id_number = ?
             WHERE id = ?
         ");
-        $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $bookingId]);
+        $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $guestName, $guestEmail, $guestPhone, $passportNumber, $idNumber, $bookingId]);
         
         // Update user information
         $stmt = $connection->prepare("
@@ -151,6 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
     $guestName = $_POST['guest_name'];
     $guestEmail = $_POST['guest_email'];
     $guestPhone = $_POST['guest_phone'] ?? '';
+    $passportNumber = $_POST['passport_number'] ?? '';
+    $idNumber = $_POST['id_number'] ?? '';
     
     // Create a temporary guest user or use existing
     $userManager = new User();
@@ -264,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         $bookingReference = 'HTL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         
         // Create booking directly in database since we need more control
-        $stmt = $connection->prepare("INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, payment_status, payment_method, paid_amount, booking_reference, guest_name, guest_email, guest_phone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
+        $stmt = $connection->prepare("INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, payment_status, payment_method, paid_amount, booking_reference, guest_name, guest_email, guest_phone, passport_number, id_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
         
         $success = $stmt->execute([
             $guestId, 
@@ -280,7 +284,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
             $bookingReference,
             $guestName,
             $guestEmail,
-            $guestPhone
+            $guestPhone,
+            $passportNumber,
+            $idNumber
         ]);
         
         if ($success) {
@@ -999,6 +1005,12 @@ function getMonthName($month) {
                         📧 <?php echo htmlspecialchars($receiptBooking['guest_email']); ?><br>
                         <?php if ($receiptBooking['guest_phone']): ?>
                         📱 <?php echo htmlspecialchars($receiptBooking['guest_phone']); ?><br>
+                        <?php endif; ?>
+                        <?php if ($receiptBooking['passport_number']): ?>
+                        🛂 Passport: <?php echo htmlspecialchars($receiptBooking['passport_number']); ?><br>
+                        <?php endif; ?>
+                        <?php if ($receiptBooking['id_number']): ?>
+                        🆔 ID: <?php echo htmlspecialchars($receiptBooking['id_number']); ?><br>
                         <?php endif; ?></p>
                     </div>
                 </div>
@@ -1202,14 +1214,17 @@ function getMonthName($month) {
                                     $bookingData = json_encode([
                                         'id' => $booking['id'],
                                         'room_id' => $booking['room_id'],
-                                        'guest_name' => $booking['first_name'] . ' ' . $booking['last_name'],
-                                        'guest_email' => $booking['email'],
-                                        'guest_phone' => $booking['phone'] ?? '',
+                                        'guest_name' => !empty($booking['guest_name']) ? $booking['guest_name'] : ($booking['first_name'] . ' ' . $booking['last_name']),
+                                        'guest_email' => !empty($booking['guest_email']) ? $booking['guest_email'] : $booking['email'],
+                                        'guest_phone' => !empty($booking['guest_phone']) ? $booking['guest_phone'] : ($booking['phone'] ?? ''),
+                                        'passport_number' => $booking['passport_number'] ?? '',
+                                        'id_number' => $booking['id_number'] ?? '',
                                         'room_number' => $booking['room_number'],
                                         'room_type' => $booking['room_type'],
                                         'check_in_date' => $booking['check_in_date'],
                                         'check_out_date' => $booking['check_out_date'],
                                         'total_amount' => $booking['total_price'],
+                                        'total_price' => $booking['total_price'],
                                         'status' => $booking['status'],
                                         'special_requests' => $booking['special_requests'] ?? '',
                                         'booking_date' => $booking['created_at'],
@@ -1334,7 +1349,7 @@ function getMonthName($month) {
                 <!-- Guest contact information with exchange rate info -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label for="guest_email" style="font-size: 0.9em;">� Guest Email</label>
+                        <label for="guest_email" style="font-size: 0.9em;">📧 Guest Email</label>
                         <input type="email" id="guest_email" name="guest_email" required 
                                placeholder="guest@email.com" style="font-size: 0.9em;">
                     </div>
@@ -1346,6 +1361,22 @@ function getMonthName($month) {
                     </div>
                     <div style="display: flex; align-items: end; color: #6c757d; font-size: 0.85em; padding-bottom: 8px;">
                         💱 Exchange Rate: 1 USD = 3.75 PEN
+                    </div>
+                </div>
+                
+                <!-- Guest identification information -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label for="passport_number" style="font-size: 0.9em;">🛂 Passport Number</label>
+                        <input type="text" id="passport_number" name="passport_number" 
+                               placeholder="A12345678" style="font-size: 0.9em;"
+                               pattern="[A-Z0-9]+" title="Enter passport number (letters and numbers only)">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_number" style="font-size: 0.9em;">🆔 ID/Document Number</label>
+                        <input type="text" id="id_number" name="id_number" 
+                               placeholder="12345678" style="font-size: 0.9em;"
+                               pattern="[A-Z0-9\-]+" title="Enter ID or document number">
                     </div>
                 </div>
                 
@@ -1599,6 +1630,21 @@ function getMonthName($month) {
                     </div>
                 </div>
                 
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label for="edit_passport_number">🛂 Passport Number</label>
+                        <input type="text" id="edit_passport_number" name="edit_passport_number" 
+                               placeholder="A12345678" pattern="[A-Z0-9]+" 
+                               title="Enter passport number (letters and numbers only)">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_id_number">🆔 ID/Document Number</label>
+                        <input type="text" id="edit_id_number" name="edit_id_number" 
+                               placeholder="12345678" pattern="[A-Z0-9\-]+" 
+                               title="Enter ID or document number">
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="edit_special_requests">📝 Special Requests</label>
                     <textarea id="edit_special_requests" name="edit_special_requests" rows="3" 
@@ -1838,6 +1884,8 @@ function getMonthName($month) {
                 document.getElementById('edit_guest_name').value = bookingData.guest_name || '';
                 document.getElementById('edit_guest_email').value = bookingData.guest_email || '';
                 document.getElementById('edit_guest_phone').value = bookingData.guest_phone || '';
+                document.getElementById('edit_passport_number').value = bookingData.passport_number || '';
+                document.getElementById('edit_id_number').value = bookingData.id_number || '';
                 document.getElementById('edit_check_in').value = bookingData.check_in_date;
                 document.getElementById('edit_check_out').value = bookingData.check_out_date;
                 document.getElementById('edit_total_price').value = bookingData.total_price || '';
