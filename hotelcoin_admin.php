@@ -105,7 +105,9 @@ $stats['loyalty'] = $stmt->fetch();
 
 // Recent transactions
 $stmt = $connection->prepare("
-    SELECT ht.*, u.username 
+    SELECT ht.*, 
+           CONCAT(u.first_name, ' ', u.last_name) as user_name,
+           u.email as user_email
     FROM hotelcoin_transactions ht
     LEFT JOIN users u ON (ht.from_user_id = u.id OR ht.to_user_id = u.id)
     ORDER BY ht.created_at DESC 

@@ -36,13 +36,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $extraBedAvailable = (int)($_POST['extra_bed_available'] ?? 0);
         $extraBedPrice = $extraBedAvailable ? (float)($_POST['extra_bed_price'] ?? 0) : 0;
         
+        // Handle single discount
+        $singleDiscountType = $_POST['single_discount_type'] ?? 'percentage';
+        $singleDiscountValue = (float)($_POST['single_discount_value'] ?? 0);
+        
         // We need to use direct database insertion since addRoom doesn't support extra bed yet
         $db = new Database();
         $connection = $db->getConnection();
         
         $stmt = $connection->prepare("
-            INSERT INTO rooms (room_number, room_type, price, max_occupancy, amenities, extra_bed_available, extra_bed_price) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO rooms (room_number, room_type, price, max_occupancy, amenities, extra_bed_available, extra_bed_price, single_discount_type, single_discount_value) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $success = $stmt->execute([
@@ -52,7 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (int)$_POST['max_occupancy'],
             $_POST['amenities'] ?? '',
             $extraBedAvailable,
-            $extraBedPrice
+            $extraBedPrice,
+            $singleDiscountType,
+            $singleDiscountValue
         ]);
         
         $message = $success ? 'Room added successfully!' : 'Failed to add room.';
@@ -74,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $extraBedAvailable = (int)($_POST['extra_bed_available'] ?? 0);
         $extraBedPrice = $extraBedAvailable ? (float)($_POST['extra_bed_price'] ?? 0) : 0;
         
+        // Handle single discount
+        $singleDiscountType = $_POST['single_discount_type'] ?? 'percentage';
+        $singleDiscountValue = (float)($_POST['single_discount_value'] ?? 0);
+        
         // Handle room update (we'll extend the Room class for this)
         $db = new Database();
         $connection = $db->getConnection();
@@ -81,13 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $connection->prepare("
             UPDATE rooms SET 
             room_type = ?, price = ?, max_occupancy = ?, amenities = ?, 
-            description = ?, features = ?, extra_bed_available = ?, extra_bed_price = ?
+            description = ?, features = ?, extra_bed_available = ?, extra_bed_price = ?, 
+            single_discount_type = ?, single_discount_value = ?
             WHERE id = ?
         ");
         
         $success = $stmt->execute([
             $roomType, $_POST['price'], $_POST['max_occupancy'],
-            $_POST['amenities'], $description, $features, $extraBedAvailable, $extraBedPrice, $roomId
+            $_POST['amenities'], $description, $features, $extraBedAvailable, $extraBedPrice, 
+            $singleDiscountType, $singleDiscountValue, $roomId
         ]);
         
         $message = $success ? 'Room updated successfully!' : 'Failed to update room.';
@@ -589,7 +601,8 @@ foreach ($allPhotos as $photo) {
 
         <div class="nav-tabs">
             <a href="hotel_setup.php" class="nav-tab">🏨 Hotel Info</a>
-            <a href="room_management.php" class="nav-tab active">🏠 Rooms</a>
+            <a href="room_management.php" class="nav-tab <?php echo ($currentView === 'rooms') ? 'active' : ''; ?>">🏠 Rooms</a>
+            <a href="room_management.php?view=photos" class="nav-tab <?php echo ($currentView === 'photos') ? 'active' : ''; ?>">📷 Photos</a>
             <a href="calendar_view.php" class="nav-tab">📅 Calendar</a>
             <a href="wallet.php" class="nav-tab">🪙 Wallet</a>
             <a href="accounting_dashboard.php" class="nav-tab">💰 Accounting</a>
@@ -602,6 +615,70 @@ foreach ($allPhotos as $photo) {
                     <?php echo htmlspecialchars($message); ?>
                 </div>
             <?php endif; ?>
+
+            <?php $currentView = $_GET['view'] ?? 'rooms'; ?>
+            
+            <?php if ($currentView === 'photos'): ?>
+                <!-- Photo Management View -->
+                <div class="section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>📷 Photo Management</h2>
+                        <a href="room_management.php" class="btn btn-secondary">← Back to Rooms</a>
+                    </div>
+                    
+                    <div class="rooms-grid">
+                        <?php foreach ($rooms as $room): ?>
+                            <div class="room-card">
+                                <div class="room-header">
+                                    <div>
+                                        <div class="room-number">Room <?php echo htmlspecialchars($room['room_number']); ?></div>
+                                        <div class="room-type"><?php echo htmlspecialchars($room['room_type']); ?></div>
+                                    </div>
+                                    <div class="room-price">$<?php echo number_format($room['price'] ?? 0, 2); ?></div>
+                                </div>
+                                
+                                <!-- Room Photos -->
+                                <?php if (isset($roomPhotos[$room['id']]) && !empty($roomPhotos[$room['id']])): ?>
+                                    <?php 
+                                    // Count only photos that actually exist
+                                    $validPhotos = [];
+                                    foreach ($roomPhotos[$room['id']] as $photo) {
+                                        if (!empty($photo['photo_path']) && file_exists($photo['photo_path'])) {
+                                            $validPhotos[] = $photo;
+                                        }
+                                    }
+                                    ?>
+                                    <?php if (!empty($validPhotos)): ?>
+                                    <div class="room-photos">
+                                        <h4 style="margin: 10px 0 5px 0; font-size: 14px; color: #666;">📸 Photos (<?php echo count($validPhotos); ?>)</h4>
+                                        <div class="photo-thumbnails" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin: 10px 0;">
+                                            <?php foreach ($validPhotos as $photo): ?>
+                                                <div style="position: relative;">
+                                                    <img src="<?php echo $photo['photo_path']; ?>" alt="Room <?php echo htmlspecialchars($room['room_number']); ?>" 
+                                                         style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px; border: <?php echo $photo['is_primary'] ? '2px solid #28a745' : '1px solid #ddd'; ?>">
+                                                    <?php if ($photo['is_primary']): ?>
+                                                        <span style="position: absolute; top: 2px; right: 2px; background: #28a745; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px;">PRIMARY</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <div class="room-photos">
+                                        <p style="font-size: 12px; color: #999; margin: 10px 0;">📷 No photos uploaded</p>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <div class="room-actions">
+                                    <button onclick="managePhotos(<?php echo $room['id']; ?>)" class="btn btn-primary">📷 Manage Photos</button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php else: ?>
+                <!-- Regular Room Management View -->
 
             <!-- Room Statistics -->
             <div class="section">
@@ -696,6 +773,20 @@ foreach ($allPhotos as $photo) {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
+                            <label for="single_discount_type">Single Occupancy Discount</label>
+                            <select id="single_discount_type" name="single_discount_type" onchange="toggleSingleDiscount(this)">
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount ($)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="single_discount_value">Discount Value</label>
+                            <input type="number" id="single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15">
+                            <small style="color: #ff9800; font-size: 0.9rem;" id="single_discount_help">Enter percentage (0-100) for single guest discount</small>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="extra_bed_available">Extra Bed Available</label>
                             <select id="extra_bed_available" name="extra_bed_available" onchange="toggleExtraBedPrice(this)">
                                 <option value="0">No Extra Bed</option>
@@ -773,22 +864,29 @@ foreach ($allPhotos as $photo) {
 
                             <!-- Room Photos -->
                             <?php if (isset($roomPhotos[$room['id']]) && !empty($roomPhotos[$room['id']])): ?>
+                                <?php 
+                                // Count only photos that actually exist
+                                $validPhotos = [];
+                                foreach ($roomPhotos[$room['id']] as $photo) {
+                                    if (!empty($photo['photo_path']) && file_exists($photo['photo_path'])) {
+                                        $validPhotos[] = $photo;
+                                    }
+                                }
+                                ?>
+                                <?php if (!empty($validPhotos)): ?>
                                 <div class="room-photos">
-                                    <h4 style="margin: 10px 0 5px 0; font-size: 14px; color: #666;">📸 Photos (<?php echo count($roomPhotos[$room['id']]); ?>)</h4>
+                                    <h4 style="margin: 10px 0 5px 0; font-size: 14px; color: #666;">📸 Photos (<?php echo count($validPhotos); ?>)</h4>
                                     <div class="photo-thumbnails">
-                                        <?php foreach (array_slice($roomPhotos[$room['id']], 0, 3) as $photo): ?>
-                                            <img src="<?php echo $photo['photo_path']; ?>" alt="Room photo" 
+                                        <?php foreach (array_slice($validPhotos, 0, 3) as $photo): ?>
+                                            <img src="<?php echo $photo['photo_path']; ?>" alt="Room <?php echo htmlspecialchars($room['room_number']); ?>" 
                                                  style="width: 50px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 5px; border: <?php echo $photo['is_primary'] ? '2px solid #28a745' : '1px solid #ddd'; ?>">
                                         <?php endforeach; ?>
-                                        <?php if (count($roomPhotos[$room['id']]) > 3): ?>
-                                            <span style="font-size: 12px; color: #666;">+<?php echo count($roomPhotos[$room['id']]) - 3; ?> more</span>
+                                        <?php if (count($validPhotos) > 3): ?>
+                                            <span style="font-size: 12px; color: #666;">+<?php echo count($validPhotos) - 3; ?> more</span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                            <?php else: ?>
-                                <div class="room-photos">
-                                    <p style="font-size: 12px; color: #999; margin: 10px 0;">📷 No photos uploaded</p>
-                                </div>
+                                <?php endif; ?>
                             <?php endif; ?>
 
                             <div class="room-actions">
@@ -810,6 +908,7 @@ foreach ($allPhotos as $photo) {
                     </div>
                 <?php endif; ?>
             </div>
+            <?php endif; // End of view condition ?>
         </div>
     </div>
 
@@ -858,6 +957,21 @@ foreach ($allPhotos as $photo) {
                         <label for="edit_max_occupancy">Base Max Occupancy</label>
                         <input type="number" id="edit_max_occupancy" name="max_occupancy" min="1" max="10" required>
                         <small style="color: #6c757d; font-size: 0.9rem;">Maximum guests without extra bed</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_single_discount_type">Single Occupancy Discount</label>
+                        <select id="edit_single_discount_type" name="single_discount_type" onchange="toggleEditSingleDiscount(this)">
+                            <option value="percentage">Percentage (%)</option>
+                            <option value="fixed">Fixed Amount ($)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_single_discount_value">Discount Value</label>
+                        <input type="number" id="edit_single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15">
+                        <small style="color: #ff9800; font-size: 0.9rem;" id="edit_single_discount_help">Enter percentage (0-100) for single guest discount</small>
                     </div>
                 </div>
                 
@@ -991,6 +1105,15 @@ foreach ($allPhotos as $photo) {
                 document.getElementById('edit_extra_bed_price').required = false;
             }
             
+            // Handle single discount fields
+            const discountType = room.single_discount_type || 'percentage';
+            const discountValue = room.single_discount_value || 0;
+            document.getElementById('edit_single_discount_type').value = discountType;
+            document.getElementById('edit_single_discount_value').value = discountValue;
+            
+            // Update help text based on discount type
+            toggleEditSingleDiscount(document.getElementById('edit_single_discount_type'));
+            
             // Update capacity display
             updateEditCapacityDisplay();
             
@@ -1103,6 +1226,37 @@ foreach ($allPhotos as $photo) {
             updateCapacityDisplay();
         }
         
+        // Single discount functionality
+        function toggleSingleDiscount(selectElement) {
+            const helpText = document.getElementById('single_discount_help');
+            const valueInput = document.getElementById('single_discount_value');
+            
+            if (selectElement.value === 'percentage') {
+                helpText.textContent = 'Enter percentage (0-100) for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for 15% off';
+                valueInput.max = '100';
+            } else {
+                helpText.textContent = 'Enter fixed dollar amount for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for $15 off';
+                valueInput.max = '9999';
+            }
+        }
+        
+        function toggleEditSingleDiscount(selectElement) {
+            const helpText = document.getElementById('edit_single_discount_help');
+            const valueInput = document.getElementById('edit_single_discount_value');
+            
+            if (selectElement.value === 'percentage') {
+                helpText.textContent = 'Enter percentage (0-100) for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for 15% off';
+                valueInput.max = '100';
+            } else {
+                helpText.textContent = 'Enter fixed dollar amount for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for $15 off';
+                valueInput.max = '9999';
+            }
+        }
+
         function toggleEditExtraBedPrice(selectElement) {
             const priceGroup = document.getElementById('edit_extra_bed_price_group');
             const priceInput = document.getElementById('edit_extra_bed_price');

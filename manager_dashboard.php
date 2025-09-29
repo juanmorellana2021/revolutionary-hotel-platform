@@ -20,7 +20,7 @@ $hotelInfo = new HotelInfo();
 $bookingManager = new BookingManager();
 $roomObj = new Room();
 
-// Get hotel information and statistics
+// Get hotel data and statistics
 $hotel = $hotelInfo->getHotelInfo();
 $stats = $bookingManager->getBookingStats();
 $recentBookings = $bookingManager->getRecentBookings(10);
@@ -111,6 +111,9 @@ $allUsers = $userManager->getAllUsers();
             border-radius: 8px;
             top: 100%;
             left: 0;
+            border-radius: 8px;
+            top: 100%;
+            left: 0;
             margin-top: 5px;
         }
 
@@ -145,6 +148,15 @@ $allUsers = $userManager->getAllUsers();
             content: '▼';
             font-size: 0.8em;
             margin-left: 5px;
+        }
+        
+        .dropdown-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .dropdown-toggle:hover {
+            background: rgba(255,255,255,0.3) !important;
         }udes/hotel_classes.php';
 
 // Check if user is logged in and is a manager
@@ -447,6 +459,7 @@ $allUsers = $userManager->getAllUsers();
                         <a href="room_management.php">🛏️ Room Management</a>
                         <a href="calendar_view.php">📅 Calendar View</a>
                         <a href="room_photos.php">📸 Room Photos</a>
+                        <a href="public_booking.php" target="_blank">🌍 Public Booking Site</a>
                     </div>
                 </div>
 
@@ -468,6 +481,20 @@ $allUsers = $userManager->getAllUsers();
                     </div>
                 </div>
 
+                <div class="dropdown">
+                    <a href="#" class="dropdown-toggle">💎 Rewards</a>
+                    <div class="dropdown-content">
+                        <a href="hotelcoin_admin.php">🪙 HotelCoin Admin</a>
+                        <a href="wallet.php">💰 Loyalty System</a>
+                        <a href="wallet.php">👑 Guest Wallets</a>
+                    </div>
+                </div>
+
+                <a href="ai_admin.php">🤖 AI Configuration</a>
+                <a href="whatsapp_management.php">📱 WhatsApp Management</a>
+                <a href="whatsapp_setup_wizard.php">🚀 WhatsApp Setup</a>
+
+                <a href="travel_social.php">🌍 Travel Social</a>
                 <a href="dashboard.php">👁️ Guest View</a>
                 <a href="logout.php">🚪 Logout</a>
             </div>
@@ -504,6 +531,97 @@ $allUsers = $userManager->getAllUsers();
                 ?>
             </p>
         </div>
+
+        <?php 
+        // Check WhatsApp setup status (simplified)
+        $whatsappSetupComplete = false; // Set to true once WhatsApp is configured
+        
+        if (!$whatsappSetupComplete): ?>
+            <div class="revolutionary-setup-banner">
+                <div class="banner-content">
+                    <div class="banner-icon">🚀</div>
+                    <div class="banner-text">
+                        <h3>🌟 Revolutionary Feature Available!</h3>
+                        <p>Set up the world's first AI-powered WhatsApp booking system. Let guests book rooms through WhatsApp chat and earn HotelCoins!</p>
+                    </div>
+                    <div class="banner-actions">
+                        <a href="whatsapp_quick_start.php" class="setup-btn">⚡ Quick Start</a>
+                        <a href="whatsapp_setup_wizard.php" class="setup-btn" style="margin-left: 1rem; background: rgba(255,255,255,0.1);">🚀 Full Setup</a>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .revolutionary-setup-banner {
+                    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+                    color: white;
+                    padding: 2rem;
+                    border-radius: 15px;
+                    margin-bottom: 2rem;
+                    box-shadow: 0 10px 30px rgba(37, 211, 102, 0.3);
+                    animation: pulse-glow 3s infinite;
+                }
+                
+                .banner-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 2rem;
+                }
+                
+                .banner-icon {
+                    font-size: 3rem;
+                    animation: bounce 2s infinite;
+                }
+                
+                .banner-text h3 {
+                    margin-bottom: 0.5rem;
+                    font-size: 1.5rem;
+                }
+                
+                .banner-text p {
+                    opacity: 0.9;
+                    line-height: 1.4;
+                }
+                
+                .setup-btn {
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 10px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    border: 2px solid rgba(255,255,255,0.3);
+                    transition: all 0.3s;
+                    backdrop-filter: blur(10px);
+                }
+                
+                .setup-btn:hover {
+                    background: rgba(255,255,255,0.3);
+                    border-color: rgba(255,255,255,0.5);
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }
+                
+                @keyframes pulse-glow {
+                    0%, 100% { box-shadow: 0 10px 30px rgba(37, 211, 102, 0.3); }
+                    50% { box-shadow: 0 10px 40px rgba(37, 211, 102, 0.5); }
+                }
+                
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+                
+                @media (max-width: 768px) {
+                    .banner-content {
+                        flex-direction: column;
+                        text-align: center;
+                        gap: 1rem;
+                    }
+                }
+            </style>
+        <?php endif; ?>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -629,5 +747,10 @@ $allUsers = $userManager->getAllUsers();
             </div>
         </div>
     </div>
+
+    <script>
+        // Simple navigation - no dropdown interference
+        console.log('Manager Dashboard loaded - navigation should work normally');
+    </script>
 </body>
 </html>

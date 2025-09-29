@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Link Test - Manager Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .nav-link { 
+            display: inline-block; 
+            padding: 10px 15px; 
+            margin: 5px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px;
+        }
+        .nav-link:hover { background: #5a6fd8; }
+    </style>
+</head>
+<body>
+    <h1>Manager Dashboard - Link Test</h1>
+    <p>Testing if basic navigation links work:</p>
+    
+    <a href="ai_admin.php" class="nav-link">🤖 AI Configuration</a>
+    <a href="whatsapp_management.php" class="nav-link">📱 WhatsApp Management</a>
+    <a href="whatsapp_setup_wizard.php" class="nav-link">🚀 WhatsApp Setup</a>
+    <a href="public_booking.php" class="nav-link">🌐 Public Booking</a>
+    <a href="travel_social.php" class="nav-link">🌍 Travel Social</a>
+    
+    <hr>
+    <p><a href="manager_dashboard.php">← Back to Full Manager Dashboard</a></p>
+    
+    <script>
+        console.log('Simple navigation test loaded');
+        
+        // Test if links are clickable
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                console.log('Link clicked:', this.href);
+                // Let the link work normally, just log it
+            });
+        });
+    </script>
+</body>
+</html>
