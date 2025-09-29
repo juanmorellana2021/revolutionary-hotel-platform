@@ -1560,13 +1560,13 @@ function getMonthName($month) {
                         <label for="terms_accepted" style="font-size: 0.9em; line-height: 1.4; color: #495057;">
                             <strong>📋 Agreement Required:</strong> I acknowledge that I have read, understood, and agree to be legally bound by the 
                             <a href="terms_and_conditions.php" target="_blank" style="color: #007bff; text-decoration: underline;">
-                                Terms & Conditions, Guest Responsibility Agreement, and Property Damage Policy
+                                Terms & Conditions, Guest Responsibility Agreement, Property Damage & Reputation Protection Policy
                             </a>. 
-                            I accept full financial responsibility for any damages to hotel property during my stay and agree to maintain appropriate behavior standards.
+                            I accept full financial responsibility for any damages to hotel property during my stay, agree to maintain appropriate behavior standards, and acknowledge legal liability for false or defamatory reviews.
                         </label>
                     </div>
                     <div style="margin-top: 10px; font-size: 0.8em; color: #6c757d; padding-left: 30px;">
-                        ⚠️ <strong>Important:</strong> Checking this box confirms your legal agreement to all hotel policies including damage liability and guest conduct standards.
+                        ⚠️ <strong>Important:</strong> Checking this box confirms your legal agreement to all hotel policies including damage liability, guest conduct standards, and reputation protection from false reviews.
                     </div>
                 </div>
                 

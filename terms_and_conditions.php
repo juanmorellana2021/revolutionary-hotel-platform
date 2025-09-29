@@ -224,7 +224,152 @@ try {
         </div>
 
         <div class="section">
-            <h2>🔐 Privacy & Personal Information</h2>
+            <h2>🌟 Reviews, Reputation & Defamation Protection</h2>
+            <div class="important-box">
+                <strong>⚖️ LEGAL NOTICE:</strong> Guests are legally responsible for the accuracy and truthfulness of all reviews, comments, and public statements about the hotel. False, misleading, or malicious statements may result in legal action.
+            </div>
+            
+            <h3>📝 Review Standards & Responsibilities</h3>
+            <p>All guests agree to the following review and reputation standards:</p>
+            <ul>
+                <li><strong>Truthful Reviews Only:</strong> All reviews and public comments must be factual, honest, and based on actual experience</li>
+                <li><strong>No False Claims:</strong> Making false statements about hotel services, cleanliness, safety, or staff is strictly prohibited</li>
+                <li><strong>No Exaggerated Complaints:</strong> Reviews must be proportionate to actual issues experienced during the stay</li>
+                <li><strong>Professional Language:</strong> Reviews should use respectful, professional language without offensive content</li>
+                <li><strong>Fair Representation:</strong> Reviews should fairly represent the overall experience, not focus solely on minor issues</li>
+                <li><strong>No Blackmail/Threats:</strong> Using reviews or threats of negative reviews to obtain compensation or special treatment is prohibited</li>
+            </ul>
+            
+            <h3>🛡️ Reputation Damage & Legal Liability</h3>
+            <div class="warning-box">
+                <strong>💼 Financial Liability:</strong> Guests who post false, defamatory, or maliciously misleading reviews may be held financially liable for business damages.
+            </div>
+            
+            <p>Guests acknowledge and agree that:</p>
+            <ul>
+                <li><strong>Business Impact Responsibility:</strong> False or malicious reviews can cause significant financial harm to the hotel business</li>
+                <li><strong>Measurable Damages:</strong> Reputation damage can result in lost bookings, reduced revenue, and decreased property value</li>
+                <li><strong>Legal Consequences:</strong> Defamatory reviews may result in civil litigation for damages and legal fees</li>
+                <li><strong>Platform Accountability:</strong> This applies to reviews on all platforms (Google, Booking.com, TripAdvisor, social media, etc.)</li>
+                <li><strong>Evidence Collection:</strong> The hotel maintains records and evidence to defend against false claims</li>
+            </ul>
+            
+            <h3>⚖️ Defamation & False Statement Policy</h3>
+            <p>The following are considered defamatory and may result in legal action:</p>
+            <ul>
+                <li><strong>False Health/Safety Claims:</strong> Untrue statements about hotel safety, cleanliness, or health hazards</li>
+                <li><strong>Staff Defamation:</strong> False accusations against hotel staff members regarding misconduct or unprofessional behavior</li>
+                <li><strong>Service Misrepresentation:</strong> Knowingly false claims about services provided or not provided</li>
+                <li><strong>Facility Misstatements:</strong> Intentionally misleading descriptions of hotel facilities or amenities</li>
+                <li><strong>Policy Violations:</strong> False claims about hotel policies or treatment of guests</li>
+                <li><strong>Discriminatory Allegations:</strong> False accusations of discrimination or unfair treatment</li>
+            </ul>
+            
+            <h3>🔍 Review Dispute Resolution Process</h3>
+            <p>Before posting negative reviews, guests are encouraged to:</p>
+            <ul>
+                <li><strong>Contact Management:</strong> Address concerns directly with hotel management first</li>
+                <li><strong>Allow Resolution:</strong> Give the hotel opportunity to resolve issues before posting public reviews</li>
+                <li><strong>Document Issues:</strong> Provide evidence of any legitimate complaints</li>
+                <li><strong>Seek Mediation:</strong> Consider mediation for significant disputes before litigation</li>
+            </ul>
+            
+            <h3>💰 Damages & Recovery</h3>
+            <div class="important-box">
+                <strong>📈 Calculated Damages:</strong> Hotel may seek recovery for:
+                <ul style="margin-top: 10px;">
+                    <li>Lost revenue from decreased bookings</li>
+                    <li>Reduced property valuation</li>
+                    <li>Marketing costs to counter negative publicity</li>
+                    <li>Legal fees and court costs</li>
+                    <li>Reputation management expenses</li>
+                    <li>Staff time and resources addressing false claims</li>
+                </ul>
+            </div>
+            
+            <h3>🌐 Digital Footprint Responsibility</h3>
+            <p>Guests acknowledge that:</p>
+            <ul>
+                <li><strong>Permanent Record:</strong> Online reviews and posts create a permanent digital record</li>
+                <li><strong>Wide Distribution:</strong> Reviews can be seen by thousands of potential guests</li>
+                <li><strong>Long-term Impact:</strong> False reviews can damage business for years</li>
+                <li><strong>Legal Discovery:</strong> Digital evidence can be used in legal proceedings</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>�️ Reputation Protection & Review Policy</h2>
+            <div class="important-box">
+                <strong>⚠️ CRITICAL:</strong> Guests are legally liable for false, defamatory, or malicious reviews that damage the hotel's reputation.
+            </div>
+            
+            <h3>📝 Review Guidelines & Liability</h3>
+            <p>All guests agree to the following review standards:</p>
+            <ul>
+                <li><strong>Truthful Reviews Only:</strong> All reviews must be factual and based on actual experience</li>
+                <li><strong>No False Claims:</strong> Making false statements about services, cleanliness, or staff is prohibited</li>
+                <li><strong>No Defamatory Content:</strong> Reviews cannot contain defamatory, libelous, or slanderous statements</li>
+                <li><strong>No Malicious Intent:</strong> Reviews motivated by spite or revenge are strictly prohibited</li>
+                <li><strong>Constructive Feedback:</strong> Criticism must be constructive and based on genuine service issues</li>
+            </ul>
+            
+            <h3>💰 Financial Liability for Reputation Damage</h3>
+            <div class="warning-box">
+                <strong>💸 Damages & Consequences:</strong> Guests who post false or defamatory reviews may be held liable for:
+                <ul style="margin-top: 10px;">
+                    <li><strong>Lost Revenue:</strong> Compensation for bookings lost due to false reviews</li>
+                    <li><strong>Reputation Repair Costs:</strong> Marketing and PR expenses to restore reputation</li>
+                    <li><strong>Legal Fees:</strong> Attorney costs for defamation litigation</li>
+                    <li><strong>Punitive Damages:</strong> Additional penalties for malicious false reviews</li>
+                    <li><strong>Platform Removal Costs:</strong> Expenses to remove defamatory content</li>
+                </ul>
+            </div>
+            
+            <h3>⚖️ Legal Consequences</h3>
+            <ul>
+                <li><strong>Defamation Lawsuits:</strong> Hotel reserves right to pursue legal action for false reviews</li>
+                <li><strong>Cease & Desist:</strong> Immediate removal demands for defamatory content</li>
+                <li><strong>Platform Reporting:</strong> False reviews reported to review platforms for removal</li>
+                <li><strong>Evidence Collection:</strong> Hotel maintains evidence of actual service provided</li>
+                <li><strong>Witness Testimony:</strong> Staff and other guests may testify to actual events</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>📱 Social Media & Digital Conduct Policy</h2>
+            <div class="highlight-box">
+                <strong>🌐 Digital Responsibility:</strong> Guest conduct standards apply to all online platforms and social media.
+            </div>
+            
+            <h3>📸 Photography & Content Policy</h3>
+            <ul>
+                <li><strong>Respect Privacy:</strong> No photos/videos of other guests without consent</li>
+                <li><strong>Staff Privacy:</strong> No unauthorized photos/videos of hotel staff</li>
+                <li><strong>Property Respect:</strong> No misleading or deceptive imagery of hotel facilities</li>
+                <li><strong>Context Accuracy:</strong> Photos must accurately represent actual conditions</li>
+            </ul>
+            
+            <h3>🚫 Prohibited Online Activities</h3>
+            <ul>
+                <li><strong>False Documentation:</strong> Posting misleading photos or videos</li>
+                <li><strong>Harassment:</strong> Online harassment of staff or other guests</li>
+                <li><strong>Fake Accounts:</strong> Creating multiple accounts to post negative reviews</li>
+                <li><strong>Review Manipulation:</strong> Coordinating negative review campaigns</li>
+                <li><strong>Doxxing:</strong> Publishing personal information of staff or guests</li>
+            </ul>
+            
+            <h3>🎯 Positive Engagement Encouraged</h3>
+            <p>We welcome and encourage:</p>
+            <ul>
+                <li>Honest, constructive feedback for service improvement</li>
+                <li>Positive sharing of genuine experiences</li>
+                <li>Professional communication for issue resolution</li>
+                <li>Direct contact with management for concerns</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>�🔐 Privacy & Personal Information</h2>
             <h3>📋 Information Collection</h3>
             <p>We collect and use guest information for:</p>
             <ul>
@@ -232,6 +377,7 @@ try {
                 <li>Guest safety and security</li>
                 <li>Legal compliance and identification</li>
                 <li>Service improvement and communication</li>
+                <li>Legal defense in case of false reviews or claims</li>
             </ul>
             
             <h3>🛡️ Information Protection</h3>
@@ -240,7 +386,46 @@ try {
                 <li><strong>Limited Access:</strong> Only authorized personnel have access to guest data</li>
                 <li><strong>No Sale:</strong> We do not sell personal information to third parties</li>
                 <li><strong>Retention:</strong> Information retained as required by law and business needs</li>
+                <li><strong>Legal Use:</strong> Information may be used to defend against false claims or reviews</li>
             </ul>
+        </div>
+
+        <div class="section">
+            <h2>📱 Social Media & Digital Conduct Policy</h2>
+            <div class="warning-box">
+                <strong>🌐 Digital Responsibility:</strong> All social media posts, photos, videos, and digital content involving the hotel must comply with this policy.
+            </div>
+            
+            <h3>📸 Photography & Video Policy</h3>
+            <ul>
+                <li><strong>Private Areas:</strong> No photography/video in private guest rooms or restricted areas</li>
+                <li><strong>Staff Consent:</strong> Obtain permission before photographing or filming hotel staff</li>
+                <li><strong>Guest Privacy:</strong> Respect other guests' privacy and avoid including them in posts without consent</li>
+                <li><strong>Appropriate Content:</strong> All visual content must be appropriate and non-offensive</li>
+                <li><strong>No Staged Damage:</strong> Creating fake damage or problems for social media content is strictly prohibited</li>
+            </ul>
+            
+            <h3>💬 Social Media Posting Guidelines</h3>
+            <ul>
+                <li><strong>Accurate Information:</strong> All posts must contain truthful and accurate information</li>
+                <li><strong>Respectful Content:</strong> Use respectful language and professional tone</li>
+                <li><strong>Context Matters:</strong> Provide fair context for any issues or concerns mentioned</li>
+                <li><strong>No Harassment:</strong> Do not target individual staff members or other guests</li>
+                <li><strong>Platform Responsibility:</strong> This policy applies to all platforms (Instagram, Facebook, TikTok, Twitter, etc.)</li>
+            </ul>
+            
+            <h3>⚠️ Prohibited Digital Conduct</h3>
+            <div class="important-box">
+                <strong>🚫 Immediate Legal Action:</strong> The following digital conduct may result in immediate legal action:
+                <ul style="margin-top: 10px;">
+                    <li>Creating fake incidents for viral content</li>
+                    <li>Deliberately staging problems for social media attention</li>
+                    <li>Harassment campaigns against the hotel or staff</li>
+                    <li>Sharing private guest information without consent</li>
+                    <li>Posting defamatory content with intent to harm business</li>
+                    <li>Using hotel imagery for unauthorized commercial purposes</li>
+                </ul>
+            </div>
         </div>
 
         <div class="section">
@@ -309,6 +494,9 @@ try {
                     <li>You accept full financial responsibility for any damages</li>
                     <li>You will comply with all hotel policies and local laws</li>
                     <li>You understand consequences of policy violations</li>
+                    <li><strong>You accept legal liability for false, defamatory, or malicious reviews</strong></li>
+                    <li><strong>You acknowledge potential financial damages from reputation harm</strong></li>
+                    <li><strong>You agree to truthful and fair representation in all public statements</strong></li>
                 </ul>
             </div>
         </div>

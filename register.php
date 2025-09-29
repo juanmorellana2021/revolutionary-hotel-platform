@@ -274,9 +274,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                     <label for="terms_accepted">
                         <strong>📋 Terms & Conditions Agreement:</strong> I acknowledge that I have read, understood, and agree to be legally bound by the 
                         <a href="terms_and_conditions.php" target="_blank" class="terms-link">
-                            Terms & Conditions, Guest Responsibility Agreement, and Property Damage Policy
+                            Terms & Conditions, Guest Responsibility Agreement, Property Damage & Reputation Protection Policy
                         </a>. 
-                        I accept full financial responsibility for any damages to hotel property during my stays and agree to maintain appropriate behavior standards.
+                        I accept full financial responsibility for any damages to hotel property during my stays, agree to maintain appropriate behavior standards, and acknowledge legal liability for false or defamatory reviews that damage the hotel's reputation.
                     </label>
                 </div>
                 <div class="warning-text">
