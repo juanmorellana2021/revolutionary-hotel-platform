@@ -19,19 +19,24 @@ class IncomeManager {
         try {
             $stmt = $this->connection->prepare("
                 INSERT INTO income (
-                    booking_id, income_type, description, amount, payment_method,
-                    payment_status, transaction_date, created_by, notes, receipt_number
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    booking_id, income_type, description, amount, currency, payment_method,
+                    payment_status, transaction_date, guest_name, guest_email, guest_phone,
+                    created_by, notes, receipt_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $data['booking_id'] ?? null,
-                $data['income_type'],
-                $data['description'],
-                $data['amount'],
+                $data['income_type'] ?? '',
+                $data['description'] ?? '',
+                $data['amount'] ?? 0,
+                $data['currency'] ?? 'PEN',
                 $data['payment_method'] ?? 'cash',
                 $data['payment_status'] ?? 'paid',
-                $data['transaction_date'],
+                $data['transaction_date'] ?? date('Y-m-d'),
+                $data['guest_name'] ?? '',
+                $data['guest_email'] ?? '',
+                $data['guest_phone'] ?? '',
                 $data['created_by'] ?? null,
                 $data['notes'] ?? '',
                 $data['receipt_number'] ?? null
@@ -56,7 +61,8 @@ class IncomeManager {
      */
     public function getIncome($filters = []) {
         $sql = "
-            SELECT i.*, b.room_id, r.room_number, u.first_name, u.last_name
+            SELECT i.*, b.room_id, b.guest_name, b.guest_email, b.guest_phone, 
+                   r.room_number, u.first_name, u.last_name
             FROM income i
             LEFT JOIN bookings b ON i.booking_id = b.id
             LEFT JOIN rooms r ON b.room_id = r.id
@@ -131,19 +137,24 @@ class IncomeManager {
         try {
             $stmt = $this->connection->prepare("
                 UPDATE income SET 
-                    income_type = ?, description = ?, amount = ?, 
+                    income_type = ?, description = ?, amount = ?, currency = ?,
                     payment_method = ?, payment_status = ?, transaction_date = ?,
+                    guest_name = ?, guest_email = ?, guest_phone = ?,
                     notes = ?, receipt_number = ?
                 WHERE id = ?
             ");
             
             $stmt->execute([
-                $data['income_type'],
-                $data['description'],
-                $data['amount'],
-                $data['payment_method'],
-                $data['payment_status'],
-                $data['transaction_date'],
+                $data['income_type'] ?? '',
+                $data['description'] ?? '',
+                $data['amount'] ?? 0,
+                $data['currency'] ?? 'PEN',
+                $data['payment_method'] ?? 'cash',
+                $data['payment_status'] ?? 'paid',
+                $data['transaction_date'] ?? date('Y-m-d'),
+                $data['guest_name'] ?? '',
+                $data['guest_email'] ?? '',
+                $data['guest_phone'] ?? '',
                 $data['notes'] ?? '',
                 $data['receipt_number'] ?? null,
                 $incomeId
@@ -199,25 +210,28 @@ class ExpenseManager {
         try {
             $stmt = $this->connection->prepare("
                 INSERT INTO expenses (
-                    expense_category, description, amount, payment_method, vendor_name,
-                    invoice_number, expense_date, is_recurring, recurring_frequency,
-                    next_due_date, paid_by, status, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    expense_category, description, amount, currency, payment_method, vendor_name,
+                    vendor_contact, invoice_number, expense_date, is_recurring, recurring_frequency,
+                    next_due_date, paid_by, status, tax_deductible, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
-                $data['expense_category'],
-                $data['description'],
-                $data['amount'],
+                $data['expense_category'] ?? '',
+                $data['description'] ?? '',
+                $data['amount'] ?? 0,
+                $data['currency'] ?? 'PEN',
                 $data['payment_method'] ?? 'cash',
                 $data['vendor_name'] ?? '',
+                $data['vendor_contact'] ?? '',
                 $data['invoice_number'] ?? '',
-                $data['expense_date'],
+                $data['expense_date'] ?? date('Y-m-d'),
                 $data['is_recurring'] ?? false,
                 $data['recurring_frequency'] ?? null,
                 $data['next_due_date'] ?? null,
                 $data['paid_by'] ?? null,
                 $data['status'] ?? 'paid',
+                $data['tax_deductible'] ?? 0,
                 $data['notes'] ?? ''
             ]);
             
@@ -310,21 +324,24 @@ class ExpenseManager {
         try {
             $stmt = $this->connection->prepare("
                 UPDATE expenses SET 
-                    expense_category = ?, description = ?, amount = ?, 
-                    payment_method = ?, vendor_name = ?, invoice_number = ?,
-                    expense_date = ?, status = ?, notes = ?
+                    expense_category = ?, description = ?, amount = ?, currency = ?,
+                    payment_method = ?, vendor_name = ?, vendor_contact = ?, invoice_number = ?,
+                    expense_date = ?, status = ?, tax_deductible = ?, notes = ?
                 WHERE id = ?
             ");
             
             $stmt->execute([
-                $data['expense_category'],
-                $data['description'],
-                $data['amount'],
-                $data['payment_method'],
-                $data['vendor_name'],
-                $data['invoice_number'],
-                $data['expense_date'],
-                $data['status'],
+                $data['expense_category'] ?? '',
+                $data['description'] ?? '',
+                $data['amount'] ?? 0,
+                $data['currency'] ?? 'PEN',
+                $data['payment_method'] ?? 'cash',
+                $data['vendor_name'] ?? '',
+                $data['vendor_contact'] ?? '',
+                $data['invoice_number'] ?? '',
+                $data['expense_date'] ?? date('Y-m-d'),
+                $data['status'] ?? 'pending',
+                $data['tax_deductible'] ?? 0,
                 $data['notes'] ?? '',
                 $expenseId
             ]);
@@ -413,25 +430,53 @@ class FinancialReportManager {
      * Generate financial report for date range
      */
     public function generateReport($startDate, $endDate, $reportType = 'custom') {
-        // Get total income
+        // Get total income - convert all to PEN
         $stmt = $this->connection->prepare("
-            SELECT SUM(amount) as total FROM income 
+            SELECT 
+                SUM(CASE 
+                    WHEN currency = 'USD' THEN amount * 3.50 
+                    ELSE amount 
+                END) as total 
+            FROM income 
             WHERE transaction_date BETWEEN ? AND ? AND payment_status = 'paid'
         ");
         $stmt->execute([$startDate, $endDate]);
         $totalIncome = $stmt->fetch()['total'] ?? 0;
         
-        // Get total expenses
+        // Get total expenses (exclude future expenses) - convert all to PEN
         $stmt = $this->connection->prepare("
-            SELECT SUM(amount) as total FROM expenses 
-            WHERE expense_date BETWEEN ? AND ? AND status = 'paid'
+            SELECT 
+                SUM(CASE 
+                    WHEN currency = 'USD' THEN amount * 3.50 
+                    ELSE amount 
+                END) as total 
+            FROM expenses 
+            WHERE expense_date BETWEEN ? AND ? AND expense_date <= CURDATE() AND status = 'paid'
         ");
         $stmt->execute([$startDate, $endDate]);
         $totalExpenses = $stmt->fetch()['total'] ?? 0;
         
-        // Get room revenue specifically
+        // Get future expenses - convert all to PEN
         $stmt = $this->connection->prepare("
-            SELECT SUM(amount) as total FROM income 
+            SELECT 
+                SUM(CASE 
+                    WHEN currency = 'USD' THEN amount * 3.50 
+                    ELSE amount 
+                END) as total 
+            FROM expenses 
+            WHERE expense_date > CURDATE() AND status = 'paid'
+        ");
+        $stmt->execute();
+        $futureExpenses = $stmt->fetch()['total'] ?? 0;
+        
+        // Get room revenue specifically - convert all to PEN
+        $stmt = $this->connection->prepare("
+            SELECT 
+                SUM(CASE 
+                    WHEN currency = 'USD' THEN amount * 3.50 
+                    ELSE amount 
+                END) as total 
+            FROM income 
             WHERE transaction_date BETWEEN ? AND ? 
             AND payment_status = 'paid' 
             AND income_type IN ('room_booking', 'extra_bed')
@@ -439,9 +484,14 @@ class FinancialReportManager {
         $stmt->execute([$startDate, $endDate]);
         $roomRevenue = $stmt->fetch()['total'] ?? 0;
         
-        // Get extra services revenue
+        // Get extra services revenue - convert all to PEN
         $stmt = $this->connection->prepare("
-            SELECT SUM(amount) as total FROM income 
+            SELECT 
+                SUM(CASE 
+                    WHEN currency = 'USD' THEN amount * 3.50 
+                    ELSE amount 
+                END) as total 
+            FROM income 
             WHERE transaction_date BETWEEN ? AND ? 
             AND payment_status = 'paid' 
             AND income_type NOT IN ('room_booking', 'extra_bed')
@@ -485,6 +535,7 @@ class FinancialReportManager {
             'end_date' => $endDate,
             'total_income' => $totalIncome,
             'total_expenses' => $totalExpenses,
+            'future_expenses' => $futureExpenses,
             'net_profit' => $netProfit,
             'room_revenue' => $roomRevenue,
             'extra_services_revenue' => $extraServicesRevenue,

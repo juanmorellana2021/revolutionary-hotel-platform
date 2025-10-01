@@ -21,9 +21,50 @@ $timeClockManager = new TimeClockManager();
 $hotelInfo = new HotelInfo();
 $hotel = $hotelInfo->getHotelInfo();
 
+// Add currency columns to employees table if they don't exist
+try {
+    $database = new Database();
+    $connection = $database->getConnection();
+    
+    // Check if columns exist
+    $stmt = $connection->prepare("SHOW COLUMNS FROM employees LIKE 'hourly_rate_currency'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE employees ADD COLUMN hourly_rate_currency VARCHAR(3) DEFAULT 'USD' AFTER hourly_rate");
+    }
+    
+    $stmt = $connection->prepare("SHOW COLUMNS FROM employees LIKE 'overtime_rate_currency'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE employees ADD COLUMN overtime_rate_currency VARCHAR(3) DEFAULT 'USD' AFTER overtime_rate");
+    }
+} catch (Exception $e) {
+    // Columns might already exist, continue silently
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_employee'])) {
+        // Currency conversion for consistent USD storage
+        $USD_TO_PEN_RATE = 3.50;
+        
+        // Convert hourly rate to USD if needed
+        $hourlyRate = (float)$_POST['hourly_rate'];
+        $hourlyRateCurrency = $_POST['hourly_rate_currency'] ?? 'USD';
+        if ($hourlyRateCurrency === 'PEN') {
+            $hourlyRate = $hourlyRate / $USD_TO_PEN_RATE;
+        }
+        
+        // Convert overtime rate to USD if needed
+        $overtimeRate = !empty($_POST['overtime_rate']) ? (float)$_POST['overtime_rate'] : $hourlyRate * 1.5;
+        $overtimeRateCurrency = $_POST['overtime_rate_currency'] ?? 'USD';
+        if ($overtimeRateCurrency === 'PEN' && !empty($_POST['overtime_rate'])) {
+            $overtimeRate = $overtimeRate / $USD_TO_PEN_RATE;
+        } elseif (empty($_POST['overtime_rate'])) {
+            // Auto-calculate overtime in same currency as hourly
+            $overtimeRate = $hourlyRate * 1.5;
+        }
+        
         $result = $employeeManager->addEmployee([
             'employee_id' => $_POST['employee_id'],
             'first_name' => $_POST['first_name'],
@@ -33,8 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'position' => $_POST['position'],
             'department' => $_POST['department'],
             'hire_date' => $_POST['hire_date'],
-            'hourly_rate' => (float)$_POST['hourly_rate'],
-            'overtime_rate' => !empty($_POST['overtime_rate']) ? (float)$_POST['overtime_rate'] : (float)$_POST['hourly_rate'] * 1.5,
+            'hourly_rate' => $hourlyRate,
+            'overtime_rate' => $overtimeRate,
             'weekly_hours' => (int)$_POST['weekly_hours'],
             'salary_type' => $_POST['salary_type'],
             'monthly_salary' => !empty($_POST['monthly_salary']) ? (float)$_POST['monthly_salary'] : null,
@@ -42,7 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'emergency_contact_phone' => $_POST['emergency_contact_phone'] ?? '',
             'address' => $_POST['address'] ?? '',
             'tax_id' => $_POST['tax_id'] ?? '',
-            'notes' => $_POST['notes'] ?? ''
+            'notes' => $_POST['notes'] ?? '',
+            'hourly_rate_currency' => $hourlyRateCurrency,
+            'overtime_rate_currency' => $overtimeRateCurrency
         ]);
         
         $message = $result['message'];
@@ -50,6 +93,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (isset($_POST['update_employee'])) {
+        // Currency conversion for consistent USD storage
+        $USD_TO_PEN_RATE = 3.50;
+        
+        // Convert hourly rate to USD if needed
+        $hourlyRate = (float)$_POST['hourly_rate'];
+        $hourlyRateCurrency = $_POST['hourly_rate_currency'] ?? 'USD';
+        if ($hourlyRateCurrency === 'PEN') {
+            $hourlyRate = $hourlyRate / $USD_TO_PEN_RATE;
+        }
+        
+        // Convert overtime rate to USD if needed
+        $overtimeRate = (float)$_POST['overtime_rate'];
+        $overtimeRateCurrency = $_POST['overtime_rate_currency'] ?? 'USD';
+        if ($overtimeRateCurrency === 'PEN') {
+            $overtimeRate = $overtimeRate / $USD_TO_PEN_RATE;
+        }
+        
         $result = $employeeManager->updateEmployee((int)$_POST['employee_id'], [
             'first_name' => $_POST['first_name'],
             'last_name' => $_POST['last_name'],
@@ -57,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'phone' => $_POST['phone'],
             'position' => $_POST['position'],
             'department' => $_POST['department'],
-            'hourly_rate' => (float)$_POST['hourly_rate'],
-            'overtime_rate' => (float)$_POST['overtime_rate'],
+            'hourly_rate' => $hourlyRate,
+            'overtime_rate' => $overtimeRate,
             'weekly_hours' => (int)$_POST['weekly_hours'],
             'salary_type' => $_POST['salary_type'],
             'monthly_salary' => !empty($_POST['monthly_salary']) ? (float)$_POST['monthly_salary'] : null,
@@ -67,7 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'emergency_contact_phone' => $_POST['emergency_contact_phone'],
             'address' => $_POST['address'],
             'tax_id' => $_POST['tax_id'],
-            'notes' => $_POST['notes']
+            'notes' => $_POST['notes'],
+            'hourly_rate_currency' => $hourlyRateCurrency,
+            'overtime_rate_currency' => $overtimeRateCurrency
         ]);
         
         $message = $result['message'];
@@ -670,7 +732,24 @@ $activeEmployees = count(array_filter($todayEntries, function($entry) { return e
                                             <small><?php echo htmlspecialchars($employee['phone']); ?></small>
                                         <?php endif; ?>
                                     </td>
-                                    <td>$<?php echo number_format($employee['hourly_rate'], 2); ?>/hr</td>
+                                    <td>
+                                        <?php 
+                                        $currency = $employee['hourly_rate_currency'] ?? 'USD';
+                                        $hourlyRateUSD = $employee['hourly_rate']; // Stored in USD
+                                        
+                                        if ($currency === 'PEN') {
+                                            // Display in PEN, show USD equivalent
+                                            $hourlyRatePEN = $hourlyRateUSD * 3.50;
+                                            echo 'S/ ' . number_format($hourlyRatePEN, 2) . '/hr';
+                                            echo '<br><small style="color: #666;">($' . number_format($hourlyRateUSD, 2) . ' USD)</small>';
+                                        } else {
+                                            // Display in USD, show PEN equivalent
+                                            echo '$' . number_format($hourlyRateUSD, 2) . '/hr';
+                                            $hourlyRatePEN = $hourlyRateUSD * 3.50;
+                                            echo '<br><small style="color: #666;">(S/ ' . number_format($hourlyRatePEN, 2) . ' PEN)</small>';
+                                        }
+                                        ?>
+                                    </td>
                                     <td>
                                         <span class="badge badge-<?php echo $employee['employment_status'] === 'active' ? 'active' : 'inactive'; ?>">
                                             <?php echo ucfirst(str_replace('_', ' ', $employee['employment_status'])); ?>
@@ -779,12 +858,26 @@ $activeEmployees = count(array_filter($todayEntries, function($entry) { return e
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="modal_hourly_rate">Hourly Rate ($) *</label>
-                        <input type="number" id="modal_hourly_rate" name="hourly_rate" step="0.01" min="0" required>
+                        <label for="modal_hourly_rate">💰 Hourly Rate *</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="hourly_rate_currency" name="hourly_rate_currency" onchange="updateHourlyRateDisplay()" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="USD">USD</option>
+                                <option value="PEN" selected>PEN</option>
+                            </select>
+                            <input type="number" id="modal_hourly_rate" name="hourly_rate" step="0.01" min="0" required style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <small id="hourly_rate_conversion" style="color: #666; font-size: 12px;">Equivale a $0.00 USD</small>
                     </div>
                     <div class="form-group">
-                        <label for="modal_overtime_rate">Overtime Rate ($)</label>
-                        <input type="number" id="modal_overtime_rate" name="overtime_rate" step="0.01" min="0" placeholder="Auto-calculated if empty">
+                        <label for="modal_overtime_rate">⏰ Overtime Rate</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="overtime_rate_currency" name="overtime_rate_currency" onchange="updateOvertimeRateDisplay()" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="USD">USD</option>
+                                <option value="PEN" selected>PEN</option>
+                            </select>
+                            <input type="number" id="modal_overtime_rate" name="overtime_rate" step="0.01" min="0" placeholder="Auto-calculated if empty" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <small id="overtime_rate_conversion" style="color: #666; font-size: 12px;">Equivale a $0.00 USD</small>
                     </div>
                 </div>
                 <div class="form-row">
@@ -855,7 +948,9 @@ $activeEmployees = count(array_filter($todayEntries, function($entry) { return e
             document.getElementById('modal_hire_date').value = employee.hire_date;
             document.getElementById('modal_salary_type').value = employee.salary_type;
             document.getElementById('modal_hourly_rate').value = employee.hourly_rate;
+            document.getElementById('hourly_rate_currency').value = employee.hourly_rate_currency || 'USD';
             document.getElementById('modal_overtime_rate').value = employee.overtime_rate || '';
+            document.getElementById('overtime_rate_currency').value = employee.overtime_rate_currency || 'USD';
             document.getElementById('modal_weekly_hours').value = employee.weekly_hours;
             document.getElementById('modal_monthly_salary').value = employee.monthly_salary || '';
             document.getElementById('modal_employment_status').value = employee.employment_status;
@@ -867,6 +962,10 @@ $activeEmployees = count(array_filter($todayEntries, function($entry) { return e
             document.getElementById('submitBtn').textContent = '✏️ Update Employee';
             document.getElementById('submitBtn').name = 'update_employee';
             document.getElementById('employeeModal').style.display = 'block';
+            
+            // Update currency displays
+            updateHourlyRateDisplay();
+            updateOvertimeRateDisplay();
         }
 
         function deleteEmployee(employeeId) {
@@ -894,14 +993,84 @@ $activeEmployees = count(array_filter($todayEntries, function($entry) { return e
             }
         }
 
+        // Currency conversion functions
+        const USD_TO_PEN_RATE = 3.50; // Employee rates use 3.50 rate
+        
+        function convertCurrency(amount, fromCurrency, toCurrency) {
+            if (fromCurrency === toCurrency) return amount;
+            if (fromCurrency === 'USD' && toCurrency === 'PEN') {
+                return amount * USD_TO_PEN_RATE;
+            } else if (fromCurrency === 'PEN' && toCurrency === 'USD') {
+                return amount / USD_TO_PEN_RATE;
+            }
+            return amount;
+        }
+        
+        function updateHourlyRateDisplay() {
+            const currency = document.getElementById('hourly_rate_currency').value;
+            const rate = parseFloat(document.getElementById('modal_hourly_rate').value) || 0;
+            const conversionText = document.getElementById('hourly_rate_conversion');
+            
+            if (rate > 0) {
+                if (currency === 'PEN') {
+                    const usdEquivalent = convertCurrency(rate, 'PEN', 'USD');
+                    conversionText.textContent = `Equivale a $${usdEquivalent.toFixed(2)} USD`;
+                } else {
+                    const penEquivalent = convertCurrency(rate, 'USD', 'PEN');
+                    conversionText.textContent = `Equivale a S/ ${penEquivalent.toFixed(2)} PEN`;
+                }
+            } else {
+                conversionText.textContent = currency === 'PEN' ? 'Equivale a $0.00 USD' : 'Equivale a S/ 0.00 PEN';
+            }
+            
+            // Update overtime rate calculation
+            updateOvertimeCalculation();
+        }
+        
+        function updateOvertimeRateDisplay() {
+            const currency = document.getElementById('overtime_rate_currency').value;
+            const rate = parseFloat(document.getElementById('modal_overtime_rate').value) || 0;
+            const conversionText = document.getElementById('overtime_rate_conversion');
+            
+            if (rate > 0) {
+                if (currency === 'PEN') {
+                    const usdEquivalent = convertCurrency(rate, 'PEN', 'USD');
+                    conversionText.textContent = `Equivale a $${usdEquivalent.toFixed(2)} USD`;
+                } else {
+                    const penEquivalent = convertCurrency(rate, 'USD', 'PEN');
+                    conversionText.textContent = `Equivale a S/ ${penEquivalent.toFixed(2)} PEN`;
+                }
+            } else {
+                conversionText.textContent = currency === 'PEN' ? 'Equivale a $0.00 USD' : 'Equivale a S/ 0.00 PEN';
+            }
+        }
+        
+        function updateOvertimeCalculation() {
+            const hourlyRate = parseFloat(document.getElementById('modal_hourly_rate').value) || 0;
+            const hourlyCurrency = document.getElementById('hourly_rate_currency').value;
+            const overtimeField = document.getElementById('modal_overtime_rate');
+            const overtimeCurrency = document.getElementById('overtime_rate_currency').value;
+            
+            if (!overtimeField.value && hourlyRate > 0) {
+                const overtimeRate = hourlyRate * 1.5;
+                const symbol = hourlyCurrency === 'PEN' ? 'S/ ' : '$ ';
+                overtimeField.placeholder = `${symbol}${overtimeRate.toFixed(2)} (1.5x)`;
+                
+                // Sync currency selectors
+                document.getElementById('overtime_rate_currency').value = hourlyCurrency;
+                updateOvertimeRateDisplay();
+            }
+        }
+
         // Auto-calculate overtime rate when hourly rate changes
         document.getElementById('modal_hourly_rate').addEventListener('input', function() {
-            const hourlyRate = parseFloat(this.value) || 0;
-            const overtimeField = document.getElementById('modal_overtime_rate');
-            if (!overtimeField.value) {
-                overtimeField.placeholder = '$' + (hourlyRate * 1.5).toFixed(2) + ' (1.5x)';
-            }
+            updateHourlyRateDisplay();
         });
+        
+        // Update displays when currency changes
+        document.getElementById('hourly_rate_currency').addEventListener('change', updateHourlyRateDisplay);
+        document.getElementById('overtime_rate_currency').addEventListener('change', updateOvertimeRateDisplay);
+        document.getElementById('modal_overtime_rate').addEventListener('input', updateOvertimeRateDisplay);
     </script>
 </body>
 </html>

@@ -18,6 +18,50 @@ $hotel = $hotelInfo->getHotelInfo();
 
 $isManager = $userManager->isManager($_SESSION['user']['id']);
 
+// Add missing columns to time_clock table if they don't exist
+try {
+    $database = new Database();
+    $connection = $database->getConnection();
+    
+    // Check and add is_manual_entry column
+    $stmt = $connection->prepare("SHOW COLUMNS FROM time_clock LIKE 'is_manual_entry'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE time_clock ADD COLUMN is_manual_entry BOOLEAN DEFAULT FALSE");
+    }
+    
+    // Check and add created_by column
+    $stmt = $connection->prepare("SHOW COLUMNS FROM time_clock LIKE 'created_by'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE time_clock ADD COLUMN created_by INT DEFAULT NULL");
+    }
+    
+    // Check and add total_break_minutes column
+    $stmt = $connection->prepare("SHOW COLUMNS FROM time_clock LIKE 'total_break_minutes'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE time_clock ADD COLUMN total_break_minutes INT DEFAULT NULL");
+    }
+    
+    // Check and add break_start column
+    $stmt = $connection->prepare("SHOW COLUMNS FROM time_clock LIKE 'break_start'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE time_clock ADD COLUMN break_start DATETIME DEFAULT NULL");
+    }
+    
+    // Check and add break_end column
+    $stmt = $connection->prepare("SHOW COLUMNS FROM time_clock LIKE 'break_end'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $connection->exec("ALTER TABLE time_clock ADD COLUMN break_end DATETIME DEFAULT NULL");
+    }
+    
+} catch (Exception $e) {
+    // Columns might already exist, continue silently
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['clock_in'])) {
@@ -56,6 +100,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $result['message'];
         $messageType = $result['success'] ? 'success' : 'error';
     }
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    if ($_POST['action'] === 'update_entry' && $isManager) {
+        $result = $timeClockManager->updateTimeEntry(
+            (int)$_POST['entry_id'],
+            (int)$_POST['employee_id'],
+            $_POST['date'],
+            $_POST['clock_in'],
+            $_POST['clock_out'] ?? null,
+            $_POST['notes'] ?? ''
+        );
+        
+        echo json_encode($result);
+        exit;
+    }
+    
+    if ($_POST['action'] === 'delete_entry' && $isManager) {
+        $result = $timeClockManager->deleteTimeEntry((int)$_POST['entry_id']);
+        
+        echo json_encode($result);
+        exit;
+    }
+    
+    // Invalid action or insufficient permissions
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid action or insufficient permissions'
+    ]);
+    exit;
 }
 
 // Get filters for time entries
@@ -689,7 +766,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <select name="employee_id" required>
                                     <option value="">Select Employee</option>
                                     <?php foreach ($currentlyWorking as $worker): ?>
-                                        <option value="<?php echo $worker['employee_id']; ?>">
+                                        <option value="<?php echo $worker['id']; ?>">
                                             <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -709,7 +786,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <select name="employee_id" required>
                                     <option value="">Select Employee</option>
                                     <?php foreach ($currentlyWorking as $worker): ?>
-                                        <option value="<?php echo $worker['employee_id']; ?>">
+                                        <option value="<?php echo $worker['id']; ?>">
                                             <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
                                             <?php echo $worker['on_break'] ? ' (On Break)' : ''; ?>
                                         </option>
@@ -790,12 +867,15 @@ $todayHours = array_sum(array_map(function($entry) {
                             <th>Total Hours</th>
                             <th>Status</th>
                             <th>Notes</th>
+                            <?php if ($isManager): ?>
+                                <th>Actions</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($timeEntries)): ?>
                             <tr>
-                                <td colspan="<?php echo $isManager ? 8 : 7; ?>" style="text-align: center; padding: 30px; color: #6c757d;">
+                                <td colspan="<?php echo $isManager ? 9 : 8; ?>" style="text-align: center; padding: 30px; color: #6c757d;">
                                     No time entries found for the selected period
                                 </td>
                             </tr>
@@ -808,12 +888,12 @@ $todayHours = array_sum(array_map(function($entry) {
                                             <small><?php echo htmlspecialchars($entry['employee_id']); ?></small>
                                         </td>
                                     <?php endif; ?>
-                                    <td><?php echo date('M j, Y', strtotime($entry['date'])); ?></td>
+                                    <td><?php echo date('M j, Y', strtotime($entry['clock_in'])); ?></td>
                                     <td><?php echo $entry['clock_in'] ? date('g:i A', strtotime($entry['clock_in'])) : '-'; ?></td>
                                     <td><?php echo $entry['clock_out'] ? date('g:i A', strtotime($entry['clock_out'])) : '-'; ?></td>
-                                    <td><?php echo $entry['break_minutes'] > 0 ? $entry['break_minutes'] . ' min' : '-'; ?></td>
+                                    <td><?php echo ($entry['total_break_minutes'] ?? 0) > 0 ? $entry['total_break_minutes'] . ' min' : '-'; ?></td>
                                     <td>
-                                        <?php if ($entry['total_hours']): ?>
+                                        <?php if ($entry['total_hours'] !== null && $entry['clock_out']): ?>
                                             <strong><?php echo number_format($entry['total_hours'], 2); ?>h</strong>
                                             <?php if ($entry['overtime_hours'] > 0): ?>
                                                 <br><small style="color: #ffc107;">+<?php echo number_format($entry['overtime_hours'], 2); ?>h OT</small>
@@ -830,6 +910,12 @@ $todayHours = array_sum(array_map(function($entry) {
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($entry['notes'] ?? ''); ?></td>
+                                    <?php if ($isManager): ?>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary edit-btn" data-entry-id="<?php echo $entry['id']; ?>">Edit</button>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-entry-id="<?php echo $entry['id']; ?>" data-employee-name="<?php echo htmlspecialchars(($entry['first_name'] ?? '') . ' ' . ($entry['last_name'] ?? '')); ?>" data-entry-date="<?php echo $entry['date'] ?? ''; ?>">Delete</button>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -878,6 +964,50 @@ $todayHours = array_sum(array_map(function($entry) {
                     <div style="text-align: center; margin-top: 20px;">
                         <button type="submit" name="manual_entry" class="btn btn-success">✏️ Add Entry</button>
                         <button type="button" onclick="closeManualEntryModal()" class="btn btn-warning">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Time Entry Modal -->
+        <div id="editEntryModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditEntryModal()">&times;</span>
+                <h2>📝 Edit Time Entry</h2>
+                <form id="editEntryForm">
+                    <input type="hidden" id="editEntryId" name="entry_id">
+                    <div class="form-group">
+                        <label for="editEmployeeId">Employee *</label>
+                        <select id="editEmployeeId" name="employee_id" required>
+                            <option value="">Select Employee</option>
+                            <?php foreach ($employees as $employee): ?>
+                                <option value="<?php echo $employee['id']; ?>">
+                                    <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name'] . ' (' . $employee['employee_id'] . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDate">Date *</label>
+                        <input type="date" id="editDate" name="date" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editClockIn">Clock In Time *</label>
+                            <input type="time" id="editClockIn" name="clock_in" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editClockOut">Clock Out Time</label>
+                            <input type="time" id="editClockOut" name="clock_out">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNotes">Notes</label>
+                        <textarea id="editNotes" name="notes" rows="3" placeholder="Edit notes..."></textarea>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn btn-success" id="updateEntryBtn">💾 Update Entry</button>
+                        <button type="button" onclick="closeEditEntryModal()" class="btn btn-warning">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -933,6 +1063,240 @@ $todayHours = array_sum(array_map(function($entry) {
         setTimeout(function() {
             location.reload();
         }, 300000);
+
+        // Edit time entry functions
+        function editTimeEntry(entry) {
+            document.getElementById('editEntryId').value = entry.id;
+            document.getElementById('editEmployeeId').value = entry.employee_id;
+            document.getElementById('editDate').value = entry.date;
+            document.getElementById('editClockIn').value = entry.clock_in;
+            document.getElementById('editClockOut').value = entry.clock_out || '';
+            document.getElementById('editNotes').value = entry.notes || '';
+            
+            document.getElementById('editEntryModal').style.display = 'block';
+        }
+
+        // Delete time entry function
+        function deleteTimeEntry(entryId, employeeName, date) {
+            if (confirm('Are you sure you want to delete the time entry for ' + employeeName + ' on ' + date + '?\n\nThis action cannot be undone.')) {
+                var formData = new FormData();
+                formData.append('action', 'delete_entry');
+                formData.append('entry_id', entryId);
+                
+                fetch('time_clock.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        showAlert('Time entry deleted successfully!', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showAlert(data.message || 'Failed to delete entry', 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showAlert('Network error occurred', 'error');
+                });
+            }
+        }
+
+        // Add event listeners for edit and delete buttons after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Edit buttons - full functionality
+            var editButtons = document.querySelectorAll('.edit-btn');
+            editButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var entryId = this.getAttribute('data-entry-id');
+                    
+                    // Find the entry data from the page
+                    var row = this.closest('tr');
+                    var cells = row.cells;
+                    
+                    // Extract data from the table row
+                    var employeeName = cells[0].textContent.split('\n')[0].trim();
+                    var employeeId = cells[0].textContent.split('\n')[1].trim(); // Employee ID
+                    var date = cells[1].textContent.trim();
+                    var clockIn = cells[2].textContent.trim();
+                    var clockOut = cells[3].textContent.trim();
+                    var notes = cells[7].textContent.trim();
+                    
+                    // Populate the edit modal
+                    document.getElementById('editEntryId').value = entryId;
+                    document.getElementById('editDate').value = convertDateToInput(date);
+                    document.getElementById('editClockIn').value = convertTimeToInput(clockIn);
+                    document.getElementById('editClockOut').value = clockOut !== '-' ? convertTimeToInput(clockOut) : '';
+                    document.getElementById('editNotes').value = notes;
+                    
+                    // Set the employee dropdown by finding the option that contains the employee name
+                    var employeeSelect = document.getElementById('editEmployeeId');
+                    for (var i = 0; i < employeeSelect.options.length; i++) {
+                        if (employeeSelect.options[i].text.toLowerCase().includes(employeeName.toLowerCase())) {
+                            employeeSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // Show the modal
+                    document.getElementById('editEntryModal').style.display = 'block';
+                });
+            });
+            
+            // Delete buttons
+            var deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var entryId = this.getAttribute('data-entry-id');
+                    var employeeName = this.getAttribute('data-employee-name');
+                    var entryDate = this.getAttribute('data-entry-date');
+                    
+                    deleteTimeEntry(entryId, employeeName, entryDate);
+                });
+            });
+        });
+
+        function closeEditEntryModal() {
+            document.getElementById('editEntryModal').style.display = 'none';
+        }
+
+        // Close edit modal when clicking outside
+        window.onclick = function(event) {
+            const manualModal = document.getElementById('manualEntryModal');
+            const editModal = document.getElementById('editEntryModal');
+            if (event.target == manualModal) {
+                closeManualEntryModal();
+            } else if (event.target == editModal) {
+                closeEditEntryModal();
+            }
+        }
+
+        // Simple edit entry form handling
+        document.getElementById('editEntryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Form submitted');
+            
+            var submitBtn = document.getElementById('updateEntryBtn');
+            submitBtn.innerHTML = 'Updating...';
+            submitBtn.disabled = true;
+            
+            // Get form data manually
+            var entryId = document.getElementById('editEntryId').value;
+            var employeeId = document.getElementById('editEmployeeId').value;
+            var date = document.getElementById('editDate').value;
+            var clockIn = document.getElementById('editClockIn').value;
+            var clockOut = document.getElementById('editClockOut').value;
+            var notes = document.getElementById('editNotes').value;
+            
+            console.log('Form data:', {entryId, employeeId, date, clockIn, clockOut, notes});
+            
+            // Create simple POST request
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'time_clock.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            
+            xhr.onload = function() {
+                console.log('XHR Response:', xhr.responseText);
+                
+                // Reset button immediately
+                submitBtn.innerHTML = '💾 Update Entry';
+                submitBtn.disabled = false;
+                
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        alert('Entry updated successfully!');
+                        closeEditEntryModal();
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to update'));
+                    }
+                } catch(e) {
+                    alert('Server error occurred');
+                    console.error('Parse error:', e);
+                }
+            };
+            
+            xhr.onerror = function() {
+                console.log('XHR Error');
+                submitBtn.innerHTML = '💾 Update Entry';
+                submitBtn.disabled = false;
+                alert('Network error occurred');
+            };
+            
+            // Send data
+            var postData = 'action=update_entry&entry_id=' + entryId + 
+                          '&employee_id=' + employeeId + 
+                          '&date=' + encodeURIComponent(date) + 
+                          '&clock_in=' + encodeURIComponent(clockIn) + 
+                          '&clock_out=' + encodeURIComponent(clockOut) + 
+                          '&notes=' + encodeURIComponent(notes);
+            
+            console.log('Sending:', postData);
+            xhr.send(postData);
+        });
+
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container-fluid');
+            container.insertBefore(alert, container.firstChild);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Helper functions for date/time conversion
+        function convertDateToInput(dateString) {
+            // Convert "Oct 1, 2025" to "2025-10-01"
+            var date = new Date(dateString);
+            return date.getFullYear() + '-' + 
+                   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(date.getDate()).padStart(2, '0');
+        }
+
+        function convertTimeToInput(timeString) {
+            // Convert "7:30 AM" to "07:30"
+            if (timeString === '-' || !timeString) return '';
+            
+            var time = timeString.trim();
+            var isPM = time.includes('PM');
+            var isAM = time.includes('AM');
+            
+            time = time.replace(/[AP]M/, '').trim();
+            var parts = time.split(':');
+            var hours = parseInt(parts[0]);
+            var minutes = parts[1] || '00';
+            
+            if (isPM && hours !== 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+            
+            return String(hours).padStart(2, '0') + ':' + minutes;
+        }
+
+        // Emergency button reset function - can be called from console
+        function forceResetUpdateButton() {
+            var btn = document.getElementById('updateEntryBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '💾 Update Entry';
+                console.log('Button force reset complete');
+            }
+            editFormSubmitting = false;
+        }
     </script>
 </body>
 </html>

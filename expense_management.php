@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expense_category' => $_POST['expense_category'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'vendor_name' => $_POST['vendor_name'],
             'vendor_contact' => $_POST['vendor_contact'],
@@ -47,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expense_category' => $_POST['expense_category'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'vendor_name' => $_POST['vendor_name'],
             'vendor_contact' => $_POST['vendor_contact'],
@@ -546,6 +548,7 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
                         <select id="expense_category" name="expense_category">
                             <option value="">All Categories</option>
                             <option value="utilities" <?php echo ($_GET['expense_category'] ?? '') === 'utilities' ? 'selected' : ''; ?>>Utilities</option>
+                            <option value="rent" <?php echo ($_GET['expense_category'] ?? '') === 'rent' ? 'selected' : ''; ?>>Rent</option>
                             <option value="maintenance" <?php echo ($_GET['expense_category'] ?? '') === 'maintenance' ? 'selected' : ''; ?>>Maintenance</option>
                             <option value="supplies" <?php echo ($_GET['expense_category'] ?? '') === 'supplies' ? 'selected' : ''; ?>>Supplies</option>
                             <option value="food_beverage" <?php echo ($_GET['expense_category'] ?? '') === 'food_beverage' ? 'selected' : ''; ?>>Food & Beverage</option>
@@ -652,7 +655,22 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
                                             <em>No vendor</em>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="amount">$<?php echo number_format($expense['amount'], 2); ?></td>
+                                    <td class="amount">
+                                        <?php 
+                                        $currency = $expense['currency'] ?? 'PEN';
+                                        $symbol = $currency === 'PEN' ? 'S/.' : '$';
+                                        echo $symbol . ' ' . number_format($expense['amount'], 2);
+                                        
+                                        // Show conversion if different from primary currency
+                                        if ($currency === 'USD') {
+                                            $penAmount = $expense['amount'] * 3.50;
+                                            echo '<br><small class="text-muted">≈ S/. ' . number_format($penAmount, 2) . '</small>';
+                                        } else if ($currency === 'PEN') {
+                                            $usdAmount = $expense['amount'] / 3.50;
+                                            echo '<br><small class="text-muted">≈ $' . number_format($usdAmount, 2) . '</small>';
+                                        }
+                                        ?>
+                                    </td>
                                     <td><?php echo ucfirst(str_replace('_', ' ', $expense['payment_method'])); ?></td>
                                     <td>
                                         <?php if (isset($expense['is_recurring']) && $expense['is_recurring']): ?>
@@ -708,6 +726,7 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
                         <label for="modal_expense_category">Expense Category *</label>
                         <select id="modal_expense_category" name="expense_category" required>
                             <option value="utilities">Utilities</option>
+                            <option value="rent">Rent</option>
                             <option value="maintenance">Maintenance</option>
                             <option value="supplies">Supplies</option>
                             <option value="food_beverage">Food & Beverage</option>
@@ -743,9 +762,16 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
                     <input type="text" id="modal_description" name="description" required>
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="modal_amount">Amount ($) *</label>
-                        <input type="number" id="modal_amount" name="amount" step="0.01" min="0" required>
+                    <div class="form-group" style="flex: 2;">
+                        <label for="modal_amount">Amount *</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="modal_amount" name="amount" step="0.01" min="0" required style="flex: 1;" placeholder="Enter amount">
+                            <select id="modal_currency" name="currency" style="width: 80px;">
+                                <option value="PEN">PEN</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+                        <div id="currency_conversion" style="margin-top: 5px; font-size: 0.85rem; color: #666;"></div>
                     </div>
                     <div class="form-group">
                         <label for="modal_expense_date">Expense Date *</label>
@@ -813,6 +839,7 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
             document.getElementById('modal_expense_category').value = expense.expense_category;
             document.getElementById('modal_description').value = expense.description;
             document.getElementById('modal_amount').value = expense.amount;
+            document.getElementById('modal_currency').value = expense.currency || 'PEN';
             document.getElementById('modal_payment_method').value = expense.payment_method;
             document.getElementById('modal_expense_date').value = expense.expense_date;
             document.getElementById('modal_vendor_name').value = expense.vendor_name || '';
@@ -824,6 +851,9 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
             document.getElementById('submitBtn').textContent = '✏️ Update Expense';
             document.getElementById('submitBtn').name = 'update_expense';
             document.getElementById('expenseModal').style.display = 'block';
+            
+            // Update currency conversion display
+            setTimeout(updateCurrencyConversion, 100);
         }
 
         function deleteExpense(expenseId) {
@@ -862,6 +892,41 @@ $categorySummary = $expenseManager->getCategorySummary($categorySummaryFilters);
             } else {
                 frequencySelect.required = false;
                 frequencySelect.value = '';
+            }
+        });
+
+        // Handle currency conversion display
+        function updateCurrencyConversion() {
+            const amountInput = document.getElementById('modal_amount');
+            const currencySelect = document.getElementById('modal_currency');
+            const conversionDisplay = document.getElementById('currency_conversion');
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            const currency = currencySelect.value;
+            const exchangeRate = 3.50; // PEN to USD rate
+            
+            if (amount > 0) {
+                if (currency === 'PEN') {
+                    const usdAmount = (amount / exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ $${usdAmount} USD</small>`;
+                } else {
+                    const penAmount = (amount * exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ S/. ${penAmount} PEN</small>`;
+                }
+                conversionDisplay.style.display = 'block';
+            } else {
+                conversionDisplay.style.display = 'none';
+            }
+        }
+
+        // Add event listeners for currency conversion
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('modal_amount');
+            const currencySelect = document.getElementById('modal_currency');
+            
+            if (amountInput && currencySelect) {
+                amountInput.addEventListener('input', updateCurrencyConversion);
+                currencySelect.addEventListener('change', updateCurrencyConversion);
             }
         });
     </script>

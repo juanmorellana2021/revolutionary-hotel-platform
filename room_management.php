@@ -35,18 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle extra bed
         $extraBedAvailable = (int)($_POST['extra_bed_available'] ?? 0);
         $extraBedPrice = $extraBedAvailable ? (float)($_POST['extra_bed_price'] ?? 0) : 0;
+        $extraBedCurrency = $extraBedAvailable ? ($_POST['extra_bed_currency'] ?? 'USD') : 'USD';
         
         // Handle single discount
         $singleDiscountType = $_POST['single_discount_type'] ?? 'percentage';
         $singleDiscountValue = (float)($_POST['single_discount_value'] ?? 0);
+        $discountCurrency = $_POST['discount_currency'] ?? 'USD';
         
         // We need to use direct database insertion since addRoom doesn't support extra bed yet
         $db = new Database();
         $connection = $db->getConnection();
         
         $stmt = $connection->prepare("
-            INSERT INTO rooms (room_number, room_type, price, max_occupancy, amenities, extra_bed_available, extra_bed_price, single_discount_type, single_discount_value) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO rooms (room_number, room_type, price, max_occupancy, amenities, extra_bed_available, extra_bed_price, extra_bed_currency, single_discount_type, single_discount_value, discount_currency) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $success = $stmt->execute([
@@ -57,8 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['amenities'] ?? '',
             $extraBedAvailable,
             $extraBedPrice,
+            $extraBedCurrency,
             $singleDiscountType,
-            $singleDiscountValue
+            $singleDiscountValue,
+            $discountCurrency
         ]);
         
         $message = $success ? 'Room added successfully!' : 'Failed to add room.';
@@ -79,10 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle extra bed
         $extraBedAvailable = (int)($_POST['extra_bed_available'] ?? 0);
         $extraBedPrice = $extraBedAvailable ? (float)($_POST['extra_bed_price'] ?? 0) : 0;
+        $extraBedCurrency = $extraBedAvailable ? ($_POST['extra_bed_currency'] ?? 'USD') : 'USD';
         
         // Handle single discount
         $singleDiscountType = $_POST['single_discount_type'] ?? 'percentage';
         $singleDiscountValue = (float)($_POST['single_discount_value'] ?? 0);
+        $discountCurrency = $_POST['discount_currency'] ?? 'USD';
         
         // Handle room update (we'll extend the Room class for this)
         $db = new Database();
@@ -91,15 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $connection->prepare("
             UPDATE rooms SET 
             room_type = ?, price = ?, max_occupancy = ?, amenities = ?, 
-            description = ?, features = ?, extra_bed_available = ?, extra_bed_price = ?, 
-            single_discount_type = ?, single_discount_value = ?
+            description = ?, features = ?, extra_bed_available = ?, extra_bed_price = ?, extra_bed_currency = ?,
+            single_discount_type = ?, single_discount_value = ?, discount_currency = ?
             WHERE id = ?
         ");
         
         $success = $stmt->execute([
             $roomType, $_POST['price'], $_POST['max_occupancy'],
-            $_POST['amenities'], $description, $features, $extraBedAvailable, $extraBedPrice, 
-            $singleDiscountType, $singleDiscountValue, $roomId
+            $_POST['amenities'], $description, $features, $extraBedAvailable, $extraBedPrice, $extraBedCurrency,
+            $singleDiscountType, $singleDiscountValue, $discountCurrency, $roomId
         ]);
         
         $message = $success ? 'Room updated successfully!' : 'Failed to update room.';
@@ -781,7 +787,13 @@ foreach ($allPhotos as $photo) {
                         </div>
                         <div class="form-group">
                             <label for="single_discount_value">Discount Value</label>
-                            <input type="number" id="single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15">
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15" style="flex: 1;">
+                                <select id="discount_currency" name="discount_currency" style="width: 80px; display: none;">
+                                    <option value="USD">USD</option>
+                                    <option value="PEN">PEN</option>
+                                </select>
+                            </div>
                             <small style="color: #ff9800; font-size: 0.9rem;" id="single_discount_help">Enter percentage (0-100) for single guest discount</small>
                         </div>
                     </div>
@@ -794,8 +806,14 @@ foreach ($allPhotos as $photo) {
                             </select>
                         </div>
                         <div class="form-group" id="extra_bed_price_group" style="display: none;">
-                            <label for="extra_bed_price">Extra Bed Price per Night ($)</label>
-                            <input type="number" id="extra_bed_price" name="extra_bed_price" step="0.01" min="0" placeholder="Additional cost for extra bed">
+                            <label for="extra_bed_price">Extra Bed Price per Night</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="extra_bed_price" name="extra_bed_price" step="0.01" min="0" placeholder="Additional cost for extra bed" style="flex: 1;">
+                                <select id="extra_bed_currency" name="extra_bed_currency" style="width: 80px;">
+                                    <option value="USD">USD</option>
+                                    <option value="PEN">PEN</option>
+                                </select>
+                            </div>
                             <small style="color: #28a745; font-size: 0.9rem;">Extra bed adds +1 person to room capacity</small>
                         </div>
                     </div>
@@ -851,7 +869,11 @@ foreach ($allPhotos as $photo) {
                                 <?php if (isset($room['extra_bed_available']) && $room['extra_bed_available']): ?>
                                     <div class="room-detail-item">
                                         <span>🛏️ Extra Bed:</span>
-                                        <span>+1 person (+$<?php echo number_format($room['extra_bed_price'] ?? 0, 2); ?>/night)</span>
+                                        <span>+1 person (+<?php 
+                                            $currency = $room['extra_bed_currency'] ?? 'USD';
+                                            $symbol = $currency === 'PEN' ? 'S/' : '$';
+                                            echo $symbol . number_format($room['extra_bed_price'] ?? 0, 2); 
+                                        ?> <?php echo $currency; ?>/night)</span>
                                     </div>
                                 <?php endif; ?>
                                 <?php if (isset($room['amenities']) && $room['amenities']): ?>
@@ -970,7 +992,13 @@ foreach ($allPhotos as $photo) {
                     </div>
                     <div class="form-group">
                         <label for="edit_single_discount_value">Discount Value</label>
-                        <input type="number" id="edit_single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="edit_single_discount_value" name="single_discount_value" step="0.01" min="0" max="100" placeholder="e.g., 15 for 15% or $15" style="flex: 1;">
+                            <select id="edit_discount_currency" name="discount_currency" style="width: 80px;">
+                                <option value="USD">USD</option>
+                                <option value="PEN">PEN</option>
+                            </select>
+                        </div>
                         <small style="color: #ff9800; font-size: 0.9rem;" id="edit_single_discount_help">Enter percentage (0-100) for single guest discount</small>
                     </div>
                 </div>
@@ -984,8 +1012,14 @@ foreach ($allPhotos as $photo) {
                         </select>
                     </div>
                     <div class="form-group" id="edit_extra_bed_price_group" style="display: none;">
-                        <label for="edit_extra_bed_price">Extra Bed Price per Night ($)</label>
-                        <input type="number" id="edit_extra_bed_price" name="extra_bed_price" step="0.01" min="0" placeholder="Additional cost for extra bed">
+                        <label for="edit_extra_bed_price">Extra Bed Price per Night</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="edit_extra_bed_price" name="extra_bed_price" step="0.01" min="0" placeholder="Additional cost for extra bed" style="flex: 1;">
+                            <select id="edit_extra_bed_currency" name="extra_bed_currency" style="width: 80px;">
+                                <option value="USD">USD</option>
+                                <option value="PEN">PEN</option>
+                            </select>
+                        </div>
                         <small style="color: #28a745; font-size: 0.9rem;">Extra bed adds +1 person to room capacity</small>
                     </div>
                 </div>
@@ -1099,6 +1133,7 @@ foreach ($allPhotos as $photo) {
             if (extraBedAvailable === '1' || extraBedAvailable === 1) {
                 document.getElementById('edit_extra_bed_price_group').style.display = 'block';
                 document.getElementById('edit_extra_bed_price').value = room.extra_bed_price || '';
+                document.getElementById('edit_extra_bed_currency').value = room.extra_bed_currency || 'USD';
                 document.getElementById('edit_extra_bed_price').required = true;
             } else {
                 document.getElementById('edit_extra_bed_price_group').style.display = 'none';
@@ -1110,6 +1145,7 @@ foreach ($allPhotos as $photo) {
             const discountValue = room.single_discount_value || 0;
             document.getElementById('edit_single_discount_type').value = discountType;
             document.getElementById('edit_single_discount_value').value = discountValue;
+            document.getElementById('edit_discount_currency').value = room.discount_currency || 'USD';
             
             // Update help text based on discount type
             toggleEditSingleDiscount(document.getElementById('edit_single_discount_type'));
@@ -1230,30 +1266,39 @@ foreach ($allPhotos as $photo) {
         function toggleSingleDiscount(selectElement) {
             const helpText = document.getElementById('single_discount_help');
             const valueInput = document.getElementById('single_discount_value');
+            const currencyInput = document.getElementById('discount_currency');
+            const conversionDiv = document.getElementById('discount_conversion');
             
             if (selectElement.value === 'percentage') {
                 helpText.textContent = 'Enter percentage (0-100) for single guest discount';
                 valueInput.placeholder = 'e.g., 15 for 15% off';
                 valueInput.max = '100';
+                if (currencyInput) currencyInput.style.display = 'none';
+                if (conversionDiv) conversionDiv.style.display = 'none';
             } else {
-                helpText.textContent = 'Enter fixed dollar amount for single guest discount';
-                valueInput.placeholder = 'e.g., 15 for $15 off';
+                helpText.textContent = 'Enter fixed amount for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for discount amount';
                 valueInput.max = '9999';
+                if (currencyInput) currencyInput.style.display = 'block';
+                showCurrencyConversion('single_discount_value', 'discount_currency', 'discount_conversion');
             }
         }
         
         function toggleEditSingleDiscount(selectElement) {
             const helpText = document.getElementById('edit_single_discount_help');
             const valueInput = document.getElementById('edit_single_discount_value');
+            const currencyInput = document.getElementById('edit_discount_currency');
             
             if (selectElement.value === 'percentage') {
                 helpText.textContent = 'Enter percentage (0-100) for single guest discount';
                 valueInput.placeholder = 'e.g., 15 for 15% off';
                 valueInput.max = '100';
+                if (currencyInput) currencyInput.style.display = 'none';
             } else {
-                helpText.textContent = 'Enter fixed dollar amount for single guest discount';
-                valueInput.placeholder = 'e.g., 15 for $15 off';
+                helpText.textContent = 'Enter fixed amount for single guest discount';
+                valueInput.placeholder = 'e.g., 15 for discount amount';
                 valueInput.max = '9999';
+                if (currencyInput) currencyInput.style.display = 'block';
             }
         }
 
@@ -1323,6 +1368,87 @@ foreach ($allPhotos as $photo) {
             }
         });
 
+        // Currency conversion functions
+        const EXCHANGE_RATE = 3.75; // USD to PEN conversion rate
+        
+        function convertCurrency(amount, fromCurrency, toCurrency) {
+            if (fromCurrency === toCurrency) return amount;
+            if (fromCurrency === 'USD' && toCurrency === 'PEN') return amount * EXCHANGE_RATE;
+            if (fromCurrency === 'PEN' && toCurrency === 'USD') return amount / EXCHANGE_RATE;
+            return amount;
+        }
+        
+        function formatCurrency(amount, currency) {
+            const symbol = currency === 'PEN' ? 'S/' : '$';
+            return `${symbol}${amount.toFixed(2)} ${currency}`;
+        }
+        
+        function showCurrencyConversion(inputId, currencySelectId, displayId) {
+            const input = document.getElementById(inputId);
+            const currencySelect = document.getElementById(currencySelectId);
+            const display = document.getElementById(displayId);
+            
+            if (!input || !currencySelect || !display) return;
+            
+            const amount = parseFloat(input.value) || 0;
+            const currentCurrency = currencySelect.value;
+            const otherCurrency = currentCurrency === 'USD' ? 'PEN' : 'USD';
+            const convertedAmount = convertCurrency(amount, currentCurrency, otherCurrency);
+            
+            if (amount > 0) {
+                display.innerHTML = `<small style="color: #666; font-size: 0.8rem;">≈ ${formatCurrency(convertedAmount, otherCurrency)}</small>`;
+                display.style.display = 'block';
+            } else {
+                display.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners for currency conversion display
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add conversion displays
+            const extraBedGroup = document.getElementById('extra_bed_price_group');
+            if (extraBedGroup) {
+                const conversionDiv = document.createElement('div');
+                conversionDiv.id = 'extra_bed_conversion';
+                conversionDiv.style.marginTop = '5px';
+                extraBedGroup.appendChild(conversionDiv);
+            }
+            
+            const discountGroup = document.querySelector('label[for="single_discount_value"]').parentElement;
+            if (discountGroup) {
+                const conversionDiv = document.createElement('div');
+                conversionDiv.id = 'discount_conversion';
+                conversionDiv.style.marginTop = '5px';
+                discountGroup.appendChild(conversionDiv);
+            }
+            
+            // Add event listeners
+            const extraBedPrice = document.getElementById('extra_bed_price');
+            const extraBedCurrency = document.getElementById('extra_bed_currency');
+            const discountValue = document.getElementById('single_discount_value');
+            const discountCurrency = document.getElementById('discount_currency');
+            
+            if (extraBedPrice && extraBedCurrency) {
+                extraBedPrice.addEventListener('input', () => showCurrencyConversion('extra_bed_price', 'extra_bed_currency', 'extra_bed_conversion'));
+                extraBedCurrency.addEventListener('change', () => showCurrencyConversion('extra_bed_price', 'extra_bed_currency', 'extra_bed_conversion'));
+            }
+            
+            if (discountValue && discountCurrency) {
+                discountValue.addEventListener('input', () => {
+                    const discountType = document.getElementById('single_discount_type').value;
+                    if (discountType === 'fixed') {
+                        showCurrencyConversion('single_discount_value', 'discount_currency', 'discount_conversion');
+                    }
+                });
+                discountCurrency.addEventListener('change', () => {
+                    const discountType = document.getElementById('single_discount_type').value;
+                    if (discountType === 'fixed') {
+                        showCurrencyConversion('single_discount_value', 'discount_currency', 'discount_conversion');
+                    }
+                });
+            }
+        });
+        
         // Close modals when clicking outside
         window.onclick = function(event) {
             const editModal = document.getElementById('editRoomModal');

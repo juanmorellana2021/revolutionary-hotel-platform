@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'income_type' => $_POST['income_type'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'transaction_date' => $_POST['transaction_date'],
             'created_by' => $_SESSION['user']['id'],
@@ -61,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expense_category' => $_POST['expense_category'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'vendor_name' => $_POST['vendor_name'] ?? '',
             'expense_date' => $_POST['expense_date'],
@@ -297,6 +299,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #dc3545;
         }
 
+        .stat-number.warning {
+            color: #fd7e14;
+        }
+
         .stat-number.neutral {
             color: #007bff;
         }
@@ -511,8 +517,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="stat-card">
                 <div class="stat-number negative">$<?php echo number_format($financialReport['total_expenses'], 2); ?></div>
-                <div class="stat-label">Total Expenses</div>
+                <div class="stat-label">Current Expenses</div>
             </div>
+            <?php if (isset($financialReport['future_expenses']) && $financialReport['future_expenses'] > 0): ?>
+            <div class="stat-card">
+                <div class="stat-number warning">$<?php echo number_format($financialReport['future_expenses'], 2); ?></div>
+                <div class="stat-label">Future Expenses</div>
+            </div>
+            <?php endif; ?>
             <div class="stat-card">
                 <div class="stat-number <?php echo $financialReport['net_profit'] >= 0 ? 'positive' : 'negative'; ?>">
                     $<?php echo number_format($financialReport['net_profit'], 2); ?>
@@ -573,8 +585,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="amount">Amount ($)</label>
-                            <input type="number" id="amount" name="amount" step="0.01" min="0" required>
+                            <label for="amount">Amount</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="amount" name="amount" step="0.01" min="0" required style="flex: 1;">
+                                <select id="currency" name="currency" style="width: 80px;">
+                                    <option value="PEN">PEN</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </div>
+                            <div id="currency_conversion_income" style="margin-top: 5px; font-size: 0.85rem; color: #666;"></div>
                         </div>
                         <div class="form-group">
                             <label for="transaction_date">Transaction Date</label>
@@ -598,6 +617,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="expense_category">Expense Category</label>
                             <select id="expense_category" name="expense_category" required>
                                 <option value="utilities">Utilities</option>
+                                <option value="rent">Rent</option>
                                 <option value="maintenance">Maintenance</option>
                                 <option value="supplies">Supplies</option>
                                 <option value="food_beverage">Food & Beverage</option>
@@ -634,8 +654,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="amount_exp">Amount ($)</label>
-                            <input type="number" id="amount_exp" name="amount" step="0.01" min="0" required>
+                            <label for="amount_exp">Amount</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="amount_exp" name="amount" step="0.01" min="0" required style="flex: 1;">
+                                <select id="currency_exp" name="currency" style="width: 80px;">
+                                    <option value="PEN">PEN</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </div>
+                            <div id="currency_conversion_expense" style="margin-top: 5px; font-size: 0.85rem; color: #666;"></div>
                         </div>
                         <div class="form-group">
                             <label for="expense_date">Expense Date</label>
@@ -675,7 +702,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                                 <div class="transaction-amount income">
-                                    +$<?php echo number_format($income['amount'], 2); ?>
+                                    <?php 
+                                    $currency = $income['currency'] ?? 'PEN';
+                                    if ($currency === 'PEN') {
+                                        $penAmount = $income['amount'];
+                                        $usdAmount = $income['amount'] / 3.50;
+                                        echo '+S/. ' . number_format($penAmount, 2);
+                                        echo '<br><small style="color: #28a745; opacity: 0.8;">≈ $' . number_format($usdAmount, 2) . '</small>';
+                                    } else {
+                                        $usdAmount = $income['amount'];
+                                        $penAmount = $income['amount'] * 3.50;
+                                        echo '+S/. ' . number_format($penAmount, 2);
+                                        echo '<br><small style="color: #28a745; opacity: 0.8;">($' . number_format($usdAmount, 2) . ' USD)</small>';
+                                    }
+                                    ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -706,7 +746,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                                 <div class="transaction-amount expense">
-                                    -$<?php echo number_format($expense['amount'], 2); ?>
+                                    <?php 
+                                    $currency = $expense['currency'] ?? 'PEN';
+                                    if ($currency === 'PEN') {
+                                        $penAmount = $expense['amount'];
+                                        $usdAmount = $expense['amount'] / 3.50;
+                                        echo '-S/. ' . number_format($penAmount, 2);
+                                        echo '<br><small style="color: #dc3545; opacity: 0.8;">≈ $' . number_format($usdAmount, 2) . '</small>';
+                                    } else {
+                                        $usdAmount = $expense['amount'];
+                                        $penAmount = $expense['amount'] * 3.50;
+                                        echo '-S/. ' . number_format($penAmount, 2);
+                                        echo '<br><small style="color: #dc3545; opacity: 0.8;">($' . number_format($usdAmount, 2) . ' USD)</small>';
+                                    }
+                                    ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -718,5 +771,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+
+    <script>
+        // Currency conversion functions for quick add forms
+        function updateIncomeConversion() {
+            const amountInput = document.getElementById('amount');
+            const currencySelect = document.getElementById('currency');
+            const conversionDisplay = document.getElementById('currency_conversion_income');
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            const currency = currencySelect.value;
+            const exchangeRate = 3.50; // PEN to USD rate for income
+            
+            if (amount > 0) {
+                if (currency === 'PEN') {
+                    const usdAmount = (amount / exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ $${usdAmount} USD</small>`;
+                } else {
+                    const penAmount = (amount * exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ S/. ${penAmount} PEN</small>`;
+                }
+                conversionDisplay.style.display = 'block';
+            } else {
+                conversionDisplay.style.display = 'none';
+            }
+        }
+
+        function updateExpenseConversion() {
+            const amountInput = document.getElementById('amount_exp');
+            const currencySelect = document.getElementById('currency_exp');
+            const conversionDisplay = document.getElementById('currency_conversion_expense');
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            const currency = currencySelect.value;
+            const exchangeRate = 3.50; // PEN to USD rate for expenses
+            
+            if (amount > 0) {
+                if (currency === 'PEN') {
+                    const usdAmount = (amount / exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ $${usdAmount} USD</small>`;
+                } else {
+                    const penAmount = (amount * exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ S/. ${penAmount} PEN</small>`;
+                }
+                conversionDisplay.style.display = 'block';
+            } else {
+                conversionDisplay.style.display = 'none';
+            }
+        }
+
+        // Add event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Income form listeners
+            const incomeAmountInput = document.getElementById('amount');
+            const incomeCurrencySelect = document.getElementById('currency');
+            
+            if (incomeAmountInput && incomeCurrencySelect) {
+                incomeAmountInput.addEventListener('input', updateIncomeConversion);
+                incomeCurrencySelect.addEventListener('change', updateIncomeConversion);
+            }
+
+            // Expense form listeners
+            const expenseAmountInput = document.getElementById('amount_exp');
+            const expenseCurrencySelect = document.getElementById('currency_exp');
+            
+            if (expenseAmountInput && expenseCurrencySelect) {
+                expenseAmountInput.addEventListener('input', updateExpenseConversion);
+                expenseCurrencySelect.addEventListener('change', updateExpenseConversion);
+            }
+        });
+    </script>
 </body>
 </html>

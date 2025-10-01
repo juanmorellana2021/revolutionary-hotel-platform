@@ -2,6 +2,7 @@
 session_start();
 require_once 'includes/classes.php';
 require_once 'includes/hotel_classes.php';
+require_once 'includes/accounting_classes.php';
 
 // Check if user is logged in and is a manager
 if (!isset($_SESSION['user'])) {
@@ -19,6 +20,7 @@ $user = $_SESSION['user'];
 $hotelInfo = new HotelInfo();
 $bookingManager = new BookingManager();
 $roomObj = new Room();
+$financialReportManager = new FinancialReportManager();
 
 // Get hotel data and statistics
 $hotel = $hotelInfo->getHotelInfo();
@@ -26,6 +28,11 @@ $stats = $bookingManager->getBookingStats();
 $recentBookings = $bookingManager->getRecentBookings(10);
 $rooms = $roomObj->getAllRooms();
 $allUsers = $userManager->getAllUsers();
+
+// Get financial data (current month) - all amounts converted to PEN
+$startDate = date('Y-m-01'); // First day of current month
+$endDate = date('Y-m-t'); // Last day of current month
+$financialData = $financialReportManager->generateReport($startDate, $endDate);
 ?>
 
 <!DOCTYPE html>
@@ -641,8 +648,8 @@ $allUsers = $userManager->getAllUsers();
             </div>
             <div class="stat-card">
                 <div class="stat-icon">💰</div>
-                <div class="stat-number">$<?php echo number_format($stats['total_revenue'], 0); ?></div>
-                <div class="stat-label">Total Revenue</div>
+                <div class="stat-number">S/. <?php echo number_format($financialData['total_income'], 0); ?></div>
+                <div class="stat-label">Total Revenue (This Month)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">📥</div>

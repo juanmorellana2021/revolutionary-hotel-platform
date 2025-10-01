@@ -16,10 +16,10 @@ class EmployeeManager {
             $stmt = $this->connection->prepare("
                 INSERT INTO employees (
                     employee_id, first_name, last_name, email, phone, position, department, 
-                    hire_date, hourly_rate, overtime_rate, weekly_hours, salary_type, 
-                    monthly_salary, emergency_contact_name, emergency_contact_phone, 
+                    hire_date, hourly_rate, hourly_rate_currency, overtime_rate, overtime_rate_currency, 
+                    weekly_hours, salary_type, monthly_salary, emergency_contact_name, emergency_contact_phone, 
                     address, tax_id, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
@@ -32,7 +32,9 @@ class EmployeeManager {
                 $data['department'],
                 $data['hire_date'],
                 $data['hourly_rate'],
+                $data['hourly_rate_currency'] ?? 'USD',
                 $data['overtime_rate'] ?? ($data['hourly_rate'] * 1.5),
+                $data['overtime_rate_currency'] ?? 'USD',
                 $data['weekly_hours'] ?? 40,
                 $data['salary_type'] ?? 'hourly',
                 $data['monthly_salary'] ?? null,
@@ -62,7 +64,9 @@ class EmployeeManager {
      */
     public function getEmployees($filters = []) {
         $sql = "
-            SELECT e.*, u.first_name as user_first_name, u.last_name as user_last_name, u.email as user_email
+            SELECT e.*, u.first_name as user_first_name, u.last_name as user_last_name, u.email as user_email,
+                   COALESCE(e.hourly_rate_currency, 'USD') as hourly_rate_currency,
+                   COALESCE(e.overtime_rate_currency, 'USD') as overtime_rate_currency
             FROM employees e
             LEFT JOIN users u ON e.user_id = u.id
             WHERE 1=1
@@ -112,7 +116,13 @@ class EmployeeManager {
      * Get employee by ID
      */
     public function getEmployeeById($employeeId) {
-        $stmt = $this->connection->prepare("SELECT * FROM employees WHERE id = ?");
+        $stmt = $this->connection->prepare("
+            SELECT *, 
+                   COALESCE(hourly_rate_currency, 'USD') as hourly_rate_currency,
+                   COALESCE(overtime_rate_currency, 'USD') as overtime_rate_currency
+            FROM employees 
+            WHERE id = ?
+        ");
         $stmt->execute([$employeeId]);
         return $stmt->fetch();
     }
@@ -125,9 +135,9 @@ class EmployeeManager {
             $stmt = $this->connection->prepare("
                 UPDATE employees SET 
                     first_name = ?, last_name = ?, email = ?, phone = ?, position = ?, 
-                    department = ?, hourly_rate = ?, overtime_rate = ?, weekly_hours = ?, 
-                    salary_type = ?, monthly_salary = ?, employment_status = ?,
-                    emergency_contact_name = ?, emergency_contact_phone = ?, 
+                    department = ?, hourly_rate = ?, hourly_rate_currency = ?, overtime_rate = ?, 
+                    overtime_rate_currency = ?, weekly_hours = ?, salary_type = ?, monthly_salary = ?, 
+                    employment_status = ?, emergency_contact_name = ?, emergency_contact_phone = ?, 
                     address = ?, tax_id = ?, notes = ?
                 WHERE id = ?
             ");
@@ -140,7 +150,9 @@ class EmployeeManager {
                 $data['position'],
                 $data['department'],
                 $data['hourly_rate'],
+                $data['hourly_rate_currency'] ?? 'USD',
                 $data['overtime_rate'],
+                $data['overtime_rate_currency'] ?? 'USD',
                 $data['weekly_hours'],
                 $data['salary_type'],
                 $data['monthly_salary'],
@@ -385,6 +397,44 @@ class TimeClockManager {
     }
     
     /**
+     * Add manual time entry (Manager only)
+     */
+    public function addManualEntry($employeeId, $clockIn, $clockOut = null, $breakMinutes = 0, $notes = '', $createdBy = null) {
+        try {
+            $stmt = $this->connection->prepare("
+                INSERT INTO time_clock (
+                    employee_id, clock_in, clock_out, total_break_minutes, notes, 
+                    status, created_by, created_at, is_manual_entry
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 1)
+            ");
+            
+            $status = $clockOut ? 'completed' : 'active';
+            
+            $stmt->execute([
+                $employeeId,
+                $clockIn,
+                $clockOut,
+                $breakMinutes > 0 ? $breakMinutes : null,
+                $notes,
+                $status,
+                $createdBy
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => 'Manual time entry added successfully',
+                'entry_id' => $this->connection->lastInsertId()
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to add manual entry: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
      * Get time clock entries with filters
      */
     public function getTimeEntries($filters = []) {
@@ -429,7 +479,63 @@ class TimeClockManager {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
         
-        return $stmt->fetchAll();
+        $entries = $stmt->fetchAll();
+        
+        // Calculate total hours for each entry
+        foreach ($entries as &$entry) {
+            if ($entry['clock_in'] && $entry['clock_out']) {
+                try {
+                    $clockIn = new DateTime($entry['clock_in']);
+                    $clockOut = new DateTime($entry['clock_out']);
+                    
+                    // Calculate total minutes worked
+                    $totalMinutes = ($clockOut->getTimestamp() - $clockIn->getTimestamp()) / 60;
+                    
+                    // Handle negative values (clock_out before clock_in - likely date parsing issue)
+                    if ($totalMinutes < 0) {
+                        // If same day and clock_out time is earlier, it's likely 0 minutes worked
+                        if (date('Y-m-d', strtotime($entry['clock_in'])) === date('Y-m-d', strtotime($entry['clock_out']))) {
+                            $totalMinutes = 0;
+                        } else {
+                            // Clock out is next day
+                            $totalMinutes = abs($totalMinutes);
+                        }
+                    }
+                    
+                    // Subtract break minutes
+                    $breakMinutes = $entry['total_break_minutes'] ?? 0;
+                    $totalMinutes = max(0, $totalMinutes - $breakMinutes);
+                    
+                    // Convert to hours
+                    $totalHours = $totalMinutes / 60;
+                    
+                    // Ensure reasonable maximum (24 hours per entry)
+                    if ($totalHours > 24) {
+                        $totalHours = 0;
+                    }
+                    
+                    // Calculate overtime (over 8 hours)
+                    $regularHours = min($totalHours, 8);
+                    $overtimeHours = max(0, $totalHours - 8);
+                    
+                    $entry['total_hours'] = $totalHours;
+                    $entry['regular_hours'] = $regularHours;
+                    $entry['overtime_hours'] = $overtimeHours;
+                    
+                } catch (Exception $e) {
+                    // If date parsing fails, set to 0
+                    $entry['total_hours'] = 0;
+                    $entry['regular_hours'] = 0;
+                    $entry['overtime_hours'] = 0;
+                }
+            } else {
+                $entry['total_hours'] = null;
+                $entry['regular_hours'] = 0;
+                $entry['overtime_hours'] = 0;
+            }
+        }
+        
+        return $entries;
     }
     
     /**
@@ -449,6 +555,157 @@ class TimeClockManager {
         ");
         $stmt->execute([$employeeId]);
         return $stmt->fetch();
+    }
+
+    /**
+     * Get currently working employees
+     */
+    public function getCurrentlyWorking() {
+        $sql = "
+            SELECT 
+                e.id,
+                e.first_name,
+                e.last_name,
+                e.position,
+                tc.clock_in,
+                CASE 
+                    WHEN tc.break_start IS NOT NULL AND tc.break_end IS NULL THEN 1
+                    ELSE 0
+                END as on_break,
+                TIMESTAMPDIFF(MINUTE, tc.clock_in, NOW()) / 60 as hours_today
+            FROM employees e
+            JOIN time_clock tc ON e.id = tc.employee_id
+            WHERE tc.clock_out IS NULL
+            AND DATE(tc.clock_in) = CURDATE()
+            ORDER BY tc.clock_in ASC
+        ";
+        
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Update existing time entry (Manager only)
+     */
+    public function updateTimeEntry($entryId, $employeeId, $date, $clockIn, $clockOut = null, $notes = '') {
+        try {
+            // Combine date with times
+            $clockInDateTime = $date . ' ' . $clockIn;
+            $clockOutDateTime = $clockOut ? $date . ' ' . $clockOut : null;
+            
+            // Calculate total hours if both times are provided
+            $totalHours = null;
+            $overtimeHours = 0;
+            
+            if ($clockOutDateTime) {
+                $clockInTime = new DateTime($clockInDateTime);
+                $clockOutTime = new DateTime($clockOutDateTime);
+                
+                if ($clockOutTime > $clockInTime) {
+                    $interval = $clockInTime->diff($clockOutTime);
+                    $totalMinutes = ($interval->h * 60) + $interval->i;
+                    $totalHours = round($totalMinutes / 60, 2);
+                    
+                    // Calculate overtime (over 8 hours per day)
+                    $overtimeHours = max(0, $totalHours - 8);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Clock out time must be after clock in time'
+                    ];
+                }
+            }
+            
+            $status = $clockOutDateTime ? 'completed' : 'active';
+            
+            $stmt = $this->connection->prepare("
+                UPDATE time_clock SET 
+                    employee_id = ?,
+                    clock_in = ?,
+                    clock_out = ?,
+                    total_hours = ?,
+                    overtime_hours = ?,
+                    notes = ?,
+                    status = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            
+            $stmt->execute([
+                $employeeId,
+                $clockInDateTime,
+                $clockOutDateTime,
+                $totalHours,
+                $overtimeHours,
+                $notes,
+                $status,
+                $entryId
+            ]);
+            
+            if ($stmt->rowCount() > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Time entry updated successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'No changes made or entry not found'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to update entry: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Delete time entry (Manager only)
+     */
+    public function deleteTimeEntry($entryId) {
+        try {
+            // First check if the entry exists
+            $stmt = $this->connection->prepare("
+                SELECT id, employee_id, clock_in, clock_out 
+                FROM time_clock 
+                WHERE id = ?
+            ");
+            $stmt->execute([$entryId]);
+            $entry = $stmt->fetch();
+            
+            if (!$entry) {
+                return [
+                    'success' => false,
+                    'message' => 'Time entry not found'
+                ];
+            }
+            
+            // Delete the entry
+            $stmt = $this->connection->prepare("DELETE FROM time_clock WHERE id = ?");
+            $stmt->execute([$entryId]);
+            
+            if ($stmt->rowCount() > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Time entry deleted successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to delete entry'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to delete entry: ' . $e->getMessage()
+            ];
+        }
     }
 }
 

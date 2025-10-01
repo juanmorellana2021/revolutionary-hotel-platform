@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'income_type' => $_POST['income_type'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'transaction_date' => $_POST['transaction_date'],
             'booking_id' => !empty($_POST['booking_id']) ? (int)$_POST['booking_id'] : null,
@@ -46,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'income_type' => $_POST['income_type'],
             'description' => $_POST['description'],
             'amount' => (float)$_POST['amount'],
+            'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'transaction_date' => $_POST['transaction_date'],
             'booking_id' => !empty($_POST['booking_id']) ? (int)$_POST['booking_id'] : null,
@@ -97,8 +99,16 @@ unset($totalFilters['limit'], $totalFilters['offset']);
 $totalIncome = $incomeManager->getIncome($totalFilters);
 $totalPages = ceil(count($totalIncome) / $perPage);
 
-// Calculate totals
-$totalAmount = array_sum(array_column($totalIncome, 'amount'));
+// Calculate totals - convert all to PEN
+$totalAmount = 0;
+foreach ($totalIncome as $income) {
+    $currency = $income['currency'] ?? 'PEN';
+    if ($currency === 'USD') {
+        $totalAmount += $income['amount'] * 3.50; // Convert USD to PEN
+    } else {
+        $totalAmount += $income['amount']; // Already in PEN
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -435,7 +445,7 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
             <h1>💰 Income Management</h1>
             <p>Track and manage all hotel income sources</p>
             <div class="total-display">
-                Total Income: $<?php echo number_format($totalAmount, 2); ?> 
+                Total Income: S/. <?php echo number_format($totalAmount, 2); ?> 
                 (<?php echo count($totalIncome); ?> entries)
             </div>
         </div>
@@ -532,13 +542,33 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
                                         <?php if (isset($income['guest_name']) && !empty($income['guest_name'])): ?>
                                             <strong><?php echo htmlspecialchars($income['guest_name']); ?></strong><br>
                                             <?php if (isset($income['guest_email']) && !empty($income['guest_email'])): ?>
-                                                <small><?php echo htmlspecialchars($income['guest_email']); ?></small>
+                                                <small>📧 <?php echo htmlspecialchars($income['guest_email']); ?></small><br>
                                             <?php endif; ?>
+                                            <?php if (isset($income['guest_phone']) && !empty($income['guest_phone'])): ?>
+                                                <small>📱 <?php echo htmlspecialchars($income['guest_phone']); ?></small>
+                                            <?php endif; ?>
+                                        <?php elseif (isset($income['booking_id']) && $income['booking_id']): ?>
+                                            <em>Booking #<?php echo $income['booking_id']; ?></em>
                                         <?php else: ?>
                                             <em>No guest info</em>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="amount">$<?php echo number_format($income['amount'], 2); ?></td>
+                                    <td class="amount">
+                                        <?php 
+                                        $currency = $income['currency'] ?? 'PEN';
+                                        $symbol = $currency === 'PEN' ? 'S/.' : '$';
+                                        echo $symbol . ' ' . number_format($income['amount'], 2);
+                                        
+                                        // Show conversion if different from primary currency
+                                        if ($currency === 'USD') {
+                                            $penAmount = $income['amount'] * 3.50;
+                                            echo '<br><small class="text-muted">≈ S/. ' . number_format($penAmount, 2) . '</small>';
+                                        } else if ($currency === 'PEN') {
+                                            $usdAmount = $income['amount'] / 3.50;
+                                            echo '<br><small class="text-muted">≈ $' . number_format($usdAmount, 2) . '</small>';
+                                        }
+                                        ?>
+                                    </td>
                                     <td><?php echo ucfirst(str_replace('_', ' ', $income['payment_method'])); ?></td>
                                     <td>
                                         <button onclick="editIncome(<?php echo htmlspecialchars(json_encode($income)); ?>)" class="btn btn-primary btn-sm">✏️ Edit</button>
@@ -615,8 +645,15 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="modal_amount">Amount ($) *</label>
-                        <input type="number" id="modal_amount" name="amount" step="0.01" min="0" required>
+                        <label for="modal_amount">Amount *</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="modal_amount" name="amount" step="0.01" min="0" required style="flex: 1;">
+                            <select id="modal_currency" name="currency" style="width: 80px;">
+                                <option value="PEN">PEN</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+                        <div id="currency_conversion" style="margin-top: 5px; font-size: 0.85rem; color: #666;"></div>
                     </div>
                     <div class="form-group">
                         <label for="modal_transaction_date">Transaction Date *</label>
@@ -670,6 +707,7 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
             document.getElementById('modal_income_type').value = income.income_type;
             document.getElementById('modal_description').value = income.description;
             document.getElementById('modal_amount').value = income.amount;
+            document.getElementById('modal_currency').value = income.currency || 'PEN';
             document.getElementById('modal_payment_method').value = income.payment_method;
             document.getElementById('modal_transaction_date').value = income.transaction_date;
             document.getElementById('modal_booking_id').value = income.booking_id || '';
@@ -680,6 +718,9 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
             document.getElementById('submitBtn').textContent = '✏️ Update Income';
             document.getElementById('submitBtn').name = 'update_income';
             document.getElementById('incomeModal').style.display = 'block';
+            
+            // Update currency conversion display
+            setTimeout(updateCurrencyConversion, 100);
         }
 
         function deleteIncome(incomeId) {
@@ -706,6 +747,41 @@ $totalAmount = array_sum(array_column($totalIncome, 'amount'));
                 closeModal();
             }
         }
+
+        // Handle currency conversion display
+        function updateCurrencyConversion() {
+            const amountInput = document.getElementById('modal_amount');
+            const currencySelect = document.getElementById('modal_currency');
+            const conversionDisplay = document.getElementById('currency_conversion');
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            const currency = currencySelect.value;
+            const exchangeRate = 3.50; // PEN to USD rate
+            
+            if (amount > 0) {
+                if (currency === 'PEN') {
+                    const usdAmount = (amount / exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ $${usdAmount} USD</small>`;
+                } else {
+                    const penAmount = (amount * exchangeRate).toFixed(2);
+                    conversionDisplay.innerHTML = `<small class="text-muted">≈ S/. ${penAmount} PEN</small>`;
+                }
+                conversionDisplay.style.display = 'block';
+            } else {
+                conversionDisplay.style.display = 'none';
+            }
+        }
+
+        // Add event listeners for currency conversion
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('modal_amount');
+            const currencySelect = document.getElementById('modal_currency');
+            
+            if (amountInput && currencySelect) {
+                amountInput.addEventListener('input', updateCurrencyConversion);
+                currencySelect.addEventListener('change', updateCurrencyConversion);
+            }
+        });
     </script>
 </body>
 </html>
