@@ -189,6 +189,12 @@ $todayHours = array_sum(array_map(function($entry) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Time Clock - <?php echo htmlspecialchars($hotel['hotel_name'] ?? 'Hotel Management'); ?></title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
     <style>
         * {
             margin: 0;
@@ -737,47 +743,68 @@ $todayHours = array_sum(array_map(function($entry) {
         <!-- Quick Clock Actions -->
         <?php if ($isManager): ?>
             <div class="section">
-                <h2>⚡ Quick Actions</h2>
-                <div class="clock-actions">
-                    <div class="clock-card">
-                        <h3>🟢 Clock In Employee</h3>
-                        <form method="POST">
-                            <div class="form-group">
-                                <select name="employee_id" required>
-                                    <option value="">Select Employee</option>
-                                    <?php foreach ($employees as $employee): ?>
-                                        <option value="<?php echo $employee['id']; ?>">
-                                            <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name'] . ' (' . $employee['employee_id'] . ')'); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                <h2><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-play-circle me-2"></i>Clock In Employee
                             </div>
-                            <div class="form-group">
-                                <textarea name="notes" placeholder="Optional notes..." rows="2"></textarea>
+                            <div class="card-body">
+                                <form method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">Select Employee</label>
+                                        <select name="employee_id" class="form-select" required>
+                                            <option value="">Select Employee</option>
+                                            <?php foreach ($employees as $employee): ?>
+                                                <option value="<?php echo $employee['id']; ?>">
+                                                    <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name'] . ' (' . $employee['employee_id'] . ')'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Notes (Optional)</label>
+                                        <textarea name="notes" class="form-control" placeholder="Optional notes..." rows="2"></textarea>
+                                    </div>
+                                    <button type="submit" name="clock_in" class="btn btn-success w-100">
+                                        <i class="bi bi-play-circle me-2"></i>Clock In
+                                    </button>
+                                </form>
                             </div>
-                            <button type="submit" name="clock_in" class="btn btn-success">🟢 Clock In</button>
-                        </form>
+                        </div>
                     </div>
                     
-                    <div class="clock-card">
-                        <h3>🔴 Clock Out Employee</h3>
-                        <form method="POST">
-                            <div class="form-group">
-                                <select name="employee_id" required>
-                                    <option value="">Select Employee</option>
-                                    <?php foreach ($currentlyWorking as $worker): ?>
-                                        <option value="<?php echo $worker['id']; ?>">
-                                            <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                    <div class="col-md-6">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-white">
+                                <i class="bi bi-stop-circle me-2"></i>Clock Out Employee
                             </div>
-                            <div class="form-group">
-                                <textarea name="notes" placeholder="Optional notes..." rows="2"></textarea>
+                            <div class="card-body">
+                                <form method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">Select Employee</label>
+                                        <select name="employee_id" class="form-select" required>
+                                            <option value="">Select Employee</option>
+                                            <?php foreach ($currentlyWorking as $worker): ?>
+                                                <option value="<?php echo $worker['id']; ?>">
+                                                    <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Notes (Optional)</label>
+                                        <textarea name="notes" class="form-control" placeholder="Optional notes..." rows="2"></textarea>
+                                    </div>
+                                    <button type="submit" name="clock_out" class="btn btn-danger w-100">
+                                        <i class="bi bi-stop-circle me-2"></i>Clock Out
+                                    </button>
+                                </form>
                             </div>
-                            <button type="submit" name="clock_out" class="btn btn-danger">🔴 Clock Out</button>
-                        </form>
+                        </div>
                     </div>
+                </div>
                     
                     <div class="clock-card">
                         <h3>☕ Break Management</h3>
@@ -853,22 +880,22 @@ $todayHours = array_sum(array_map(function($entry) {
                 </div>
             </form>
             
-            <div style="overflow-x: auto;">
-                <table class="time-table">
-                    <thead>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
                         <tr>
                             <?php if ($isManager): ?>
-                                <th>Employee</th>
+                                <th><i class="bi bi-person-fill me-2"></i>Employee</th>
                             <?php endif; ?>
-                            <th>Date</th>
-                            <th>Clock In</th>
-                            <th>Clock Out</th>
-                            <th>Break Time</th>
-                            <th>Total Hours</th>
-                            <th>Status</th>
-                            <th>Notes</th>
+                            <th><i class="bi bi-calendar3 me-2"></i>Date</th>
+                            <th><i class="bi bi-clock me-2"></i>Clock In</th>
+                            <th><i class="bi bi-clock-fill me-2"></i>Clock Out</th>
+                            <th><i class="bi bi-cup-hot me-2"></i>Break Time</th>
+                            <th><i class="bi bi-stopwatch me-2"></i>Total Hours</th>
+                            <th><i class="bi bi-check-circle me-2"></i>Status</th>
+                            <th><i class="bi bi-sticky me-2"></i>Notes</th>
                             <?php if ($isManager): ?>
-                                <th>Actions</th>
+                                <th><i class="bi bi-gear me-2"></i>Actions</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -904,16 +931,26 @@ $todayHours = array_sum(array_map(function($entry) {
                                     </td>
                                     <td>
                                         <?php if (empty($entry['clock_out'])): ?>
-                                            <span class="badge badge-working">Working</span>
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-play-circle me-1"></i>Working
+                                            </span>
                                         <?php else: ?>
-                                            <span class="badge badge-completed">Completed</span>
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-check-circle me-1"></i>Completed
+                                            </span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars($entry['notes'] ?? ''); ?></td>
                                     <?php if ($isManager): ?>
                                         <td>
-                                            <button class="btn btn-sm btn-primary edit-btn" data-entry-id="<?php echo $entry['id']; ?>">Edit</button>
-                                            <button class="btn btn-sm btn-danger delete-btn" data-entry-id="<?php echo $entry['id']; ?>" data-employee-name="<?php echo htmlspecialchars(($entry['first_name'] ?? '') . ' ' . ($entry['last_name'] ?? '')); ?>" data-entry-date="<?php echo $entry['date'] ?? ''; ?>">Delete</button>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-primary btn-sm edit-btn" data-entry-id="<?php echo $entry['id']; ?>" title="Edit Entry">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm delete-btn" data-entry-id="<?php echo $entry['id']; ?>" data-employee-name="<?php echo htmlspecialchars(($entry['first_name'] ?? '') . ' ' . ($entry['last_name'] ?? '')); ?>" data-entry-date="<?php echo $entry['date'] ?? ''; ?>" title="Delete Entry">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     <?php endif; ?>
                                 </tr>
@@ -929,25 +966,30 @@ $todayHours = array_sum(array_map(function($entry) {
     <?php if ($isManager): ?>
         <div id="manualEntryModal" class="modal">
             <div class="modal-content">
-                <span class="close" onclick="closeManualEntryModal()">&times;</span>
-                <h2>✏️ Add Manual Time Entry</h2>
-                <form method="POST">
-                    <div class="form-group">
-                        <label for="manual_employee_id">Employee *</label>
-                        <select id="manual_employee_id" name="employee_id" required>
-                            <option value="">Select Employee</option>
-                            <?php foreach ($employees as $employee): ?>
-                                <option value="<?php echo $employee['id']; ?>">
-                                    <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name'] . ' (' . $employee['employee_id'] . ')'); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="manual_clock_in">Clock In Date & Time *</label>
-                            <input type="datetime-local" id="manual_clock_in" name="clock_in" required>
+                <div class="modal-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Add Manual Time Entry</h2>
+                    <span class="close text-white" onclick="closeManualEntryModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="manual_employee_id" class="form-label">Employee *</label>
+                            <select id="manual_employee_id" name="employee_id" class="form-select" required>
+                                <option value="">Select Employee</option>
+                                <?php foreach ($employees as $employee): ?>
+                                    <option value="<?php echo $employee['id']; ?>">
+                                        <?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name'] . ' (' . $employee['employee_id'] . ')'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="manual_clock_in" class="form-label">Clock In Date & Time *</label>
+                                    <input type="datetime-local" id="manual_clock_in" name="clock_in" class="form-control" required>
+                                </div>
+                            </div>
                         <div class="form-group">
                             <label for="manual_clock_out">Clock Out Date & Time</label>
                             <input type="datetime-local" id="manual_clock_out" name="clock_out">
@@ -1298,5 +1340,8 @@ $todayHours = array_sum(array_map(function($entry) {
             editFormSubmitting = false;
         }
     </script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
