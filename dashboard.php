@@ -45,6 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_booking'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Booking Dashboard</title>
+    
+    <!-- AINI Innovations Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
     <style>
         * {
             margin: 0;

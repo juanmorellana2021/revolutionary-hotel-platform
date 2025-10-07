@@ -5,13 +5,13 @@ require_once 'includes/hotel_classes.php';
 
 // Check if user is logged in and is a manager
 if (!isset($_SESSION['user'])) {
-    header('Location: index.php');
+    echo "Error: Not logged in. <a href='index.php'>Please log in</a>";
     exit;
 }
 
 $userManager = new UserManager();
 if (!$userManager->isManager($_SESSION['user']['id'])) {
-    header('Location: dashboard.php');
+    echo "Error: Access denied. Only managers can access room management. <a href='dashboard.php'>Go to dashboard</a>";
     exit;
 }
 
@@ -678,6 +678,7 @@ foreach ($allPhotos as $photo) {
                                 
                                 <div class="room-actions">
                                     <button onclick="managePhotos(<?php echo $room['id']; ?>)" class="btn btn-primary">📷 Manage Photos</button>
+                        <button onclick="testFunction()" class="btn btn-success" style="margin-top: 5px;">🧪 Test JS</button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -914,6 +915,7 @@ foreach ($allPhotos as $photo) {
                             <div class="room-actions">
                                 <button onclick="editRoom(<?php echo $room['id']; ?>)" class="btn btn-primary">✏️ Edit</button>
                                 <button onclick="managePhotos(<?php echo $room['id']; ?>)" class="btn btn-secondary">📷 Photos</button>
+                                <button onclick="testFunction()" class="btn btn-success" style="margin-top: 5px;">🧪 Test JS</button>
                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this room?')">
                                     <input type="hidden" name="room_id" value="<?php echo $room['id']; ?>">
                                     <button type="submit" name="delete_room" class="btn btn-danger">🗑️ Delete</button>
@@ -1071,8 +1073,121 @@ foreach ($allPhotos as $photo) {
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">📸 Select Photo</label>
-                            <input type="file" name="room_photo" accept="image/*" required
-                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <div style="position: relative;">
+                                <input type="file" id="roomPhotoInput" name="room_photo" accept="image/jpeg,image/jpg,image/png,image/gif" required
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;"
+                                       onchange="handleFileSelect(this)">
+                                
+
+                                
+                                <!-- Enhanced Drag and Drop Area -->
+                                <div id="dropArea" 
+                                     style="margin-top: 10px; border: 2px dashed #28a745; border-radius: 8px; padding: 30px; text-align: center; background: linear-gradient(145deg, #f8f9fa, #e9ecef); cursor: pointer; transition: all 0.3s ease;"
+                                     onclick="showUploadOptions()">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">📸</div>
+                                    <p style="margin: 0; color: #28a745; font-weight: bold; font-size: 16px;">
+                                        📎 DRAG & DROP IMAGE HERE
+                                    </p>
+                                    <p style="margin: 5px 0 0 0; color: #28a745; font-size: 14px; font-weight: bold;">
+                                        ✅ RECOMMENDED - NO FREEZING ISSUES!
+                                    </p>
+                                    <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">
+                                        Or click for more upload options
+                                    </p>
+                                    <button type="button" onclick="forceRefresh()" 
+                                            style="margin-top: 10px; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                        🔄 FORCE REFRESH (Clear Cache)
+                                    </button>
+                                    <button type="button" onclick="diagnosticTest()" 
+                                            style="margin-top: 5px; padding: 5px 10px; background: #6f42c1; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                        🔍 RUN DIAGNOSTIC
+                                    </button>
+                                </div>
+                                
+                                <!-- Alternative Upload Methods (Hidden by default) -->
+                                <div id="uploadOptions" style="display: none; margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 5px; border: 1px solid #ffeaa7;">
+                                    <!-- Problem & Solution Banner -->
+                                    <div style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: center;">
+                                        <h4 style="margin: 0 0 8px 0; font-size: 16px;">⚠️ WINDOWS FILE BROWSER ISSUE</h4>
+                                        <p style="margin: 0; font-size: 13px; opacity: 0.9;">
+                                            File browser works in current directory but <strong>freezes when navigating</strong> to other folders
+                                        </p>
+                                    </div>
+                                    
+                                    <!-- Solution Guide -->
+                                    <div style="background: linear-gradient(135deg, #00b894, #00cec9); color: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: center;">
+                                        <h4 style="margin: 0 0 8px 0; font-size: 16px;">✅ RECOMMENDED SOLUTIONS</h4>
+                                        <p style="margin: 0; font-size: 13px; opacity: 0.9;">
+                                            Use <strong>"Direct File Select"</strong> below or <strong>"Simple Upload"</strong> for best results
+                                        </p>
+                                    </div>
+                                    
+                                    <p style="margin: 0 0 15px 0; font-weight: bold; color: #856404; text-align: center;">
+                                        🔧 Choose Your Upload Method:
+                                    </p>
+                                    <!-- Direct File Input (Most Reliable) -->
+                                    <div style="margin-bottom: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border: 2px solid #28a745; box-shadow: 0 2px 4px rgba(40,167,69,0.2);">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <span style="font-size: 20px; margin-right: 8px;">✅</span>
+                                            <label style="font-weight: bold; color: #155724; margin: 0; font-size: 16px;">
+                                                RECOMMENDED: Direct File Select
+                                            </label>
+                                        </div>
+                                        <p style="margin: 0 0 10px 0; color: #155724; font-size: 13px;">
+                                            <strong>No freezing issues!</strong> Navigate to any directory without problems.
+                                        </p>
+                                        <input type="file" id="directFileInput" multiple accept="image/*" 
+                                               onchange="handleDirectFileSelect(this)"
+                                               style="width: 100%; padding: 8px; border: 2px solid #28a745; border-radius: 6px; font-size: 14px; background: white; cursor: pointer;">
+                                        <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 4px;">
+                                            <small style="color: #155724; font-size: 12px; display: block;">
+                                                💡 <strong>How to use:</strong> Click "Choose Files" → Navigate to any folder → Select photos → Click "Open"
+                                            </small>
+                                            <small style="color: #155724; font-size: 11px; display: block; margin-top: 3px;">
+                                                🚀 Works with all Windows versions and doesn't freeze when changing directories
+                                            </small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Alternative Method Buttons -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                                        <button type="button" onclick="openSimpleUpload()" 
+                                                style="padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;">
+                                            🚀 SIMPLE UPLOAD PAGE
+                                            <div style="font-size: 10px; opacity: 0.9; margin-top: 2px;">Completely reliable</div>
+                                        </button>
+                                        <button type="button" onclick="openNewWindowUpload()" 
+                                                style="padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;">
+                                            🆕 NEW WINDOW UPLOAD
+                                            <div style="font-size: 10px; opacity: 0.9; margin-top: 2px;">Popup alternative</div>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Risky Method (with warning) -->
+                                    <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #856404;">
+                                            ⚠️ <strong>Advanced:</strong> File browser method (may freeze when changing directories)
+                                        </p>
+                                        <div style="display: flex; gap: 5px;">
+                                            <button type="button" onclick="trySimpleFileSelect()" 
+                                                    style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                                                📁 Try File Browser (Risky)
+                                            </button>
+                                            <button type="button" onclick="hideUploadOptions()" 
+                                                    style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                                                ❌ Close Options
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p style="margin: 10px 0 0 0; font-size: 11px; color: #856404;">
+                                        <strong>Note:</strong> If file browser freezes, use "New Window" or drag & drop method.
+                                    </p>
+                                </div>
+                            </div>
+                            <small style="display: block; color: #666; margin-top: 5px;">
+                                Supported formats: JPG, PNG, GIF (Max 5MB)<br>
+                                <strong style="color: #e74c3c;">⚠️ Windows file browser may freeze - Use drag & drop below instead!</strong>
+                            </small>
                         </div>
                         <div>
                             <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
@@ -1096,13 +1211,25 @@ foreach ($allPhotos as $photo) {
         </div>
     </div>
 
-    <script>
-        // Room editing functionality
-        const rooms = <?php echo json_encode($rooms); ?>;
+    <script type="text/javascript">
+        console.log('DEBUG: Script starting...');
         
+        // Simple test without any PHP variables first
+        window.testFunction = function() {
+            alert('Test function works!');
+            console.log('Test function executed!');
+        };
+        
+        console.log('DEBUG: Test function defined');
+        console.log('DEBUG: testFunction type:', typeof window.testFunction);
+        
+        // SIMPLE EDIT FUNCTION
         function editRoom(roomId) {
-            const room = rooms.find(r => r.id == roomId);
-            if (!room) return;
+            console.log('DEBUG: editRoom called with ID:', roomId);
+            alert('Edit function called for room ' + roomId);
+            // TODO: Add modal logic here
+        }
+        window.editRoom = editRoom;
             
             document.getElementById('edit_room_id').value = room.id;
             
@@ -1150,31 +1277,10 @@ foreach ($allPhotos as $photo) {
             // Update help text based on discount type
             toggleEditSingleDiscount(document.getElementById('edit_single_discount_type'));
             
-            // Update capacity display
-            updateEditCapacityDisplay();
-            
-            document.getElementById('editRoomModal').style.display = 'block';
-        }
-        
-        function closeModal() {
-            document.getElementById('editRoomModal').style.display = 'none';
-        }
-        
-        function managePhotos(roomId) {
-            // Set the room ID for photo upload
-            document.getElementById('photo_room_id').value = roomId;
-            
-            // Load photos for this room
-            loadRoomPhotos(roomId);
-            
-            // Show the modal
-            document.getElementById('photoModal').style.display = 'block';
-        }
-        
-        function loadRoomPhotos(roomId) {
-            const roomPhotos = <?php echo json_encode($roomPhotos); ?>;
-            const photos = roomPhotos[roomId] || [];
-            const grid = document.getElementById('roomPhotosGrid');
+        console.log('DEBUG: Basic functions defined');
+        console.log('editRoom type:', typeof window.editRoom);
+        console.log('managePhotos type:', typeof window.managePhotos);
+        console.log('closeModal type:', typeof window.closeModal);
             
             if (photos.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #666; padding: 20px;">No photos uploaded yet.</p>';
@@ -1449,6 +1555,363 @@ foreach ($allPhotos as $photo) {
             }
         });
         
+        // Handle file selection with validation
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPG, PNG, or GIF)');
+                    input.value = '';
+                    return;
+                }
+                
+                // Validate file size (5MB limit)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
+                
+                console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+                
+                // Show file name in a more user-friendly way
+                const fileName = file.name;
+                if (fileName.length > 30) {
+                    console.log('Selected: ' + fileName.substring(0, 30) + '...');
+                } else {
+                    console.log('Selected: ' + fileName);
+                }
+            }
+        }
+        
+        // Alternative way to trigger file selection - use document body approach
+        function triggerFileSelect() {
+            console.log('Attempting to open file dialog...');
+            
+            // Create a completely isolated file input
+            const cleanInput = document.createElement('input');
+            cleanInput.type = 'file';
+            cleanInput.accept = 'image/jpeg,image/jpg,image/png,image/gif';
+            cleanInput.multiple = false;
+            cleanInput.style.position = 'fixed';
+            cleanInput.style.left = '-9999px';
+            cleanInput.style.top = '-9999px';
+            cleanInput.style.opacity = '0';
+            cleanInput.style.pointerEvents = 'none';
+            
+            // Remove all modal interference
+            const modal = document.getElementById('photoModal');
+            const originalDisplay = modal ? modal.style.display : '';
+            const originalZIndex = modal ? modal.style.zIndex : '';
+            
+            if (modal) {
+                modal.style.display = 'none';
+                modal.style.zIndex = '-1';
+            }
+            
+            // Disable all other elements temporarily
+            document.body.style.pointerEvents = 'none';
+            
+            // Add the clean input to document root
+            document.documentElement.appendChild(cleanInput);
+            
+            // Set up file selection handler
+            cleanInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                console.log('File dialog result:', file ? file.name : 'No file selected');
+                
+                if (file) {
+                    // Validate file type
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert('Please select a valid image file (JPG, PNG, or GIF)');
+                        cleanup();
+                        return;
+                    }
+                    
+                    // Validate file size (5MB limit)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File size must be less than 5MB');
+                        cleanup();
+                        return;
+                    }
+                    
+                    // Transfer to the original input
+                    const originalInput = document.getElementById('roomPhotoInput');
+                    if (originalInput) {
+                        try {
+                            const dt = new DataTransfer();
+                            dt.items.add(file);
+                            originalInput.files = dt.files;
+                            
+                            // Trigger change event on original input
+                            const changeEvent = new Event('change', { bubbles: true });
+                            originalInput.dispatchEvent(changeEvent);
+                            
+                            console.log('File transferred successfully:', file.name);
+                        } catch (error) {
+                            console.error('Error transferring file:', error);
+                        }
+                    }
+                }
+                
+                cleanup();
+            });
+            
+            // Handle focus loss (user cancels dialog)
+            const focusHandler = function() {
+                setTimeout(() => {
+                    if (!cleanInput.files.length) {
+                        console.log('File dialog cancelled by user');
+                        cleanup();
+                    }
+                }, 500);
+            };
+            
+            // Clean up function
+            function cleanup() {
+                try {
+                    // Remove event listeners
+                    window.removeEventListener('focus', focusHandler);
+                    
+                    // Remove the temporary input
+                    if (cleanInput.parentNode) {
+                        cleanInput.parentNode.removeChild(cleanInput);
+                    }
+                    
+                    // Restore modal
+                    if (modal) {
+                        modal.style.display = originalDisplay || 'block';
+                        modal.style.zIndex = originalZIndex || '1000';
+                    }
+                    
+                    // Re-enable interactions
+                    document.body.style.pointerEvents = '';
+                    
+                    console.log('File dialog cleanup completed');
+                } catch (error) {
+                    console.error('Cleanup error:', error);
+                }
+            }
+            
+            // Set up cancel detection
+            window.addEventListener('focus', focusHandler);
+            
+            // Trigger the file dialog with maximum delay to ensure clean state
+            setTimeout(() => {
+                try {
+                    console.log('Triggering file dialog...');
+                    cleanInput.click();
+                } catch (error) {
+                    console.error('Failed to trigger file dialog:', error);
+                    alert('Unable to open file browser. Please use drag & drop or try the "New Window" option.');
+                    cleanup();
+                }
+            }, 200);
+        }
+        
+        // Ultra-simple direct file selection
+        function directFileSelect() {
+            console.log('Direct file selection triggered');
+            const originalInput = document.getElementById('roomPhotoInput');
+            
+            if (originalInput) {
+                // Clear any existing selection
+                originalInput.value = '';
+                
+                // Try direct click without any interference
+                try {
+                    originalInput.focus();
+                    originalInput.click();
+                    console.log('Direct click executed');
+                } catch (error) {
+                    console.error('Direct selection failed:', error);
+                    alert('Direct selection failed. Please try drag & drop or the New Window option.');
+                }
+            }
+        }
+        
+        // Show/hide upload options
+        function showUploadOptions() {
+            const options = document.getElementById('uploadOptions');
+            if (options) {
+                options.style.display = options.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        function hideUploadOptions() {
+            const options = document.getElementById('uploadOptions');
+            if (options) {
+                options.style.display = 'none';
+            }
+        }
+        
+        // Simplified file select with timeout protection
+        function trySimpleFileSelect() {
+            const fileInput = document.getElementById('roomPhotoInput');
+            if (!fileInput) return;
+            
+            console.log('Attempting simple file selection...');
+            
+            // Clear any existing selection
+            fileInput.value = '';
+            
+            // Set a timeout to detect if dialog gets stuck
+            let dialogTimeout;
+            let dialogOpened = false;
+            
+            // Listen for focus return (indicates dialog closed)
+            const focusHandler = function() {
+                if (dialogOpened) {
+                    clearTimeout(dialogTimeout);
+                    window.removeEventListener('focus', focusHandler);
+                    
+                    if (!fileInput.files.length) {
+                        console.log('File dialog cancelled or no file selected');
+                    }
+                    dialogOpened = false;
+                }
+            };
+            
+            // Set up timeout detection (5 seconds)
+            dialogTimeout = setTimeout(() => {
+                if (dialogOpened) {
+                    console.warn('File dialog appears to be stuck');
+                    alert('File browser appears to be stuck.\\n\\nPlease:\\n1. Close any stuck file browser windows\\n2. Try the "New Window" option\\n3. Or use drag & drop (recommended)');
+                    
+                    // Clean up
+                    window.removeEventListener('focus', focusHandler);
+                    dialogOpened = false;
+                }
+            };
+            
+            // Add focus listener
+            window.addEventListener('focus', focusHandler);
+            
+            // Try to open file dialog
+            try {
+                dialogOpened = true;
+                fileInput.click();
+                console.log('File dialog triggered');
+            } catch (error) {
+                console.error('Failed to open file dialog:', error);
+                clearTimeout(dialogTimeout);
+                window.removeEventListener('focus', focusHandler);
+                dialogOpened = false;
+                
+                alert('Cannot open file browser.\\n\\nPlease use:\\n• Drag & Drop (recommended)\\n• New Window option');
+            }
+        }
+        
+        // Open upload in new window as alternative
+        function openNewWindowUpload() {
+            const roomId = document.getElementById('photo_room_id').value;
+            const newWindow = window.open(
+                `photo_upload.php?room_id=${roomId}`, 
+                'photoUpload', 
+                'width=600,height=400,scrollbars=yes,resizable=yes'
+            );
+            
+            if (!newWindow) {
+                alert('Please allow popups for this site and try again.');
+            } else {
+                // Close current modal
+                document.getElementById('photoModal').style.display = 'none';
+                
+                // Refresh photos when new window closes
+                const checkClosed = setInterval(() => {
+                    if (newWindow.closed) {
+                        clearInterval(checkClosed);
+                        loadRoomPhotos(roomId);
+                        document.getElementById('photoModal').style.display = 'block';
+                    }
+                }, 1000);
+            }
+        }
+        
+        // Initialize drag and drop functionality
+        function initializeDragDrop() {
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('roomPhotoInput');
+            
+            if (dropArea && fileInput) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight(e) {
+                    dropArea.style.backgroundColor = '#e3f2fd';
+                    dropArea.style.borderColor = '#2196f3';
+                }
+                
+                function unhighlight(e) {
+                    dropArea.style.backgroundColor = '#f9f9f9';
+                    dropArea.style.borderColor = '#ddd';
+                }
+                
+                dropArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    if (files.length > 0) {
+                        const file = files[0];
+                        
+                        // Validate file
+                        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                        if (!allowedTypes.includes(file.type)) {
+                            alert('Please drop a valid image file (JPG, PNG, or GIF)');
+                            return;
+                        }
+                        
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('File size must be less than 5MB');
+                            return;
+                        }
+                        
+                        // Set the file to the input
+                        const newDt = new DataTransfer();
+                        newDt.items.add(file);
+                        fileInput.files = newDt.files;
+                        
+                        handleFileSelect(fileInput);
+                    }
+                }
+            }
+        }
+        
+        // Improve modal handling - prevent conflicts with file dialogs
+        // SIMPLE PHOTOS FUNCTION
+        function managePhotos(roomId) {
+            console.log('DEBUG: managePhotos called with ID:', roomId);
+            alert('Photos function called for room ' + roomId);
+            // TODO: Add photo modal logic here
+        }
+        window.managePhotos = managePhotos;
+            
+        // SIMPLE CLOSE FUNCTION
+        function closeModal() {
+            console.log('DEBUG: closeModal called');
+            alert('Close modal function called');
+        }
+        window.closeModal = closeModal;
+        
         // Close modals when clicking outside
         window.onclick = function(event) {
             const editModal = document.getElementById('editRoomModal');
@@ -1461,6 +1924,403 @@ foreach ($allPhotos as $photo) {
                 photoModal.style.display = 'none';
             }
         }
+        
+        console.log('DEBUG: Script finished loading');
     </script>
+    
+    <!-- CLEAN WORKING SCRIPT -->
+    <script>
+        // Cache busting - force fresh load
+        const cacheVersion = new Date().getTime();
+        console.log('✅ MODAL FUNCTIONS: Starting... Cache Version:', cacheVersion);
+        
+        // Test function
+        window.testFunction = function() {
+            alert('✅ TEST FUNCTION WORKS!');
+            console.log('✅ Test function executed successfully!');
+        };
+        
+        // Diagnostic function to test file input behavior
+        window.diagnosticTest = function() {
+            console.log('🔍 RUNNING DIAGNOSTIC TEST...');
+            
+            // Test 1: Check if file inputs exist
+            const mainInput = document.getElementById('roomPhotoInput');
+            const directInput = document.getElementById('directFileInput');
+            
+            console.log('📋 Main file input exists:', !!mainInput);
+            console.log('📋 Direct file input exists:', !!directInput);
+            
+            // Test 2: Try creating a simple file input
+            try {
+                const testInput = document.createElement('input');
+                testInput.type = 'file';
+                testInput.style.display = 'none';
+                document.body.appendChild(testInput);
+                
+                console.log('✅ Can create file input elements');
+                
+                // Clean up
+                document.body.removeChild(testInput);
+            } catch (error) {
+                console.error('❌ Cannot create file input:', error);
+            }
+            
+            // Test 3: Check browser compatibility
+            console.log('🌐 User Agent:', navigator.userAgent);
+            console.log('🌐 Browser:', navigator.appName);
+            console.log('🌐 Platform:', navigator.platform);
+            
+            console.log('🔍 Diagnostic complete!');
+        };
+        
+        // Edit Room Modal Function
+        window.editRoom = function(roomId) {
+            console.log('🔧 Opening edit modal for room:', roomId);
+            
+            // Open the edit modal
+            const editModal = document.getElementById('editRoomModal');
+            if (editModal) {
+                editModal.style.display = 'block';
+                
+                // Set the room ID in the hidden field
+                const roomIdField = document.getElementById('edit_room_id');
+                if (roomIdField) {
+                    roomIdField.value = roomId;
+                }
+                
+                // TODO: Load room data and populate form fields
+                console.log('✅ Edit modal opened for room:', roomId);
+            } else {
+                console.error('❌ Edit modal not found!');
+                alert('Error: Edit modal not found!');
+            }
+        };
+        
+        // Manage Photos Modal Function  
+        window.managePhotos = function(roomId) {
+            console.log('📷 Opening photos modal for room:', roomId);
+            
+            // Open the photos modal
+            const photoModal = document.getElementById('photoModal');
+            if (photoModal) {
+                photoModal.style.display = 'block';
+                
+                // Set the room ID in the photos form
+                const roomIdField = document.getElementById('photo_room_id');
+                if (roomIdField) {
+                    roomIdField.value = roomId;
+                }
+                
+                // TODO: Load existing photos for this room
+                console.log('✅ Photos modal opened for room:', roomId);
+            } else {
+                console.error('❌ Photos modal not found!');
+                alert('Error: Photos modal not found!');
+            }
+        };
+        
+        // Modal close function
+        window.closeModal = function() {
+            const editModal = document.getElementById('editRoomModal');
+            const photoModal = document.getElementById('photoModal');
+            
+            if (editModal) editModal.style.display = 'none';
+            if (photoModal) photoModal.style.display = 'none';
+            
+            console.log('✅ Modals closed');
+        };
+
+        // Specific close photo modal function
+        window.closePhotoModal = function() {
+            const photoModal = document.getElementById('photoModal');
+            if (photoModal) {
+                photoModal.style.display = 'none';
+                console.log('✅ Photo modal closed');
+            }
+        };
+        
+        // File Upload Functions
+        window.showUploadOptions = function() {
+            const uploadOptions = document.getElementById('uploadOptions');
+            if (uploadOptions) {
+                uploadOptions.style.display = 'block';
+                console.log('✅ Upload options shown');
+            }
+        };
+        
+        window.hideUploadOptions = function() {
+            const uploadOptions = document.getElementById('uploadOptions');
+            if (uploadOptions) {
+                uploadOptions.style.display = 'none';
+                console.log('✅ Upload options hidden');
+            }
+        };
+        
+        window.trySimpleFileSelect = function() {
+            console.log('📁 IMPROVED: Windows-compatible file selection...');
+            
+            // Show user that we're trying to open the dialog
+            const originalText = event.target.innerHTML;
+            event.target.innerHTML = '⏳ Opening file browser...';
+            event.target.disabled = true;
+            
+            // Reset button after timeout
+            setTimeout(() => {
+                event.target.innerHTML = originalText;
+                event.target.disabled = false;
+            }, 3000);
+            
+            // Use the reliable direct input method instead of creating dynamic inputs
+            const directInput = document.getElementById('directFileInput');
+            if (directInput) {
+                console.log('✅ Using direct file input (most reliable)');
+                directInput.click();
+                alert('📁 Use the "DIRECT FILE SELECT" input above - it works better with Windows!');
+                return;
+            }
+            
+            // Fallback: Try the problematic method with better error handling
+            const fileInput = document.getElementById('roomPhotoInput');
+            if (!fileInput) {
+                console.error('❌ File input not found!');
+                alert('Error: Upload system not ready. Please use the SIMPLE UPLOAD button instead.');
+                return;
+            }
+            
+            // Clear any existing selection first
+            fileInput.value = '';
+            
+            // Add a one-time event listener for file selection
+            const handleFileSelection = function(e) {
+                fileInput.removeEventListener('change', handleFileSelection);
+                
+                if (e.target.files && e.target.files.length > 0) {
+                    console.log('✅ Files selected via fallback method:', e.target.files.length);
+                    alert(`✅ SUCCESS! ${e.target.files.length} file(s) selected!\\n\\nIf you had freezing issues, try the "SIMPLE UPLOAD" button next time.`);
+                } else {
+                    console.log('📁 No files selected via fallback method');
+                }
+            };
+            
+            fileInput.addEventListener('change', handleFileSelection);
+            
+            // Try the file dialog with warning
+            try {
+                console.log('⚠️ Attempting potentially problematic file dialog...');
+                fileInput.click();
+                
+                // Set up detection for freezing
+                setTimeout(() => {
+                    console.log('🔍 Checking if file dialog is responsive...');
+                    // If no files were selected and user is still here, dialog might be frozen
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        console.warn('⚠️ File dialog may be frozen');
+                        alert('⚠️ File browser may be frozen.\\n\\nTo fix this:\\n1. Close any frozen file browser windows\\n2. Use "SIMPLE UPLOAD" button instead\\n3. Or try the "DIRECT FILE SELECT" input above');
+                    }
+                }, 8000); // 8 second check
+                
+            } catch (error) {
+                console.error('❌ File dialog failed:', error);
+                alert('File browser failed to open.\\n\\n✅ SOLUTION: Use the "SIMPLE UPLOAD" button for reliable file selection.');
+            }
+        };
+        
+        // Open simple upload page (NO FREEZING ISSUES)
+        window.openSimpleUpload = function() {
+            const roomIdField = document.getElementById('photo_room_id');
+            if (!roomIdField) {
+                console.error('❌ Room ID field not found!');
+                alert('Error: Cannot determine room ID');
+                return;
+            }
+            
+            const roomId = roomIdField.value;
+            console.log('✅ Opening simple upload page for room:', roomId);
+            
+            // Navigate to simple upload page (same window, no popup issues)
+            window.location.href = `simple_upload.php?room_id=${roomId}`;
+        };
+        
+        // Open upload in new window as alternative
+        window.openNewWindowUpload = function() {
+            const roomIdField = document.getElementById('photo_room_id');
+            if (!roomIdField) {
+                console.error('❌ Room ID field not found!');
+                alert('Error: Cannot determine room ID');
+                return;
+            }
+            
+            const roomId = roomIdField.value;
+            console.log('🪟 Opening upload window for room:', roomId);
+            
+            const newWindow = window.open(
+                `photo_upload.php?room_id=${roomId}`, 
+                'photoUpload', 
+                'width=600,height=400,scrollbars=yes,resizable=yes'
+            );
+            
+            if (!newWindow) {
+                alert('Please allow popups for this site and try again.');
+                console.error('❌ Failed to open new window - popups blocked?');
+            } else {
+                console.log('✅ Upload window opened');
+                
+                // Close current modal
+                const photoModal = document.getElementById('photoModal');
+                if (photoModal) {
+                    photoModal.style.display = 'none';
+                }
+                
+                // Refresh photos when new window closes
+                const checkClosed = setInterval(() => {
+                    if (newWindow.closed) {
+                        clearInterval(checkClosed);
+                        console.log('🔄 Upload window closed, refreshing photos...');
+                        
+                        // Reopen modal and reload photos
+                        if (photoModal) {
+                            photoModal.style.display = 'block';
+                        }
+                        // TODO: Add loadRoomPhotos function if needed
+                    }
+                }, 1000);
+            }
+        };
+        
+        // Handle direct file input change (most reliable method)
+        window.handleDirectFileSelect = function(input) {
+            console.log('📁 DIRECT FILE SELECT: Processing selected files...');
+            
+            const fileInput = document.getElementById('roomPhotoInput');
+            if (!fileInput) {
+                console.error('❌ Main file input not found!');
+                alert('Error: Upload system not ready. Please refresh the page.');
+                return;
+            }
+            
+            if (input.files && input.files.length > 0) {
+                console.log('✅ Files selected successfully:', input.files.length);
+                
+                // Validate files
+                const validFiles = [];
+                const invalidFiles = [];
+                const maxFileSize = 5 * 1024 * 1024; // 5MB
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                
+                for (let i = 0; i < input.files.length; i++) {
+                    const file = input.files[i];
+                    console.log(`📄 Checking file: ${file.name} (${file.type}, ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                    
+                    if (!allowedTypes.includes(file.type.toLowerCase())) {
+                        invalidFiles.push(`${file.name}: Invalid file type (${file.type})`);
+                    } else if (file.size > maxFileSize) {
+                        invalidFiles.push(`${file.name}: File too large (${(file.size / 1024 / 1024).toFixed(2)}MB > 5MB)`);
+                    } else {
+                        validFiles.push(file);
+                    }
+                }
+                
+                // Show validation results
+                let message = '';
+                if (validFiles.length > 0) {
+                    message += `✅ ${validFiles.length} valid file(s) selected!\\n`;
+                    
+                    // List valid files
+                    validFiles.forEach((file, index) => {
+                        message += `  ${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)\\n`;
+                    });
+                }
+                
+                if (invalidFiles.length > 0) {
+                    message += `\\n❌ ${invalidFiles.length} invalid file(s):\\n`;
+                    invalidFiles.forEach(error => {
+                        message += `  • ${error}\\n`;
+                    });
+                    message += `\\n📋 Supported: JPG, PNG, GIF, WebP (max 5MB each)`;
+                }
+                
+                if (validFiles.length > 0) {
+                    try {
+                        // Create a new FileList with only valid files
+                        const dt = new DataTransfer();
+                        validFiles.forEach(file => dt.items.add(file));
+                        
+                        // Copy valid files to the main hidden input
+                        fileInput.files = dt.files;
+                        
+                        // Trigger change event on main input
+                        const changeEvent = new Event('change', { bubbles: true });
+                        fileInput.dispatchEvent(changeEvent);
+                        
+                        message += `\\n🚀 Ready to upload! Click the "📤 Upload Photos" button.`;
+                        
+                        // Highlight upload button
+                        const uploadButton = document.querySelector('button[type="submit"]');
+                        if (uploadButton) {
+                            uploadButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            uploadButton.style.background = '#28a745';
+                            uploadButton.style.transform = 'scale(1.05)';
+                            uploadButton.style.boxShadow = '0 0 20px rgba(40, 167, 69, 0.5)';
+                            uploadButton.innerHTML = `📤 Upload ${validFiles.length} Photo(s)`;
+                        }
+                        
+                        console.log('✅ Files processed and ready for upload');
+                        
+                    } catch (error) {
+                        console.error('❌ Error processing files:', error);
+                        message += `\\n❌ Error processing files: ${error.message}`;
+                    }
+                } else {
+                    message += `\\n❌ No valid files to upload.`;
+                }
+                
+                alert(message);
+                
+            } else {
+                console.log('📁 No files selected');
+                alert('📁 No files were selected. Please try again.');
+            }
+        };
+        
+        console.log('✅ MODAL FUNCTIONS: All functions ready!');
+        console.log('✅ testFunction:', typeof window.testFunction);
+        console.log('✅ editRoom:', typeof window.editRoom);  
+        console.log('✅ managePhotos:', typeof window.managePhotos);
+        console.log('✅ closeModal:', typeof window.closeModal);
+        console.log('✅ showUploadOptions:', typeof window.showUploadOptions);
+        console.log('✅ hideUploadOptions:', typeof window.hideUploadOptions);
+        console.log('✅ trySimpleFileSelect:', typeof window.trySimpleFileSelect);
+        console.log('✅ openNewWindowUpload:', typeof window.openNewWindowUpload);
+        // Force refresh function to clear cache
+        window.forceRefresh = function() {
+            console.log('🔄 FORCING HARD REFRESH...');
+            // Clear localStorage cache
+            if (typeof(Storage) !== "undefined") {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+            // Force hard refresh with cache bypass
+            window.location.reload(true);
+        };
+        
+        console.log('✅ handleDirectFileSelect:', typeof window.handleDirectFileSelect);
+        console.log('✅ forceRefresh:', typeof window.forceRefresh);
+        console.log('✅ diagnosticTest:', typeof window.diagnosticTest);
+        console.log('✅ openSimpleUpload:', typeof window.openSimpleUpload);
+    </script>
+    
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+        
+        .upload-ready {
+            animation: pulse 2s infinite !important;
+            background: #28a745 !important;
+        }
+    </style>
 </body>
 </html>

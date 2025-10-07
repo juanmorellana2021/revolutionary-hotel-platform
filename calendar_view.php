@@ -28,8 +28,22 @@ try {
         FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
     )";
     $connection->exec($createTableSQL);
+    
+    // Create booking_notes table if it doesn't exist
+    $createNotesTableSQL = "
+    CREATE TABLE IF NOT EXISTS booking_notes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        note_text TEXT NOT NULL,
+        created_by INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+    )";
+    $connection->exec($createNotesTableSQL);
+    
 } catch (Exception $e) {
-    // Table might already exist, continue silently
+    // Tables might already exist, continue silently
 }
 
 // Check if user is logged in and is a manager
@@ -44,6 +58,25 @@ if (!$userManager->isManager($_SESSION['user']['id'])) {
     exit;
 }
 
+// Create daily room status table if it doesn't exist
+try {
+    $createDailyStatusTableSQL = "
+    CREATE TABLE IF NOT EXISTS daily_room_status (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        room_id INT NOT NULL,
+        status_date DATE NOT NULL,
+        status ENUM('clean', 'dirty', 'maintenance', 'out_of_order') DEFAULT 'clean',
+        notes TEXT,
+        created_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_room_date (room_id, status_date),
+        FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    )";
+    $connection->exec($createDailyStatusTableSQL);
+} catch (Exception $e) {
+    // Table might already exist, continue silently
+}
+
 // Handle AJAX room status updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_room_status') {
     header('Content-Type: application/json');
@@ -52,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $roomId = (int)$_POST['room_id'];
         $status = $_POST['status'];
         $notes = $_POST['notes'] ?? '';
+        $targetDate = $_POST['target_date'] ?? date('Y-m-d'); // Default to today if no date specified
         
         // Validate status
         $validStatuses = ['clean', 'dirty', 'maintenance', 'out_of_order'];
@@ -59,9 +93,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             throw new Exception('Invalid status');
         }
         
-        // Update room status
-        $stmt = $connection->prepare("UPDATE rooms SET room_status = ? WHERE id = ?");
-        $success = $stmt->execute([$status, $roomId]);
+        // For 'dirty' status, only update for today's date
+        if ($status === 'dirty') {
+            $targetDate = date('Y-m-d'); // Force dirty status to today only
+            
+            // Insert or update daily room status for today
+            $stmt = $connection->prepare("
+                INSERT INTO daily_room_status (room_id, status_date, status, notes, created_by) 
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE 
+                status = VALUES(status), 
+                notes = VALUES(notes), 
+                created_by = VALUES(created_by),
+                created_at = CURRENT_TIMESTAMP
+            ");
+            $success = $stmt->execute([$roomId, $targetDate, $status, $notes, $_SESSION['user']['id']]);
+        } else {
+            // For other statuses (clean, maintenance, out_of_order), update the room's global status
+            $stmt = $connection->prepare("UPDATE rooms SET room_status = ? WHERE id = ?");
+            $success = $stmt->execute([$status, $roomId]);
+            
+            // Also clear any dirty status for today if changing to clean
+            if ($status === 'clean') {
+                $stmt = $connection->prepare("DELETE FROM daily_room_status WHERE room_id = ? AND status_date = ? AND status = 'dirty'");
+                $stmt->execute([$roomId, date('Y-m-d')]);
+            }
+        }
         
         if ($success) {
             // Log the status change
@@ -71,6 +128,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             echo json_encode(['success' => true, 'message' => 'Room status updated successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to update room status']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Handle AJAX paid amount updates
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_paid_amount') {
+    header('Content-Type: application/json');
+    
+    try {
+        $bookingId = (int)$_POST['booking_id'];
+        $paidAmount = (float)$_POST['paid_amount'];
+        $notes = $_POST['notes'] ?? '';
+        
+        // Validate paid amount
+        if ($paidAmount < 0) {
+            throw new Exception('El monto pagado no puede ser negativo');
+        }
+        
+        // Get booking info for validation
+        $stmt = $connection->prepare("SELECT total_price, guest_name FROM bookings WHERE id = ?");
+        $stmt->execute([$bookingId]);
+        $booking = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$booking) {
+            throw new Exception('Reserva no encontrada');
+        }
+        
+        // Update paid amount
+        $stmt = $connection->prepare("UPDATE bookings SET paid_amount = ? WHERE id = ?");
+        $success = $stmt->execute([$paidAmount, $bookingId]);
+        
+        if ($success) {
+            // Log the payment change
+            $logMessage = "Monto pagado actualizado: ${paidAmount} USD";
+            if (!empty($notes)) {
+                $logMessage .= " - Notas: " . $notes;
+            }
+            
+            $stmt = $connection->prepare("
+                INSERT INTO booking_notes (booking_id, note_text, created_by, created_at) 
+                VALUES (?, ?, ?, NOW())
+            ");
+            $stmt->execute([$bookingId, $logMessage, $_SESSION['user']['id']]);
+            
+            // Update payment status based on amount vs total
+            $paymentStatus = 'pending';
+            if ($paidAmount >= $booking['total_price']) {
+                $paymentStatus = 'paid';
+            } elseif ($paidAmount > 0) {
+                $paymentStatus = 'partial';
+            }
+            
+            $stmt = $connection->prepare("UPDATE bookings SET payment_status = ? WHERE id = ?");
+            $stmt->execute([$paymentStatus, $bookingId]);
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Monto pagado actualizado exitosamente',
+                'new_amount' => $paidAmount,
+                'payment_status' => $paymentStatus
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Error al actualizar el monto pagado']);
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -126,6 +249,41 @@ try {
 } catch (Exception $e) {
     // Fallback to empty array if there are issues
     $roomPhotos = [];
+}
+
+// Fix existing bookings where payment_status is 'paid' but paid_amount is 0
+try {
+    $stmt = $connection->prepare("
+        UPDATE bookings 
+        SET paid_amount = total_price 
+        WHERE payment_status = 'paid' AND (paid_amount IS NULL OR paid_amount = 0)
+    ");
+    $stmt->execute();
+} catch (Exception $e) {
+    // Continue silently if there's an issue
+}
+
+// Get daily room statuses for the current month
+$dailyRoomStatuses = [];
+try {
+    $monthStart = sprintf('%04d-%02d-01', $currentYear, $currentMonth);
+    $monthEnd = date('Y-m-t', strtotime($monthStart)); // Last day of month
+    
+    $stmt = $connection->prepare("
+        SELECT room_id, status_date, status, notes
+        FROM daily_room_status 
+        WHERE status_date BETWEEN ? AND ?
+    ");
+    $stmt->execute([$monthStart, $monthEnd]);
+    $dailyStatuses = $stmt->fetchAll();
+    
+    // Index by room_id and date for easy lookup
+    foreach ($dailyStatuses as $dailyStatus) {
+        $dailyRoomStatuses[$dailyStatus['room_id']][$dailyStatus['status_date']] = $dailyStatus;
+    }
+} catch (Exception $e) {
+    // Fallback to empty array if there are issues
+    $dailyRoomStatuses = [];
 }
 
 // Get bookings for current month (and a bit before/after for overlap)
@@ -746,6 +904,12 @@ function getMonthName($month) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Availability Calendar - <?php echo htmlspecialchars($hotel['hotel_name'] ?? 'Hotel Management'); ?></title>
+    
+    <!-- AINI Innovations Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
     <style>
         * {
             margin: 0;
@@ -1184,6 +1348,7 @@ function getMonthName($month) {
             background: #138496;
         }
 
+        /* Room status styling - Brown color ONLY for dirty rooms */
         .room-dirty {
             background: #8B4513 !important;
             color: white !important;
@@ -1801,21 +1966,27 @@ function getMonthName($month) {
                         <tr>
                             <td class="room-info <?php 
                                 $roomStatus = $room['room_status'] ?? 'clean';
-                                if ($roomStatus === 'dirty') echo 'room-dirty';
-                                elseif ($roomStatus === 'maintenance') echo 'room-maintenance';
+                                // Only apply global status styling for maintenance and out_of_order, not dirty
+                                if ($roomStatus === 'maintenance') echo 'room-maintenance';
                                 elseif ($roomStatus === 'out_of_order') echo 'room-out-of-order';
                             ?>">
                                 <div class="room-details">
                                     <div class="room-number">
                                         Room <?php echo htmlspecialchars($room['room_number']); ?>
-                                        <?php if ($roomStatus === 'clean'): ?>
-                                            <span class="room-status-badge clean" title="Room is Clean">✨</span>
-                                        <?php elseif ($roomStatus === 'dirty'): ?>
-                                            <span class="room-status-badge dirty" title="Needs Cleaning">🧹</span>
+                                        <?php 
+                                        // Check if room is dirty today
+                                        $isDirtyToday = isset($dailyRoomStatuses[$room['id']][date('Y-m-d')]) && 
+                                                       $dailyRoomStatuses[$room['id']][date('Y-m-d')]['status'] === 'dirty';
+                                        
+                                        if ($isDirtyToday):
+                                        ?>
+                                            <span class="room-status-badge dirty" title="Needs Cleaning Today">🧹</span>
                                         <?php elseif ($roomStatus === 'maintenance'): ?>
                                             <span class="room-status-badge maintenance" title="Under Maintenance">🔧</span>
                                         <?php elseif ($roomStatus === 'out_of_order'): ?>
                                             <span class="room-status-badge out-of-order" title="Out of Order">⚠️</span>
+                                        <?php else: ?>
+                                            <span class="room-status-badge clean" title="Room is Clean">✨</span>
                                         <?php endif; ?>
                                     </div>
                                     <div style="margin-top: 5px;">
@@ -1850,7 +2021,6 @@ function getMonthName($month) {
                                 
                                 $cellClass = 'day-cell';
                                 if ($isWeekend) $cellClass .= ' weekend';
-                                if ($isToday) $cellClass .= ' today';
                                 
                                 if ($booking) {
                                     if ($currentDate == $booking['check_out_date']) {
@@ -1899,8 +2069,14 @@ function getMonthName($month) {
                                         'debug_raw_discount' => $booking['discount_amount']
                                     ]);
                                 } else {
-                                    // Check room status for available rooms - only apply status to current and future dates
-                                    $roomStatus = $room['room_status'] ?? 'clean';
+                                    // Check for date-specific room status first
+                                    $dateSpecificStatus = null;
+                                    if (isset($dailyRoomStatuses[$room['id']][$currentDate])) {
+                                        $dateSpecificStatus = $dailyRoomStatuses[$room['id']][$currentDate]['status'];
+                                    }
+                                    
+                                    // Use date-specific status if available, otherwise use room's global status
+                                    $roomStatus = $dateSpecificStatus ?? ($room['room_status'] ?? 'clean');
                                     $isPastDate = $currentDate < date('Y-m-d');
                                     
                                     if (!$isPastDate && $roomStatus !== 'clean') {
@@ -2702,6 +2878,148 @@ function getMonthName($month) {
             return daysDiff;
         }
         
+        // Edit paid amount function
+        function editPaidAmount(bookingId, currentAmount) {
+            console.log('Editing paid amount for booking:', bookingId, 'Current:', currentAmount);
+            
+            // Create modal for editing paid amount
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.7); z-index: 10000; display: flex; 
+                justify-content: center; align-items: center;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 30px; border-radius: 12px; 
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 500px; width: 90%;
+            `;
+            
+            content.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #2c3e50; text-align: center;">
+                    💰 Editar Monto Pagado
+                </h3>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                        Monto Actual: ${formatDualCurrency(currentAmount)}
+                    </label>
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                        Nuevo Monto (USD):
+                    </label>
+                    <input type="number" id="newPaidAmount" value="${currentAmount}" step="0.01" min="0"
+                           style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px;">
+                    <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 14px; color: #666;">
+                        <span id="convertedAmount">≈ S/ ${(currentAmount * USD_TO_PEN_RATE).toFixed(2)} PEN</span>
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                        Notas de Pago (Opcional):
+                    </label>
+                    <textarea id="paymentNotes" placeholder="Ej: Pago efectivo, transferencia, corrección de monto..."
+                             style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical; height: 80px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="savePaidAmount(${bookingId})" 
+                            style="background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        ✅ Guardar Cambios
+                    </button>
+                    <button onclick="closePaidAmountModal()" 
+                            style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Update converted amount when input changes
+            const input = document.getElementById('newPaidAmount');
+            input.addEventListener('input', function() {
+                const usdAmount = parseFloat(this.value) || 0;
+                const penAmount = usdAmount * USD_TO_PEN_RATE;
+                document.getElementById('convertedAmount').textContent = `≈ S/ ${penAmount.toFixed(2)} PEN`;
+            });
+            
+            // Focus on input
+            input.focus();
+            input.select();
+            
+            // Store modal reference for closing
+            window.currentPaidAmountModal = modal;
+        }
+        
+        function closePaidAmountModal() {
+            if (window.currentPaidAmountModal) {
+                document.body.removeChild(window.currentPaidAmountModal);
+                window.currentPaidAmountModal = null;
+            }
+        }
+        
+        function savePaidAmount(bookingId) {
+            const newAmount = parseFloat(document.getElementById('newPaidAmount').value) || 0;
+            const notes = document.getElementById('paymentNotes').value.trim();
+            
+            if (newAmount < 0) {
+                alert('❌ El monto no puede ser negativo.');
+                return;
+            }
+            
+            console.log('Saving paid amount:', bookingId, newAmount, notes);
+            
+            // Show loading
+            const saveButton = event.target;
+            const originalText = saveButton.textContent;
+            saveButton.textContent = '⏳ Guardando...';
+            saveButton.disabled = true;
+            
+            // Send AJAX request to update paid amount
+            fetch('calendar_view.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=update_paid_amount&booking_id=${bookingId}&paid_amount=${newAmount}&notes=${encodeURIComponent(notes)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the display
+                    const displayElement = document.getElementById('paid-amount-display');
+                    if (displayElement) {
+                        displayElement.innerHTML = formatDualCurrency(newAmount);
+                    }
+                    
+                    // Update stored booking data
+                    if (window.currentBookingData) {
+                        window.currentBookingData.paid_amount = newAmount;
+                    }
+                    
+                    closePaidAmountModal();
+                    
+                    // Show success message
+                    alert(`✅ Monto pagado actualizado exitosamente!\\n\\nNuevo monto: ${formatDualCurrency(newAmount).replace(/<[^>]*>/g, '')}`);
+                    
+                    // Refresh calendar to reflect changes
+                    loadCalendar();
+                    
+                } else {
+                    alert('❌ Error al actualizar el monto: ' + (data.message || 'Error desconocido'));
+                    console.error('Error updating paid amount:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert('❌ Error de conexión. Por favor, inténtalo de nuevo.');
+            })
+            .finally(() => {
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
+            });
+        }
+        
         function changeCurrency() {
             currentCurrency = document.getElementById('booking_currency').value;
             
@@ -2817,7 +3135,16 @@ function getMonthName($month) {
                             <p><strong>Tipo:</strong> ${booking.room_type}</p>
                             <p><strong>Precio Total:</strong> ${formatDualCurrency(booking.total_amount)}</p>
                             <p><strong>Estado de Pago:</strong> <span style="background: ${getPaymentStatusColor(booking.payment_status)}; padding: 2px 8px; border-radius: 4px; color: white;">${getPaymentStatusText(booking.payment_status)}</span></p>
-                            ${booking.paid_amount > 0 ? `<p><strong>Monto Pagado:</strong> ${formatDualCurrency(booking.paid_amount)}</p>` : ''}
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <strong>Monto Pagado:</strong> 
+                                    <span id="paid-amount-display">${formatDualCurrency(getPaidAmountDisplay(booking))}</span>
+                                </div>
+                                <button onclick="editPaidAmount(${booking.id}, ${booking.paid_amount || 0})" 
+                                        style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                    ✏️ Editar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3249,6 +3576,16 @@ function getMonthName($month) {
                 'refunded': '↩️ Reembolsado'
             };
             return texts[status] || status;
+        }
+
+        // Get the correct paid amount to display
+        function getPaidAmountDisplay(booking) {
+            // If payment status is 'paid' but paid_amount is 0 or null, show total amount
+            if (booking.payment_status === 'paid' && (!booking.paid_amount || booking.paid_amount == 0)) {
+                return booking.total_amount || 0;
+            }
+            // Otherwise show the actual paid amount
+            return booking.paid_amount || 0;
         }
         
         // Payment Action Functions

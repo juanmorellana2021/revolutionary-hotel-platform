@@ -62,43 +62,149 @@ try {
     // Columns might already exist, continue silently
 }
 
-// Handle form submissions
+// Generate CSRF token for forms
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Handle flash messages from redirects
+$message = '';
+$messageType = '';
+if (isset($_SESSION['flash_message'])) {
+    $message = $_SESSION['flash_message'];
+    $messageType = $_SESSION['flash_type'];
+    unset($_SESSION['flash_message']);
+    unset($_SESSION['flash_type']);
+}
+
+// Handle form submissions with duplicate prevention
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['clock_in'])) {
-        $result = $timeClockManager->clockIn((int)$_POST['employee_id'], $_POST['notes'] ?? '');
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+    // Verify CSRF token
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please refresh the page and try again.';
+        $messageType = 'error';
+    } else if (isset($_POST['clock_in'])) {
+        // Check for duplicate submission using session tracking
+        $submissionKey = 'last_clock_in_' . (int)$_POST['employee_id'];
+        $currentTime = time();
+        
+        if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
+            $message = 'Duplicate submission prevented. Please wait before trying again.';
+            $messageType = 'warning';
+        } else {
+            $_SESSION[$submissionKey] = $currentTime;
+            $result = $timeClockManager->clockIn((int)$_POST['employee_id'], $_POST['notes'] ?? '');
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            
+            // If successful, redirect to prevent refresh resubmission
+            if ($result['success']) {
+                $_SESSION['flash_message'] = $message;
+                $_SESSION['flash_type'] = $messageType;
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+            }
+        }
     }
     
-    if (isset($_POST['clock_out'])) {
-        $result = $timeClockManager->clockOut((int)$_POST['employee_id'], $_POST['notes'] ?? '');
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+    else if (isset($_POST['clock_out'])) {
+        // Check for duplicate submission
+        $submissionKey = 'last_clock_out_' . (int)$_POST['employee_id'];
+        $currentTime = time();
+        
+        if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
+            $message = 'Duplicate submission prevented. Please wait before trying again.';
+            $messageType = 'warning';
+        } else {
+            $_SESSION[$submissionKey] = $currentTime;
+            $result = $timeClockManager->clockOut((int)$_POST['employee_id'], $_POST['notes'] ?? '');
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            
+            // If successful, redirect to prevent refresh resubmission
+            if ($result['success']) {
+                $_SESSION['flash_message'] = $message;
+                $_SESSION['flash_type'] = $messageType;
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+            }
+        }
     }
     
-    if (isset($_POST['start_break'])) {
-        $result = $timeClockManager->startBreak((int)$_POST['employee_id'], $_POST['break_type'] ?? 'break', $_POST['notes'] ?? '');
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+    else if (isset($_POST['start_break'])) {
+        // Check for duplicate submission
+        $submissionKey = 'last_break_start_' . (int)$_POST['employee_id'];
+        $currentTime = time();
+        
+        if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
+            $message = 'Duplicate submission prevented. Please wait before trying again.';
+            $messageType = 'warning';
+        } else {
+            $_SESSION[$submissionKey] = $currentTime;
+            $result = $timeClockManager->startBreak((int)$_POST['employee_id'], $_POST['break_type'] ?? 'break', $_POST['notes'] ?? '');
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            
+            if ($result['success']) {
+                $_SESSION['flash_message'] = $message;
+                $_SESSION['flash_type'] = $messageType;
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+            }
+        }
     }
     
-    if (isset($_POST['end_break'])) {
-        $result = $timeClockManager->endBreak((int)$_POST['employee_id'], $_POST['notes'] ?? '');
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+    else if (isset($_POST['end_break'])) {
+        // Check for duplicate submission
+        $submissionKey = 'last_break_end_' . (int)$_POST['employee_id'];
+        $currentTime = time();
+        
+        if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
+            $message = 'Duplicate submission prevented. Please wait before trying again.';
+            $messageType = 'warning';
+        } else {
+            $_SESSION[$submissionKey] = $currentTime;
+            $result = $timeClockManager->endBreak((int)$_POST['employee_id'], $_POST['notes'] ?? '');
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            
+            if ($result['success']) {
+                $_SESSION['flash_message'] = $message;
+                $_SESSION['flash_type'] = $messageType;
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+            }
+        }
     }
     
-    if (isset($_POST['manual_entry']) && $isManager) {
-        $result = $timeClockManager->addManualEntry(
-            (int)$_POST['employee_id'],
-            $_POST['clock_in'],
-            $_POST['clock_out'] ?? null,
-            $_POST['break_minutes'] ?? 0,
-            $_POST['notes'] ?? '',
-            $_SESSION['user']['id']
-        );
-        $message = $result['message'];
-        $messageType = $result['success'] ? 'success' : 'error';
+    else if (isset($_POST['manual_entry']) && $isManager) {
+        // Check for duplicate submission
+        $submissionKey = 'last_manual_entry_' . (int)$_POST['employee_id'] . '_' . $_POST['clock_in'];
+        $currentTime = time();
+        
+        if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 10) {
+            $message = 'Duplicate manual entry prevented. Please wait before trying again.';
+            $messageType = 'warning';
+        } else {
+            $_SESSION[$submissionKey] = $currentTime;
+            $result = $timeClockManager->addManualEntry(
+                (int)$_POST['employee_id'],
+                $_POST['clock_in'],
+                $_POST['clock_out'] ?? null,
+                $_POST['break_minutes'] ?? 0,
+                $_POST['notes'] ?? '',
+                $_SESSION['user']['id']
+            );
+            $message = $result['message'];
+            $messageType = $result['success'] ? 'success' : 'error';
+            
+            if ($result['success']) {
+                $_SESSION['flash_message'] = $message;
+                $_SESSION['flash_type'] = $messageType;
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+            }
+        }
     }
 }
 
@@ -751,7 +857,8 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-play-circle me-2"></i>Clock In Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST">
+                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>
                                         <select name="employee_id" class="form-select" required>
@@ -781,7 +888,8 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-stop-circle me-2"></i>Clock Out Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST">
+                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>
                                         <select name="employee_id" class="form-select" required>
@@ -808,7 +916,8 @@ $todayHours = array_sum(array_map(function($entry) {
                     
                     <div class="clock-card">
                         <h3>☕ Break Management</h3>
-                        <form method="POST">
+                        <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                             <div class="form-group">
                                 <select name="employee_id" required>
                                     <option value="">Select Employee</option>
@@ -842,6 +951,11 @@ $todayHours = array_sum(array_map(function($entry) {
                     <div class="clock-card">
                         <h3>✏️ Manual Entry</h3>
                         <button type="button" onclick="openManualEntryModal()" class="btn btn-primary">✏️ Add Manual Entry</button>
+                        <?php if ($isManager): ?>
+                            <a href="time_clock_cleanup.php" class="btn btn-warning mt-2" title="Remove duplicate ghost entries">
+                                <i class="bi bi-tools me-1"></i>🧹 Cleanup Duplicates
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -971,7 +1085,8 @@ $todayHours = array_sum(array_map(function($entry) {
                     <span class="close text-white" onclick="closeManualEntryModal()">&times;</span>
                 </div>
                 <div class="modal-body">
-                    <form method="POST">
+                    <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <div class="mb-3">
                             <label for="manual_employee_id" class="form-label">Employee *</label>
                             <select id="manual_employee_id" name="employee_id" class="form-select" required>
@@ -1338,6 +1453,35 @@ $todayHours = array_sum(array_map(function($entry) {
                 console.log('Button force reset complete');
             }
             editFormSubmitting = false;
+        }
+
+        // Prevent double form submissions
+        function preventDoubleSubmit(form) {
+            if (form.submitted) {
+                alert('⚠️ Please wait - your request is being processed...');
+                return false;
+            }
+            
+            form.submitted = true;
+            
+            // Find the submit button and disable it
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '⏳ Processing...';
+                submitBtn.disabled = true;
+                
+                // Re-enable after 5 seconds as failsafe
+                setTimeout(() => {
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                        form.submitted = false;
+                    }
+                }, 5000);
+            }
+            
+            return true;
         }
     </script>
     
