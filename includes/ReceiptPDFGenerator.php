@@ -6,6 +6,42 @@ class ReceiptPDFGenerator {
     public function __construct($booking) {
         $this->booking = $booking;
         $this->nights = (strtotime($booking['check_out_date']) - strtotime($booking['check_in_date'])) / (60 * 60 * 24);
+        
+        // Process guest data if not already processed
+        if (empty($booking['display_guest_name']) && !empty($booking['all_guests'])) {
+            $this->processGuestData();
+        }
+    }
+    
+    private function processGuestData() {
+        $this->booking['guests_list'] = [];
+        $this->booking['primary_guest_name'] = null;
+        
+        if (!empty($this->booking['all_guests'])) {
+            $guestsData = explode(';;;', $this->booking['all_guests']);
+            foreach ($guestsData as $guestData) {
+                if (!empty($guestData)) {
+                    $parts = explode('|', $guestData);
+                    if (count($parts) >= 4) {
+                        $guest = [
+                            'name' => $parts[0],
+                            'email' => $parts[1],
+                            'phone' => $parts[2],
+                            'is_primary' => (bool)$parts[3]
+                        ];
+                        $this->booking['guests_list'][] = $guest;
+                        
+                        if ($guest['is_primary']) {
+                            $this->booking['primary_guest_name'] = $guest['name'];
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Set display names
+        $this->booking['display_guest_name'] = $this->booking['primary_guest_name'] ?? $this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name']);
+        $this->booking['all_guest_names'] = !empty($this->booking['guests_list']) ? implode(', ', array_column($this->booking['guests_list'], 'name')) : $this->booking['display_guest_name'];
     }
     
     public function generatePDF() {
@@ -78,11 +114,32 @@ class ReceiptPDFGenerator {
                 </div>
                 
                 <div class="info-section">
-                    <h3>👤 Guest Information</h3>
-                    <p><strong>' . htmlspecialchars($this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name'])) . '</strong><br>
+                    <h3>👤 Guest Information</h3>';
+                    
+        if (!empty($this->booking['guests_list']) && count($this->booking['guests_list']) > 1) {
+            $html .= '<p><strong>Guests (' . count($this->booking['guests_list']) . '):</strong></p>';
+            foreach ($this->booking['guests_list'] as $guest) {
+                $html .= '<div style="margin-bottom: 8px; padding: 8px; background: ' . ($guest['is_primary'] ? '#e8f5e8' : '#f8f9fa') . '; border-radius: 4px;">
+                    <strong>' . htmlspecialchars($guest['name']) . '</strong>';
+                if ($guest['is_primary']) {
+                    $html .= ' <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em; margin-left: 5px;">Primary</span>';
+                }
+                $html .= '<br>';
+                if (!empty($guest['email'])) {
+                    $html .= 'Email: ' . htmlspecialchars($guest['email']) . '<br>';
+                }
+                if (!empty($guest['phone'])) {
+                    $html .= 'Phone: ' . htmlspecialchars($guest['phone']) . '<br>';
+                }
+                $html .= '</div>';
+            }
+        } else {
+            $html .= '<p><strong>' . htmlspecialchars($this->booking['display_guest_name'] ?? $this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name'])) . '</strong><br>
                     Email: ' . htmlspecialchars($this->booking['guest_email'] ?? $this->booking['email']) . '<br>
-                    ' . (($this->booking['guest_phone'] ?? $this->booking['phone']) ? 'Phone: ' . htmlspecialchars($this->booking['guest_phone'] ?? $this->booking['phone']) . '<br>' : '') . '
-                    Guest ID: #' . $this->booking['user_id'] . '</p>
+                    ' . (($this->booking['guest_phone'] ?? $this->booking['phone']) ? 'Phone: ' . htmlspecialchars($this->booking['guest_phone'] ?? $this->booking['phone']) . '<br>' : '') . '</p>';
+        }
+        
+        $html .= '<p>Guest ID: #' . $this->booking['user_id'] . '</p>
                 </div>
             </div>
             

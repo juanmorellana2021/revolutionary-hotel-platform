@@ -20,14 +20,49 @@ $connection = $database->getConnection();
 // Get booking details with room and user information
 $stmt = $connection->prepare("
     SELECT b.*, r.room_number, r.room_type, r.price as room_price,
-           u.first_name, u.last_name, u.email, u.phone
+           u.first_name, u.last_name, u.email, u.phone,
+           GROUP_CONCAT(DISTINCT CONCAT(bg.guest_name, '|', COALESCE(bg.guest_email, ''), '|', COALESCE(bg.guest_phone, ''), '|', bg.is_primary) SEPARATOR ';;;') as all_guests
     FROM bookings b 
     JOIN rooms r ON b.room_id = r.id 
     JOIN users u ON b.user_id = u.id 
+    LEFT JOIN booking_guests bg ON b.id = bg.booking_id
     WHERE b.id = ?
+    GROUP BY b.id
 ");
 $stmt->execute([$bookingId]);
 $booking = $stmt->fetch();
+
+if ($booking) {
+    // Process multiple guests data
+    $booking['guests_list'] = [];
+    $booking['primary_guest_name'] = null;
+    
+    if (!empty($booking['all_guests'])) {
+        $guestsData = explode(';;;', $booking['all_guests']);
+        foreach ($guestsData as $guestData) {
+            if (!empty($guestData)) {
+                $parts = explode('|', $guestData);
+                if (count($parts) >= 4) {
+                    $guest = [
+                        'name' => $parts[0],
+                        'email' => $parts[1],
+                        'phone' => $parts[2],
+                        'is_primary' => (bool)$parts[3]
+                    ];
+                    $booking['guests_list'][] = $guest;
+                    
+                    if ($guest['is_primary']) {
+                        $booking['primary_guest_name'] = $guest['name'];
+                    }
+                }
+            }
+        }
+    }
+    
+    // Set display names
+    $booking['display_guest_name'] = $booking['primary_guest_name'] ?? $booking['guest_name'] ?? ($booking['first_name'] . ' ' . $booking['last_name']);
+    $booking['all_guest_names'] = !empty($booking['guests_list']) ? implode(', ', array_column($booking['guests_list'], 'name')) : $booking['display_guest_name'];
+}
 
 if (!$booking) {
     die('Booking not found');
@@ -361,12 +396,32 @@ $nights = (strtotime($booking['check_out_date']) - strtotime($booking['check_in_
                 
                 <div class="info-section">
                     <h3>👤 Guest Information</h3>
-                    <p><strong><?php echo htmlspecialchars($booking['guest_name'] ?? ($booking['first_name'] . ' ' . $booking['last_name'])); ?></strong><br>
-                    📧 <?php echo htmlspecialchars($booking['guest_email'] ?? $booking['email']); ?><br>
-                    <?php if ($booking['guest_phone'] ?? $booking['phone']): ?>
-                    📱 <?php echo htmlspecialchars($booking['guest_phone'] ?? $booking['phone']); ?><br>
+                    <?php if (!empty($booking['guests_list']) && count($booking['guests_list']) > 1): ?>
+                        <p><strong>Guests (<?php echo count($booking['guests_list']); ?>):</strong></p>
+                        <?php foreach ($booking['guests_list'] as $index => $guest): ?>
+                            <div style="margin-bottom: 8px; padding: 8px; background: <?php echo $guest['is_primary'] ? '#e8f5e8' : '#f8f9fa'; ?>; border-radius: 4px;">
+                                <strong><?php echo htmlspecialchars($guest['name']); ?></strong>
+                                <?php if ($guest['is_primary']): ?>
+                                    <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em; margin-left: 5px;">Primary</span>
+                                <?php endif; ?>
+                                <br>
+                                <?php if (!empty($guest['email'])): ?>
+                                    📧 <?php echo htmlspecialchars($guest['email']); ?><br>
+                                <?php endif; ?>
+                                <?php if (!empty($guest['phone'])): ?>
+                                    📱 <?php echo htmlspecialchars($guest['phone']); ?><br>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p><strong><?php echo htmlspecialchars($booking['display_guest_name']); ?></strong><br>
+                        📧 <?php echo htmlspecialchars($booking['guest_email'] ?? $booking['email']); ?><br>
+                        <?php if ($booking['guest_phone'] ?? $booking['phone']): ?>
+                        📱 <?php echo htmlspecialchars($booking['guest_phone'] ?? $booking['phone']); ?><br>
+                        <?php endif; ?>
+                        </p>
                     <?php endif; ?>
-                    🆔 Guest ID: #<?php echo $booking['user_id']; ?></p>
+                    <p>🆔 Guest ID: #<?php echo $booking['user_id']; ?></p>
                 </div>
             </div>
             

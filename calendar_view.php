@@ -58,6 +58,18 @@ try {
     )";
     $connection->exec($createGuestsTableSQL);
     
+    // Add multi-room booking columns if they don't exist
+    try {
+        $connection->exec("ALTER TABLE bookings ADD COLUMN is_multi_room BOOLEAN DEFAULT FALSE");
+    } catch (Exception $e) {
+        // Column might already exist
+    }
+    try {
+        $connection->exec("ALTER TABLE bookings ADD COLUMN primary_booking_id INT NULL");
+    } catch (Exception $e) {
+        // Column might already exist
+    }
+    
 } catch (Exception $e) {
     // Tables might already exist, continue silently
 }
@@ -234,16 +246,73 @@ $connection = $db->getConnection();
 
 $stmt = $connection->prepare("
     SELECT b.*, r.room_number, r.room_type, r.room_status, r.last_cleaned, r.cleaned_by, 
-           u.first_name, u.last_name, u.email, u.phone
+           u.first_name, u.last_name, u.email, u.phone,
+           GROUP_CONCAT(DISTINCT CONCAT(bg.guest_name, '|', COALESCE(bg.guest_email, ''), '|', COALESCE(bg.guest_phone, ''), '|', bg.is_primary) SEPARATOR ';;;') as all_guests,
+           (CASE WHEN b.is_multi_room = 1 THEN 
+               (SELECT GROUP_CONCAT(CONCAT(r2.room_number, ' (', r2.room_type, ')') SEPARATOR ', ') 
+                FROM bookings b2 
+                JOIN rooms r2 ON b2.room_id = r2.id 
+                WHERE (b2.primary_booking_id = b.id OR (b.primary_booking_id IS NOT NULL AND (b2.primary_booking_id = b.primary_booking_id OR b2.id = b.primary_booking_id)))
+                AND b2.status != 'cancelled'
+               )
+           ELSE r.room_number 
+           END) as all_rooms
     FROM bookings b
     JOIN rooms r ON b.room_id = r.id
     JOIN users u ON b.user_id = u.id
+    LEFT JOIN booking_guests bg ON b.id = bg.booking_id
     WHERE b.check_out_date >= ? AND b.check_in_date <= ?
     AND b.status != 'cancelled'
+    GROUP BY b.id, r.room_number, r.room_type, r.room_status, r.last_cleaned, r.cleaned_by, 
+             u.first_name, u.last_name, u.email, u.phone
     ORDER BY b.check_in_date
 ");
 $stmt->execute([$startDate, $endDate]);
 $bookings = $stmt->fetchAll();
+
+// Process multiple guests data for each booking
+foreach ($bookings as &$booking) {
+    $booking['guests_list'] = [];
+    $booking['primary_guest'] = null;
+    
+    if (!empty($booking['all_guests'])) {
+        $guestsData = explode(';;;', $booking['all_guests']);
+        foreach ($guestsData as $guestData) {
+            if (!empty($guestData)) {
+                $parts = explode('|', $guestData);
+                if (count($parts) >= 4) {
+                    $guest = [
+                        'name' => $parts[0],
+                        'email' => $parts[1],
+                        'phone' => $parts[2],
+                        'is_primary' => (bool)$parts[3]
+                    ];
+                    $booking['guests_list'][] = $guest;
+                    
+                    if ($guest['is_primary']) {
+                        $booking['primary_guest'] = $guest;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback to main booking guest_name if no guests found in booking_guests table
+    if (empty($booking['guests_list']) && !empty($booking['guest_name'])) {
+        $booking['primary_guest'] = [
+            'name' => $booking['guest_name'],
+            'email' => $booking['guest_email'] ?? '',
+            'phone' => $booking['guest_phone'] ?? '',
+            'is_primary' => true
+        ];
+        $booking['guests_list'][] = $booking['primary_guest'];
+    }
+    
+    // Set display name for backward compatibility
+    $booking['display_guest_name'] = $booking['primary_guest']['name'] ?? $booking['guest_name'] ?? 'Guest';
+    $booking['all_guest_names'] = implode(', ', array_column($booking['guests_list'], 'name'));
+}
+unset($booking); // Break reference
 
 // Debug: Check if bookings have price data and fix missing prices
 $debugBookingData = '';
@@ -346,14 +415,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
     $discountAmount = (float)($_POST['edit_discount_amount'] ?? 0);
     $specialRequests = $_POST['edit_special_requests'];
     
+    // Handle additional rooms
+    $additionalRoomIds = $_POST['edit_additional_room_ids'] ?? [];
+    $additionalRoomIds = array_filter($additionalRoomIds); // Remove empty values
+    
+    // Handle multiple guests
+    $guestNames = $_POST['edit_guest_names'] ?? [$guestName];
+    $guestEmails = $_POST['edit_guest_emails'] ?? [$guestEmail];
+    $guestPhones = $_POST['edit_guest_phones'] ?? [$guestPhone];
+    $guestPassports = $_POST['edit_guest_passports'] ?? [$passportNumber];
+    $guestIds = $_POST['edit_guest_ids'] ?? [$idNumber];
+    $guestIsPrimary = $_POST['edit_guest_is_primary'] ?? ['1'];
+    
     try {
-        // Update booking
+        $connection->beginTransaction();
+        
+        // Update primary booking
+        $isMultiRoom = !empty($additionalRoomIds);
         $stmt = $connection->prepare("
             UPDATE bookings 
-            SET room_id = ?, check_in_date = ?, check_out_date = ?, total_price = ?, discount_amount = ?, special_requests = ?, guest_name = ?, guest_email = ?, guest_phone = ?, passport_number = ?, id_number = ?
+            SET room_id = ?, check_in_date = ?, check_out_date = ?, total_price = ?, discount_amount = ?, special_requests = ?, guest_name = ?, guest_email = ?, guest_phone = ?, passport_number = ?, id_number = ?, is_multi_room = ?
             WHERE id = ?
         ");
-        $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $discountAmount, $specialRequests, $guestName, $guestEmail, $guestPhone, $passportNumber, $idNumber, $bookingId]);
+        $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $discountAmount, $specialRequests, $guestName, $guestEmail, $guestPhone, $passportNumber, $idNumber, $isMultiRoom, $bookingId]);
+        
+        // Handle additional rooms
+        if (!empty($additionalRoomIds)) {
+            // Remove existing linked rooms
+            $stmt = $connection->prepare("DELETE FROM bookings WHERE primary_booking_id = ?");
+            $stmt->execute([$bookingId]);
+            
+            // Create new linked rooms
+            $pricePerRoom = $totalPrice / (count($additionalRoomIds) + 1);
+            $discountPerRoom = $discountAmount / (count($additionalRoomIds) + 1);
+            
+            foreach ($additionalRoomIds as $index => $additionalRoomId) {
+                $stmt = $connection->prepare("
+                    INSERT INTO bookings (
+                        user_id, room_id, check_in_date, check_out_date, total_price, 
+                        selected_currency, special_requests, discount_amount, payment_status, 
+                        payment_method, paid_amount, booking_reference, guest_name, 
+                        guest_email, guest_phone, passport_number, id_number, status, 
+                        is_multi_room, primary_booking_id, created_at
+                    ) SELECT 
+                        user_id, ?, check_in_date, check_out_date, ?, 
+                        selected_currency, special_requests, ?, payment_status, 
+                        payment_method, ?, booking_reference, guest_name, 
+                        guest_email, guest_phone, passport_number, id_number, status, 
+                        1, ?, created_at
+                    FROM bookings WHERE id = ?
+                ");
+                $stmt->execute([
+                    $additionalRoomId, 
+                    $pricePerRoom, 
+                    $discountPerRoom,
+                    $pricePerRoom, // Assuming paid_amount equals total_price for additional rooms
+                    $bookingId,
+                    $bookingId
+                ]);
+            }
+        } else {
+            // Remove any existing linked rooms if switching from multi-room to single room
+            $stmt = $connection->prepare("DELETE FROM bookings WHERE primary_booking_id = ?");
+            $stmt->execute([$bookingId]);
+        }
+        
+        // Update booking_guests
+        $stmt = $connection->prepare("DELETE FROM booking_guests WHERE booking_id = ?");
+        $stmt->execute([$bookingId]);
+        
+        // Insert updated guests
+        $guestStmt = $connection->prepare("INSERT INTO booking_guests (booking_id, guest_name, guest_email, guest_phone, passport_number, id_number, is_primary) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        
+        for ($i = 0; $i < count($guestNames); $i++) {
+            if (!empty($guestNames[$i])) {
+                $isPrimary = isset($guestIsPrimary[$i]) && $guestIsPrimary[$i] == '1';
+                $guestStmt->execute([
+                    $bookingId,
+                    $guestNames[$i],
+                    $guestEmails[$i] ?? '',
+                    $guestPhones[$i] ?? '',
+                    $guestPassports[$i] ?? '',
+                    $guestIds[$i] ?? '',
+                    $isPrimary
+                ]);
+            }
+        }
         
         // Update user information
         $stmt = $connection->prepare("
@@ -365,11 +512,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         $firstName = $names[0];
         $stmt->execute([$firstName, $guestEmail, $guestPhone, $bookingId]);
         
+        $connection->commit();
+        
         $message = "Reserva actualizada exitosamente";
         $messageType = "success";
         header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
         exit;
     } catch (Exception $e) {
+        $connection->rollBack();
         $message = "Error al actualizar la reserva: " . $e->getMessage();
         $messageType = "error";
     }
@@ -669,31 +819,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         // Generate booking reference
         $bookingReference = 'HTL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         
-        // Create booking directly in database since we need more control
-        $stmt = $connection->prepare("INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, selected_currency, special_requests, discount_amount, payment_status, payment_method, paid_amount, booking_reference, guest_name, guest_email, guest_phone, passport_number, id_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
+        // Create bookings for each room (multiple rooms support)
+        $allBookingIds = [];
+        $primaryBookingId = null;
+        $totalSuccess = true;
         
-        $success = $stmt->execute([
-            $guestId, 
-            $roomId, 
-            $checkIn, 
-            $checkOut, 
-            $totalPrice, 
-            $selectedCurrency,
-            $specialRequests, 
-            $discountAmount,
-            $paymentStatus,
-            $paymentMethod,
-            $paidAmount,
-            $bookingReference,
-            $guestName,
-            $guestEmail,
-            $guestPhone,
-            $passportNumber,
-            $idNumber
-        ]);
+        // Calculate price per room (divide total among rooms)
+        $pricePerRoom = count($roomIds) > 1 ? $totalPrice / count($roomIds) : $totalPrice;
         
-        if ($success) {
-            $bookingId = $connection->lastInsertId();
+        $stmt = $connection->prepare("INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, selected_currency, special_requests, discount_amount, payment_status, payment_method, paid_amount, booking_reference, guest_name, guest_email, guest_phone, passport_number, id_number, status, is_multi_room, primary_booking_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)");
+        
+        foreach ($roomIds as $index => $currentRoomId) {
+            if (empty($currentRoomId)) continue;
+            
+            $isPrimaryRoom = ($index === 0);
+            $isMultiRoom = count($roomIds) > 1;
+            
+            $success = $stmt->execute([
+                $guestId, 
+                $currentRoomId, 
+                $checkIn, 
+                $checkOut, 
+                $pricePerRoom, 
+                $selectedCurrency,
+                $specialRequests, 
+                $discountAmount / count($roomIds), // Divide discount among rooms
+                $paymentStatus,
+                $paymentMethod,
+                $paidAmount / count($roomIds), // Divide paid amount among rooms
+                $bookingReference . ($isMultiRoom ? '-R' . ($index + 1) : ''),
+                $guestName,
+                $guestEmail,
+                $guestPhone,
+                $passportNumber,
+                $idNumber,
+                $isMultiRoom,
+                $primaryBookingId // Will be null for first room, then set for others
+            ]);
+            
+            if ($success) {
+                $currentBookingId = $connection->lastInsertId();
+                $allBookingIds[] = $currentBookingId;
+                
+                if ($isPrimaryRoom) {
+                    $primaryBookingId = $currentBookingId;
+                }
+            } else {
+                $totalSuccess = false;
+                break;
+            }
+        }
+        
+        // Update non-primary bookings with primary_booking_id
+        if ($totalSuccess && $primaryBookingId && count($allBookingIds) > 1) {
+            $updateStmt = $connection->prepare("UPDATE bookings SET primary_booking_id = ? WHERE id IN (" . implode(',', array_slice($allBookingIds, 1)) . ")");
+            $updateStmt->execute([$primaryBookingId]);
+        }
+        
+        if ($totalSuccess) {
+            $bookingId = $primaryBookingId; // Use primary booking ID for further processing
             
             // Handle multiple guests
             $guestNames = $_POST['guest_names'] ?? [$guestName];
@@ -2058,18 +2242,30 @@ function getMonthName($month) {
                                             $cellClass .= ' partial';
                                         }
                                         
-                                        $cellContent = '<div class="booking-info">' . 
-                                                     substr($booking['first_name'], 0, 1) . 
-                                                     substr($booking['last_name'], 0, 1) . '</div>';
+                                        // Show multiple guest names or fallback to initials
+                                        if (!empty($booking['all_guest_names'])) {
+                                            $guestNames = strlen($booking['all_guest_names']) > 15 
+                                                ? substr($booking['all_guest_names'], 0, 15) . '...' 
+                                                : $booking['all_guest_names'];
+                                            $cellContent = '<div class="booking-info">' . htmlspecialchars($guestNames) . '</div>';
+                                        } else {
+                                            $cellContent = '<div class="booking-info">' . 
+                                                         substr($booking['first_name'], 0, 1) . 
+                                                         substr($booking['last_name'], 0, 1) . '</div>';
+                                        }
                                     }
                                     
                                     // Prepare booking data for JavaScript
                                     $bookingData = json_encode([
                                         'id' => $booking['id'],
                                         'room_id' => $booking['room_id'],
-                                        'guest_name' => !empty($booking['guest_name']) ? $booking['guest_name'] : ($booking['first_name'] . ' ' . $booking['last_name']),
+                                        'guest_name' => $booking['display_guest_name'],
                                         'guest_email' => !empty($booking['guest_email']) ? $booking['guest_email'] : $booking['email'],
                                         'guest_phone' => !empty($booking['guest_phone']) ? $booking['guest_phone'] : ($booking['phone'] ?? ''),
+                                        'guests_list' => $booking['guests_list'],
+                                        'all_guest_names' => $booking['all_guest_names'],
+                                        'is_multi_room' => $booking['is_multi_room'] ?? false,
+                                        'all_rooms' => $booking['all_rooms'] ?? $booking['room_number'],
                                         'passport_number' => $booking['passport_number'] ?? '',
                                         'id_number' => $booking['id_number'] ?? '',
                                         'room_number' => $booking['room_number'],
@@ -2553,22 +2749,60 @@ function getMonthName($month) {
                 <input type="hidden" id="edit_discount_amount_hidden" name="edit_discount_amount" value="0">
                 <input type="hidden" name="edit_booking" value="1">
                 
-                <!-- Booking Information -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label for="edit_room_id">🏨 Room</label>
-                        <select id="edit_room_id" name="edit_room_id" required>
-                            <?php foreach ($rooms as $room): ?>
-                                <option value="<?php echo $room['id']; ?>">
-                                    Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> 
-                                    ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                <!-- Multi-Room Display (Read-only for now) -->
+                <div id="edit_multi_room_display" style="display: none; background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: #1976d2; margin-bottom: 10px;">🏨 Multi-Room Booking</h4>
+                    <p id="edit_rooms_list" style="margin: 0;"></p>
+                    <small style="color: #666;">Note: To modify rooms in a multi-room booking, please contact reception.</small>
+                </div>
+                
+                <!-- Single Room Booking Information -->
+                <div id="edit_single_room_section">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="edit_room_id">🏨 Room</label>
+                            <select id="edit_room_id" name="edit_room_id" required>
+                                <?php foreach ($rooms as $room): ?>
+                                    <option value="<?php echo $room['id']; ?>">
+                                        Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> 
+                                        ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_guest_name">👤 Primary Guest Name</label>
+                            <input type="text" id="edit_guest_name" name="edit_guest_name" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="edit_guest_name">👤 Guest Name</label>
-                        <input type="text" id="edit_guest_name" name="edit_guest_name" required>
+                </div>
+                
+                <!-- Additional Rooms Management Section -->
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-size: 1.1em; font-weight: bold; color: #495057;">🏨 Room Management</label>
+                        <button type="button" onclick="addEditRoom()" class="btn btn-sm" style="background: #fd7e14; color: white; padding: 5px 15px; font-size: 0.9em;">
+                            ➕ Add Room
+                        </button>
+                    </div>
+                    <div id="edit_rooms_container">
+                        <!-- Additional rooms will be populated by JavaScript -->
+                    </div>
+                    <div id="edit_room_summary" style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px; display: none;">
+                        <small><strong>💡 Multi-Room Booking:</strong> <span id="edit_total_rooms_text">1 room selected</span></small>
+                    </div>
+                </div>
+                
+                <!-- Multiple Guests Section -->
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-size: 1.1em; font-weight: bold; color: #495057;">👥 Guest Information</label>
+                        <button type="button" onclick="addEditGuest()" class="btn btn-sm" style="background: #17a2b8; color: white; padding: 5px 15px; font-size: 0.9em;">
+                            ➕ Add Guest
+                        </button>
+                    </div>
+                    <div id="edit_guests_container">
+                        <!-- Guests will be populated by JavaScript -->
                     </div>
                 </div>
                 
@@ -3180,7 +3414,7 @@ function getMonthName($month) {
                 room_id: booking.room_id,
                 room_number: booking.room_number,
                 room_type: booking.room_type,
-                guest_name: booking.guest_name,
+                guest_name: booking.guest_name || booking.display_guest_name,
                 guest_email: booking.guest_email || '',
                 guest_phone: booking.guest_phone || '',
                 passport_number: booking.passport_number || '',
@@ -3189,25 +3423,58 @@ function getMonthName($month) {
                 check_out_date: booking.check_out_date,
                 total_price: booking.total_amount || booking.total_price,
                 discount_amount: booking.discount_amount || 0,
-                special_requests: booking.special_requests || ''
+                special_requests: booking.special_requests || '',
+                guests_list: booking.guests_list || [],
+                all_guest_names: booking.all_guest_names || booking.guest_name || 'Guest'
             };
             
             console.log('Stored currentBookingData:', currentBookingData);
             
+            // Generate guests display
+            let guestsDisplay = '';
+            if (booking.guests_list && booking.guests_list.length > 0) {
+                guestsDisplay = '<div style="margin: 10px 0;">';
+                guestsDisplay += `<h4 style="color: #2c3e50; margin-bottom: 10px;">👥 Guests (${booking.guests_list.length})</h4>`;
+                
+                booking.guests_list.forEach((guest, index) => {
+                    const isPrimary = guest.is_primary;
+                    guestsDisplay += `
+                        <div style="background: ${isPrimary ? '#e8f5e8' : '#f8f9fa'}; padding: 10px; border-radius: 5px; margin-bottom: 8px; border-left: 3px solid ${isPrimary ? '#28a745' : '#6c757d'};">
+                            <div style="display: flex; justify-content: between; align-items: center;">
+                                <div>
+                                    <strong>${guest.name}</strong> ${isPrimary ? '<span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">Primary</span>' : ''}
+                                    ${guest.email ? `<br><small>📧 ${guest.email}</small>` : ''}
+                                    ${guest.phone ? `<br><small>📱 ${guest.phone}</small>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                guestsDisplay += '</div>';
+            } else {
+                // Fallback to single guest display
+                guestsDisplay = `
+                    <p><strong>Nombre:</strong> ${booking.guest_name || booking.display_guest_name || 'Guest'}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${booking.guest_email || ''}" style="color: #007bff; text-decoration: none;">📧 ${booking.guest_email || 'No email'}</a></p>
+                    ${booking.guest_phone ? `<p><strong>WhatsApp:</strong> <a href="https://wa.me/${booking.guest_phone.replace(/[\s\-\(\)]/g, '')}" target="_blank" style="color: #25D366; text-decoration: none;">📱 ${booking.guest_phone}</a></p>` : ''}
+                `;
+            }
+
             const content = `
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
                             <h3 style="color: #2c3e50; margin-bottom: 15px;">👤 Información del Cliente</h3>
-                            <p><strong>Nombre:</strong> ${booking.guest_name}</p>
-                            <p><strong>Email:</strong> <a href="mailto:${booking.guest_email}" style="color: #007bff; text-decoration: none;">📧 ${booking.guest_email}</a></p>
-                            ${booking.guest_phone ? `<p><strong>WhatsApp:</strong> <a href="https://wa.me/${booking.guest_phone.replace(/[\s\-\(\)]/g, '')}" target="_blank" style="color: #25D366; text-decoration: none;">📱 ${booking.guest_phone}</a></p>` : ''}
+                            ${guestsDisplay}
                             <p><strong>ID Reserva:</strong> #${booking.id}</p>
                             <p><strong>Estado:</strong> <span style="background: ${booking.status === 'confirmed' ? '#d4edda' : '#fff3cd'}; padding: 2px 8px; border-radius: 4px; color: ${booking.status === 'confirmed' ? '#155724' : '#856404'};">${booking.status === 'confirmed' ? 'Confirmada' : booking.status}</span></p>
                         </div>
                         <div>
                             <h3 style="color: #2c3e50; margin-bottom: 15px;">🏨 Detalles de la Habitación</h3>
-                            <p><strong>Habitación:</strong> ${booking.room_number}</p>
+                            ${booking.is_multi_room ? 
+                                `<p><strong>Habitaciones:</strong> ${booking.all_rooms} <span style="background: #17a2b8; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">Multi-Room</span></p>` :
+                                `<p><strong>Habitación:</strong> ${booking.room_number}</p>`
+                            }
                             <p><strong>Tipo:</strong> ${booking.room_type}</p>
                             <p><strong>Precio Total:</strong> ${formatDualCurrency(booking.total_amount)}</p>
                             <p><strong>Estado de Pago:</strong> <span style="background: ${getPaymentStatusColor(booking.payment_status)}; padding: 2px 8px; border-radius: 4px; color: white;">${getPaymentStatusText(booking.payment_status)}</span></p>
@@ -3601,15 +3868,20 @@ function getMonthName($month) {
         
         function openEditBookingModal(bookingData) {
             console.log('Opening edit modal with data:', bookingData);
-            console.log('Available price fields:', {
-                total_price: bookingData.total_price,
-                total_amount: bookingData.total_amount,
-                allKeys: Object.keys(bookingData)
-            });
             
             try {
                 // Use total_amount if total_price is not available (fallback)
                 const totalPrice = bookingData.total_price || bookingData.total_amount || '';
+                
+                // Handle multi-room display
+                if (bookingData.is_multi_room && bookingData.all_rooms) {
+                    document.getElementById('edit_multi_room_display').style.display = 'block';
+                    document.getElementById('edit_single_room_section').style.display = 'none';
+                    document.getElementById('edit_rooms_list').textContent = 'Rooms: ' + bookingData.all_rooms;
+                } else {
+                    document.getElementById('edit_multi_room_display').style.display = 'none';
+                    document.getElementById('edit_single_room_section').style.display = 'block';
+                }
                 
                 // Populate form with current booking data
                 document.getElementById('edit_booking_id').value = bookingData.id;
@@ -3623,6 +3895,18 @@ function getMonthName($month) {
                 document.getElementById('edit_check_out').value = bookingData.check_out_date;
                 document.getElementById('edit_total_price').value = totalPrice;
                 document.getElementById('edit_special_requests').value = bookingData.special_requests || '';
+                
+                // Populate multiple guests
+                populateEditGuests(bookingData.guests_list || []);
+                
+                // Populate additional rooms for multi-room bookings
+                populateEditRooms(bookingData);
+                
+                // Add event listener to primary room dropdown
+                document.getElementById('edit_room_id').addEventListener('change', updateEditRoomSummary);
+                
+                // Initial room summary update
+                updateEditRoomSummary();
                 
                 // Create a normalized booking data object for the price breakdown
                 const normalizedBookingData = {
@@ -3651,6 +3935,236 @@ function getMonthName($month) {
         function closeEditBookingModal() {
             document.getElementById('editBookingModal').style.display = 'none';
             currentBookingData = null; // Clear data when closing edit modal
+        }
+        
+        // Multiple guests management for edit modal
+        let editGuestCounter = 1;
+        
+        function populateEditGuests(guestsList) {
+            const container = document.getElementById('edit_guests_container');
+            container.innerHTML = '';
+            editGuestCounter = 1;
+            
+            if (!guestsList || guestsList.length === 0) {
+                // Add at least one guest (primary)
+                addEditGuestField(true);
+            } else {
+                guestsList.forEach((guest, index) => {
+                    addEditGuestField(guest.is_primary, guest);
+                });
+            }
+        }
+        
+        function addEditGuest() {
+            addEditGuestField(false);
+        }
+        
+        function addEditGuestField(isPrimary = false, guestData = null) {
+            editGuestCounter++;
+            const container = document.getElementById('edit_guests_container');
+            
+            const guestHtml = `
+                <div class="edit-guest-item" id="edit-guest-item-${editGuestCounter}" style="background: ${isPrimary ? '#e8f5e8' : '#f8f9fa'}; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid ${isPrimary ? '#28a745' : '#6c757d'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0; color: #495057;">${isPrimary ? 'Primary Guest' : `Guest ${editGuestCounter - 1}`}</h5>
+                        <div>
+                            ${isPrimary ? '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Main Contact</span>' : ''}
+                            ${!isPrimary ? `<button type="button" onclick="removeEditGuest(${editGuestCounter})" class="btn btn-sm" style="background: #dc3545; color: white; padding: 2px 8px; font-size: 0.8em;">✕</button>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Name *</label>
+                            <input type="text" class="edit-guest-name" name="edit_guest_names[]" 
+                                   value="${guestData ? guestData.name : ''}" 
+                                   data-guest-index="${editGuestCounter}" required style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Email</label>
+                            <input type="email" class="edit-guest-email" name="edit_guest_emails[]" 
+                                   value="${guestData ? guestData.email : ''}" 
+                                   data-guest-index="${editGuestCounter}" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Phone</label>
+                            <input type="tel" class="edit-guest-phone" name="edit_guest_phones[]" 
+                                   value="${guestData ? guestData.phone : ''}" 
+                                   data-guest-index="${editGuestCounter}" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Passport</label>
+                            <input type="text" class="edit-guest-passport" name="edit_guest_passports[]" 
+                                   value="${guestData ? (guestData.passport || '') : ''}" 
+                                   data-guest-index="${editGuestCounter}" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">ID Number</label>
+                            <input type="text" class="edit-guest-id" name="edit_guest_ids[]" 
+                                   value="${guestData ? (guestData.id_number || '') : ''}" 
+                                   data-guest-index="${editGuestCounter}" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="edit_guest_is_primary[]" value="${isPrimary ? '1' : '0'}">
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', guestHtml);
+        }
+        
+        function removeEditGuest(guestId) {
+            const guestItem = document.getElementById(`edit-guest-item-${guestId}`);
+            if (guestItem) {
+                guestItem.remove();
+            }
+        }
+        
+        // Room management for edit modal
+        let editRoomCounter = 1;
+        
+        function populateEditRooms(currentBookingData) {
+            const container = document.getElementById('edit_rooms_container');
+            container.innerHTML = '';
+            editRoomCounter = 1;
+            
+            if (currentBookingData.is_multi_room && currentBookingData.all_rooms) {
+                // Parse room information from all_rooms string
+                const rooms = currentBookingData.all_rooms.split(', ');
+                rooms.forEach((roomInfo, index) => {
+                    if (index > 0) { // Skip first room (it's in the main dropdown)
+                        addEditRoomField(roomInfo);
+                    }
+                });
+                updateEditRoomSummary();
+            }
+        }
+        
+        function addEditRoom() {
+            addEditRoomField();
+            updateEditRoomSummary();
+        }
+        
+        function addEditRoomField(roomInfo = null) {
+            editRoomCounter++;
+            const container = document.getElementById('edit_rooms_container');
+            
+            const roomHtml = `
+                <div class="edit-room-item" id="edit-room-item-${editRoomCounter}" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #fd7e14;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0; color: #495057;">Additional Room ${editRoomCounter - 1}</h5>
+                        <button type="button" onclick="removeEditRoom(${editRoomCounter})" class="btn btn-sm" style="background: #dc3545; color: white; padding: 2px 8px; font-size: 0.8em;">✕ Remove</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Select Room</label>
+                            <select class="edit-room-select" name="edit_additional_room_ids[]" required onchange="updateEditRoomSummary()" data-room-index="${editRoomCounter}" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="">Choose a room...</option>
+                                <?php foreach ($rooms as $room): ?>
+                                    <option value="<?php echo $room['id']; ?>" data-room-number="<?php echo $room['room_number']; ?>" data-room-type="<?php echo $room['room_type']; ?>" data-price="<?php echo $room['price'] ?? 0; ?>">
+                                        Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9em; color: #666;">Guests</label>
+                            <select class="edit-room-guests" name="edit_room_guests[]" style="width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding: 8px; background: white; border-radius: 4px; font-size: 0.85em; color: #666;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Room Rate:</span>
+                            <span class="room-rate-display">$0.00/night</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', roomHtml);
+            
+            // If we have room info (from existing multi-room booking), try to select it
+            if (roomInfo) {
+                // Extract room number from string like "102 (Standard Double)"
+                const roomMatch = roomInfo.match(/(\d+)/);
+                if (roomMatch) {
+                    const roomNumber = roomMatch[1];
+                    const select = document.querySelector(`#edit-room-item-${editRoomCounter} .edit-room-select`);
+                    Array.from(select.options).forEach(option => {
+                        if (option.dataset.roomNumber === roomNumber) {
+                            option.selected = true;
+                            updateEditRoomRate(select);
+                        }
+                    });
+                }
+            }
+            
+            // Add event listener for price updates
+            const select = document.querySelector(`#edit-room-item-${editRoomCounter} .edit-room-select`);
+            select.addEventListener('change', function() {
+                updateEditRoomRate(this);
+                updateEditRoomSummary();
+            });
+        }
+        
+        function removeEditRoom(roomId) {
+            const roomItem = document.getElementById(`edit-room-item-${roomId}`);
+            if (roomItem) {
+                roomItem.remove();
+                updateEditRoomSummary();
+            }
+        }
+        
+        function updateEditRoomRate(selectElement) {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const price = selectedOption.dataset.price || 0;
+            const rateDisplay = selectElement.closest('.edit-room-item').querySelector('.room-rate-display');
+            rateDisplay.textContent = `$${parseFloat(price).toFixed(2)}/night`;
+        }
+        
+        function updateEditRoomSummary() {
+            const primaryRoom = document.getElementById('edit_room_id');
+            const additionalRooms = document.querySelectorAll('.edit-room-select');
+            const summary = document.getElementById('edit_room_summary');
+            const summaryText = document.getElementById('edit_total_rooms_text');
+            
+            let totalRooms = 1; // Primary room
+            let selectedRooms = [];
+            
+            // Add primary room
+            if (primaryRoom.selectedIndex >= 0) {
+                const option = primaryRoom.options[primaryRoom.selectedIndex];
+                const roomNumber = option.textContent.match(/Room (\d+)/)?.[1] || primaryRoom.value;
+                selectedRooms.push(`Room ${roomNumber}`);
+            }
+            
+            // Add additional rooms
+            additionalRooms.forEach(select => {
+                if (select.value) {
+                    totalRooms++;
+                    const option = select.options[select.selectedIndex];
+                    selectedRooms.push(`Room ${option.dataset.roomNumber || select.value}`);
+                }
+            });
+            
+            if (totalRooms > 1) {
+                summary.style.display = 'block';
+                summaryText.textContent = `${totalRooms} rooms selected: ${selectedRooms.join(', ')}`;
+            } else {
+                summary.style.display = 'none';
+            }
         }
 
         function updateEditPriceBreakdown(bookingData) {
@@ -4577,7 +5091,7 @@ function getMonthName($month) {
                 
                 // Populate current booking information
                 document.getElementById('extend_booking_id').value = currentBookingData.id;
-                document.getElementById('current_guest_name').textContent = currentBookingData.guest_name || 'N/A';
+                document.getElementById('current_guest_name').textContent = currentBookingData.all_guest_names || currentBookingData.guest_name || 'N/A';
                 document.getElementById('current_room_info').textContent = `Room ${currentBookingData.room_number || 'N/A'} - ${currentBookingData.room_type || 'N/A'}`;
                 document.getElementById('current_checkin').textContent = formatDateSpanish(currentBookingData.check_in_date);
                 document.getElementById('current_checkout').textContent = formatDateSpanish(currentBookingData.check_out_date);
