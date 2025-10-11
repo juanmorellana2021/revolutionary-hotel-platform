@@ -42,6 +42,22 @@ try {
     )";
     $connection->exec($createNotesTableSQL);
     
+    // Create booking_guests table for multiple guests per booking
+    $createGuestsTableSQL = "
+    CREATE TABLE IF NOT EXISTS booking_guests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        guest_name VARCHAR(255) NOT NULL,
+        guest_email VARCHAR(255),
+        guest_phone VARCHAR(50),
+        passport_number VARCHAR(50),
+        id_number VARCHAR(50),
+        is_primary BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+    )";
+    $connection->exec($createGuestsTableSQL);
+    
 } catch (Exception $e) {
     // Tables might already exist, continue silently
 }
@@ -52,29 +68,11 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+
 $userManager = new UserManager();
 if (!$userManager->isManager($_SESSION['user']['id'])) {
     header('Location: dashboard.php');
     exit;
-}
-
-// Create daily room status table if it doesn't exist
-try {
-    $createDailyStatusTableSQL = "
-    CREATE TABLE IF NOT EXISTS daily_room_status (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        room_id INT NOT NULL,
-        status_date DATE NOT NULL,
-        status ENUM('clean', 'dirty', 'maintenance', 'out_of_order') DEFAULT 'clean',
-        notes TEXT,
-        created_by INT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_room_date (room_id, status_date),
-        FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
-    )";
-    $connection->exec($createDailyStatusTableSQL);
-} catch (Exception $e) {
-    // Table might already exist, continue silently
 }
 
 // Handle AJAX room status updates
@@ -85,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $roomId = (int)$_POST['room_id'];
         $status = $_POST['status'];
         $notes = $_POST['notes'] ?? '';
-        $targetDate = $_POST['target_date'] ?? date('Y-m-d'); // Default to today if no date specified
         
         // Validate status
         $validStatuses = ['clean', 'dirty', 'maintenance', 'out_of_order'];
@@ -93,32 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             throw new Exception('Invalid status');
         }
         
-        // For 'dirty' status, only update for today's date
-        if ($status === 'dirty') {
-            $targetDate = date('Y-m-d'); // Force dirty status to today only
-            
-            // Insert or update daily room status for today
-            $stmt = $connection->prepare("
-                INSERT INTO daily_room_status (room_id, status_date, status, notes, created_by) 
-                VALUES (?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE 
-                status = VALUES(status), 
-                notes = VALUES(notes), 
-                created_by = VALUES(created_by),
-                created_at = CURRENT_TIMESTAMP
-            ");
-            $success = $stmt->execute([$roomId, $targetDate, $status, $notes, $_SESSION['user']['id']]);
-        } else {
-            // For other statuses (clean, maintenance, out_of_order), update the room's global status
-            $stmt = $connection->prepare("UPDATE rooms SET room_status = ? WHERE id = ?");
-            $success = $stmt->execute([$status, $roomId]);
-            
-            // Also clear any dirty status for today if changing to clean
-            if ($status === 'clean') {
-                $stmt = $connection->prepare("DELETE FROM daily_room_status WHERE room_id = ? AND status_date = ? AND status = 'dirty'");
-                $stmt->execute([$roomId, date('Y-m-d')]);
-            }
-        }
+        // Update room status
+        $stmt = $connection->prepare("UPDATE rooms SET room_status = ? WHERE id = ?");
+        $success = $stmt->execute([$status, $roomId]);
         
         if ($success) {
             // Log the status change
@@ -249,41 +223,6 @@ try {
 } catch (Exception $e) {
     // Fallback to empty array if there are issues
     $roomPhotos = [];
-}
-
-// Fix existing bookings where payment_status is 'paid' but paid_amount is 0
-try {
-    $stmt = $connection->prepare("
-        UPDATE bookings 
-        SET paid_amount = total_price 
-        WHERE payment_status = 'paid' AND (paid_amount IS NULL OR paid_amount = 0)
-    ");
-    $stmt->execute();
-} catch (Exception $e) {
-    // Continue silently if there's an issue
-}
-
-// Get daily room statuses for the current month
-$dailyRoomStatuses = [];
-try {
-    $monthStart = sprintf('%04d-%02d-01', $currentYear, $currentMonth);
-    $monthEnd = date('Y-m-t', strtotime($monthStart)); // Last day of month
-    
-    $stmt = $connection->prepare("
-        SELECT room_id, status_date, status, notes
-        FROM daily_room_status 
-        WHERE status_date BETWEEN ? AND ?
-    ");
-    $stmt->execute([$monthStart, $monthEnd]);
-    $dailyStatuses = $stmt->fetchAll();
-    
-    // Index by room_id and date for easy lookup
-    foreach ($dailyStatuses as $dailyStatus) {
-        $dailyRoomStatuses[$dailyStatus['room_id']][$dailyStatus['status_date']] = $dailyStatus;
-    }
-} catch (Exception $e) {
-    // Fallback to empty array if there are issues
-    $dailyRoomStatuses = [];
 }
 
 // Get bookings for current month (and a bit before/after for overlap)
@@ -592,7 +531,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         $message = 'You must accept the Terms & Conditions and Guest Responsibility Agreement to create a booking.';
         $messageType = 'error';
     } else {
-        $roomId = $_POST['room_id'];
+        // Handle multiple rooms - for now, use first room as primary
+        $roomIds = $_POST['room_ids'] ?? [$_POST['room_id']];
+        $roomGuests = $_POST['room_guests'] ?? [$_POST['guest_count']];
+        $roomId = !empty($roomIds[0]) ? $roomIds[0] : $_POST['room_id'];
+        
         $checkIn = $_POST['check_in_date'];
         $checkOut = $_POST['check_out_date'];
         $guestName = $_POST['guest_name'];
@@ -600,6 +543,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         $guestPhone = $_POST['guest_phone'] ?? '';
         $passportNumber = $_POST['passport_number'] ?? '';
         $idNumber = $_POST['id_number'] ?? '';
+        
+        // Build multiple rooms information for special requests
+        $multipleRoomsInfo = '';
+        if (is_array($roomIds) && count($roomIds) > 1) {
+            $multipleRoomsInfo = "Multiple Rooms Booking:\n";
+            for ($i = 0; $i < count($roomIds); $i++) {
+                if (!empty($roomIds[$i])) {
+                    $roomData = $roomManager->getRoomById($roomIds[$i]);
+                    $guests = $roomGuests[$i] ?? 2;
+                    $multipleRoomsInfo .= "Room " . ($i + 1) . ": " . $roomData['room_number'] . " (" . $roomData['room_type'] . ") - {$guests} guests\n";
+                }
+            }
+            $multipleRoomsInfo .= "\n";
+        }
     
     // Create a temporary guest user or use existing
     $userManager = new User();
@@ -677,8 +634,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         
         $totalPrice = $subtotal - $discountAmount;
         
-        // Prepare special requests with pricing info
-        $specialRequests = '';
+        // Prepare special requests with pricing info and multiple rooms info
+        $specialRequests = $multipleRoomsInfo;
         if ($useCustomPrice) {
             $displayPrice = $selectedCurrency === 'USD' ? 
                 "$" . number_format($pricePerNight, 2) : 
@@ -737,6 +694,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
         
         if ($success) {
             $bookingId = $connection->lastInsertId();
+            
+            // Handle multiple guests
+            $guestNames = $_POST['guest_names'] ?? [$guestName];
+            $guestEmails = $_POST['guest_emails'] ?? [$guestEmail];
+            $guestPhones = $_POST['guest_phones'] ?? [$guestPhone];
+            $guestPassports = $_POST['guest_passports'] ?? [$passportNumber];
+            $guestIds = $_POST['guest_ids'] ?? [$idNumber];
+            
+            // Insert all guests into booking_guests table
+            $guestStmt = $connection->prepare("INSERT INTO booking_guests (booking_id, guest_name, guest_email, guest_phone, passport_number, id_number, is_primary) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            
+            for ($i = 0; $i < count($guestNames); $i++) {
+                if (!empty($guestNames[$i])) {
+                    $isPrimary = ($i === 0); // First guest is primary
+                    $guestStmt->execute([
+                        $bookingId,
+                        $guestNames[$i],
+                        $guestEmails[$i] ?? '',
+                        $guestPhones[$i] ?? '',
+                        $guestPassports[$i] ?? '',
+                        $guestIds[$i] ?? '',
+                        $isPrimary
+                    ]);
+                }
+            }
             
             // Automatically create income record for this booking
             require_once 'includes/accounting_classes.php';
@@ -904,12 +886,6 @@ function getMonthName($month) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Availability Calendar - <?php echo htmlspecialchars($hotel['hotel_name'] ?? 'Hotel Management'); ?></title>
-    
-    <!-- AINI Innovations Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="shortcut icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
     <style>
         * {
             margin: 0;
@@ -1679,6 +1655,57 @@ function getMonthName($month) {
             opacity: 0.9;
             margin-top: 5px;
         }
+
+        /* Multiple Rooms Styles */
+        .room-selection-item {
+            transition: all 0.3s ease;
+        }
+
+        .room-selection-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .room-preview {
+            transition: all 0.3s ease;
+        }
+
+        .room-preview img {
+            transition: transform 0.3s ease;
+        }
+
+        .room-preview:hover img {
+            transform: scale(1.05);
+        }
+
+        #totalGuestsDisplay {
+            font-size: 1.2em;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Multiple Guests Styles */
+        .guest-info-item {
+            transition: all 0.3s ease;
+        }
+
+        .guest-info-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .guest-info-item .form-group input {
+            transition: border-color 0.3s ease;
+        }
+
+        .guest-info-item .form-group input:focus {
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+        }
+
+        .remove-guest-btn:hover {
+            background: #c82333 !important;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -1966,27 +1993,21 @@ function getMonthName($month) {
                         <tr>
                             <td class="room-info <?php 
                                 $roomStatus = $room['room_status'] ?? 'clean';
-                                // Only apply global status styling for maintenance and out_of_order, not dirty
-                                if ($roomStatus === 'maintenance') echo 'room-maintenance';
+                                if ($roomStatus === 'dirty') echo 'room-dirty';
+                                elseif ($roomStatus === 'maintenance') echo 'room-maintenance';
                                 elseif ($roomStatus === 'out_of_order') echo 'room-out-of-order';
                             ?>">
                                 <div class="room-details">
                                     <div class="room-number">
                                         Room <?php echo htmlspecialchars($room['room_number']); ?>
-                                        <?php 
-                                        // Check if room is dirty today
-                                        $isDirtyToday = isset($dailyRoomStatuses[$room['id']][date('Y-m-d')]) && 
-                                                       $dailyRoomStatuses[$room['id']][date('Y-m-d')]['status'] === 'dirty';
-                                        
-                                        if ($isDirtyToday):
-                                        ?>
-                                            <span class="room-status-badge dirty" title="Needs Cleaning Today">🧹</span>
+                                        <?php if ($roomStatus === 'clean'): ?>
+                                            <span class="room-status-badge clean" title="Room is Clean">✨</span>
+                                        <?php elseif ($roomStatus === 'dirty'): ?>
+                                            <span class="room-status-badge dirty" title="Needs Cleaning">🧹</span>
                                         <?php elseif ($roomStatus === 'maintenance'): ?>
                                             <span class="room-status-badge maintenance" title="Under Maintenance">🔧</span>
                                         <?php elseif ($roomStatus === 'out_of_order'): ?>
                                             <span class="room-status-badge out-of-order" title="Out of Order">⚠️</span>
-                                        <?php else: ?>
-                                            <span class="room-status-badge clean" title="Room is Clean">✨</span>
                                         <?php endif; ?>
                                     </div>
                                     <div style="margin-top: 5px;">
@@ -2069,14 +2090,8 @@ function getMonthName($month) {
                                         'debug_raw_discount' => $booking['discount_amount']
                                     ]);
                                 } else {
-                                    // Check for date-specific room status first
-                                    $dateSpecificStatus = null;
-                                    if (isset($dailyRoomStatuses[$room['id']][$currentDate])) {
-                                        $dateSpecificStatus = $dailyRoomStatuses[$room['id']][$currentDate]['status'];
-                                    }
-                                    
-                                    // Use date-specific status if available, otherwise use room's global status
-                                    $roomStatus = $dateSpecificStatus ?? ($room['room_status'] ?? 'clean');
+                                    // Check room status for available rooms - only apply status to current and future dates
+                                    $roomStatus = $room['room_status'] ?? 'clean';
                                     $isPastDate = $currentDate < date('Y-m-d');
                                     
                                     if (!$isPastDate && $roomStatus !== 'clean') {
@@ -2157,31 +2172,65 @@ function getMonthName($month) {
                 <span class="close" onclick="closeBookingModal()">&times;</span>
             </div>
             <form method="POST">
-                <!-- Main booking information in a 2-column grid for wide screens -->
-                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div class="form-group">
-                        <label for="room_id">🏨 Room</label>
-                        <select id="room_id" name="room_id" required onchange="updateGuestOptions(); calculateTotal();">
-                            <option value="">Select Room</option>
-                            <?php foreach ($rooms as $room): ?>
-                                <option value="<?php echo $room['id']; ?>">
-                                    Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> 
-                                    ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD / S/ <?php echo number_format(($room['price'] ?? 0) * 3.75, 2); ?> PEN per night)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        
-                        <!-- Room photo previews -->
-                        <?php foreach ($rooms as $room): ?>
-                            <?php if (isset($roomPhotos[$room['id']])): ?>
-                                <div class="room-preview" id="room-preview-<?php echo $room['id']; ?>">
-                                    <img src="<?php echo $roomPhotos[$room['id']]; ?>" alt="Habitación <?php echo $room['room_number']; ?>">
-                                    <p style="font-size: 0.9em; color: #666; margin-top: 5px;">📸 Vista previa de la habitación</p>
+                <!-- Main booking information - Multiple Rooms Section -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-size: 1.1em; font-weight: bold; color: #495057;">🏨 Room Selection</label>
+                        <button type="button" onclick="addRoomSelection()" class="btn btn-sm" style="background: #28a745; color: white; padding: 5px 15px; font-size: 0.9em;">
+                            ➕ Add Room
+                        </button>
+                    </div>
+                    
+                    <div id="roomsContainer">
+                        <!-- First room selection (always present) -->
+                        <div class="room-selection-item" id="room-item-1" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #007bff;">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                                <h5 style="margin: 0; color: #495057;">Room 1</h5>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: start;">
+                                <div class="form-group">
+                                    <select class="room-select" name="room_ids[]" required onchange="updateGuestOptions(); calculateTotal();" data-room-index="1">
+                                        <option value="">Select Room</option>
+                                        <?php foreach ($rooms as $room): ?>
+                                            <option value="<?php echo $room['id']; ?>">
+                                                Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> 
+                                                ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD / S/ <?php echo number_format(($room['price'] ?? 0) * 3.75, 2); ?> PEN per night)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
+                                
+                                <!-- Guest count for this room -->
+                                <div class="form-group" style="width: 120px;">
+                                    <label style="font-size: 0.9em;">👥 Guests</label>
+                                    <select class="guests-select" name="room_guests[]" onchange="calculateTotal()" style="font-size: 0.9em;">
+                                        <option value="1">1 Guest</option>
+                                        <option value="2" selected>2 Guests</option>
+                                        <option value="3">3 Guests</option>
+                                        <option value="4">4 Guests</option>
+                                        <option value="5">5 Guests</option>
+                                        <option value="6">6 Guests</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Room photo previews -->
+                            <?php foreach ($rooms as $room): ?>
+                                <?php if (isset($roomPhotos[$room['id']])): ?>
+                                    <div class="room-preview" id="room-preview-<?php echo $room['id']; ?>-1" style="margin-top: 10px;">
+                                        <img src="<?php echo $roomPhotos[$room['id']]; ?>" alt="Habitación <?php echo $room['room_number']; ?>" style="max-width: 200px; border-radius: 5px;">
+                                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">📸 Room preview</p>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Legacy single room field for backward compatibility (hidden) -->
+                <input type="hidden" id="room_id" name="room_id" value="">
+                <input type="hidden" id="guest_count" name="guest_count" value="2">
                 
                 <!-- All main fields in one compact 5-column row -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 0.8fr 1fr 0.8fr; gap: 15px; margin-bottom: 15px;">
@@ -2195,17 +2244,7 @@ function getMonthName($month) {
                         <input type="date" id="check_out_date" name="check_out_date" required
                                min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
-                    <div class="form-group">
-                        <label for="guest_count" style="font-size: 0.9em;">👥 Guests</label>
-                        <select id="guest_count" name="guest_count" onchange="calculateTotal()" style="font-size: 0.9em;" required>
-                            <option value="1">1 Guest</option>
-                            <option value="2" selected>2 Guests</option>
-                            <option value="3">3 Guests</option>
-                            <option value="4">4 Guests</option>
-                            <option value="5">5 Guests</option>
-                            <option value="6">6 Guests</option>
-                        </select>
-                    </div>
+                    <!-- Guests count removed - now per room -->
                     <div class="form-group">
                         <label for="guest_name" style="font-size: 0.9em;">👤 Guest Name</label>
                         <input type="text" id="guest_name" name="guest_name" required 
@@ -2220,39 +2259,76 @@ function getMonthName($month) {
                     </div>
                 </div>
                 
-                <!-- Guest contact information with exchange rate info -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label for="guest_email" style="font-size: 0.9em;">📧 Guest Email</label>
-                        <input type="email" id="guest_email" name="guest_email" required 
-                               placeholder="guest@email.com" style="font-size: 0.9em;">
+                <!-- Total guests display -->
+                <div style="text-align: center; margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px; color: #1976d2;">
+                    <strong>👥 Total Guests: <span id="totalGuestsDisplay">2</span></strong>
+                </div>
+                
+                <!-- Guest Management Section -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-size: 1.1em; font-weight: bold; color: #495057;">👥 Guest Information</label>
+                        <button type="button" onclick="addGuestInfo()" class="btn btn-sm" style="background: #17a2b8; color: white; padding: 5px 15px; font-size: 0.9em;">
+                            ➕ Add Guest
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label for="guest_phone" style="font-size: 0.9em;">📱 WhatsApp/Phone</label>
-                        <input type="tel" id="guest_phone" name="guest_phone" 
-                               placeholder="+51 999 999 999" style="font-size: 0.9em;"
-                               pattern="[\+]?[0-9\s\-\(\)]+" title="Enter a valid phone number">
-                    </div>
-                    <div style="display: flex; align-items: end; color: #6c757d; font-size: 0.85em; padding-bottom: 8px;">
-                        💱 Exchange Rate: 1 USD = 3.75 PEN
+                    
+                    <div id="guestsContainer">
+                        <!-- Primary guest (always present) -->
+                        <div class="guest-info-item" id="guest-item-1" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h5 style="margin: 0; color: #495057;">Primary Guest</h5>
+                                <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">Main Contact</span>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.9em;">👤 Full Name</label>
+                                    <input type="text" class="guest-name" name="guest_names[]" required 
+                                           placeholder="Full name" style="font-size: 0.9em;" data-guest-index="1">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.9em;">📧 Email</label>
+                                    <input type="email" class="guest-email" name="guest_emails[]" required 
+                                           placeholder="guest@email.com" style="font-size: 0.9em;" data-guest-index="1">
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.9em;">📱 Phone</label>
+                                    <input type="tel" class="guest-phone" name="guest_phones[]" 
+                                           placeholder="+51 999 999 999" style="font-size: 0.9em;"
+                                           pattern="[\+]?[0-9\s\-\(\)]+" data-guest-index="1">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.9em;">🛂 Passport</label>
+                                    <input type="text" class="guest-passport" name="guest_passports[]" 
+                                           placeholder="A12345678" style="font-size: 0.9em;"
+                                           pattern="[A-Z0-9]+" data-guest-index="1">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.9em;">🆔 ID Number</label>
+                                    <input type="text" class="guest-id" name="guest_ids[]" 
+                                           placeholder="12345678" style="font-size: 0.9em;"
+                                           pattern="[A-Z0-9\-]+" data-guest-index="1">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Guest identification information -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label for="passport_number" style="font-size: 0.9em;">🛂 Passport Number</label>
-                        <input type="text" id="passport_number" name="passport_number" 
-                               placeholder="A12345678" style="font-size: 0.9em;"
-                               pattern="[A-Z0-9]+" title="Enter passport number (letters and numbers only)">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_number" style="font-size: 0.9em;">🆔 ID/Document Number</label>
-                        <input type="text" id="id_number" name="id_number" 
-                               placeholder="12345678" style="font-size: 0.9em;"
-                               pattern="[A-Z0-9\-]+" title="Enter ID or document number">
-                    </div>
+                <!-- Exchange rate info -->
+                <div style="text-align: center; margin-bottom: 15px; color: #6c757d; font-size: 0.85em;">
+                    💱 Exchange Rate: 1 USD = 3.75 PEN
                 </div>
+                
+                <!-- Legacy single guest fields for backward compatibility (hidden) -->
+                <input type="hidden" id="guest_name" name="guest_name" value="">
+                <input type="hidden" id="guest_email" name="guest_email" value="">
+                <input type="hidden" id="guest_phone" name="guest_phone" value="">
+                <input type="hidden" id="passport_number" name="passport_number" value="">
+                <input type="hidden" id="id_number" name="id_number" value="">
                 
                 <!-- Compact Pricing Section -->
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
@@ -2437,7 +2513,7 @@ function getMonthName($month) {
                 </div>
                 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" name="quick_booking" class="btn btn-success" id="create_booking_btn" disabled>💾 Create Booking</button>
+                    <button type="submit" name="quick_booking" class="btn btn-success" id="create_booking_btn" disabled onclick="return validateGuestInfo()">💾 Create Booking</button>
                     <button type="button" onclick="closeBookingModal()" class="btn" style="background: #6c757d; color: white;">❌ Cancel</button>
                 </div>
             </form>
@@ -3138,7 +3214,7 @@ function getMonthName($month) {
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
                                     <strong>Monto Pagado:</strong> 
-                                    <span id="paid-amount-display">${formatDualCurrency(getPaidAmountDisplay(booking))}</span>
+                                    <span id="paid-amount-display">${formatDualCurrency(booking.paid_amount || 0)}</span>
                                 </div>
                                 <button onclick="editPaidAmount(${booking.id}, ${booking.paid_amount || 0})" 
                                         style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -3206,10 +3282,321 @@ function getMonthName($month) {
             
             // Initialize custom pricing event listeners
             addCustomPricingListeners();
+            
+            // Initialize multiple rooms functionality
+            roomCounter = 1;
+            updateTotalGuests();
+            
+            // Initialize multiple guests functionality
+            guestCounter = 1;
+            
+            // Add event listeners to primary guest fields to update legacy fields
+            const primaryGuestInputs = [
+                '.guest-name[data-guest-index="1"]',
+                '.guest-email[data-guest-index="1"]',
+                '.guest-phone[data-guest-index="1"]',
+                '.guest-passport[data-guest-index="1"]',
+                '.guest-id[data-guest-index="1"]'
+            ];
+            
+            primaryGuestInputs.forEach(selector => {
+                const input = document.querySelector(selector);
+                if (input) {
+                    input.addEventListener('input', updateLegacyGuestFields);
+                }
+            });
+            
+            // Add event listeners to existing room selection
+            const firstRoomSelect = document.querySelector('.room-select');
+            const firstGuestSelect = document.querySelector('.guests-select');
+            if (firstRoomSelect) {
+                firstRoomSelect.addEventListener('change', () => {
+                    updateGuestOptions(); 
+                    calculateTotal();
+                    showRoomPreview(firstRoomSelect.value, 1);
+                });
+            }
+            if (firstGuestSelect) {
+                firstGuestSelect.addEventListener('change', () => {
+                    updateTotalGuests();
+                    calculateTotal();
+                });
+                
+                // Initialize the onchange attribute for the first guest select too
+                firstGuestSelect.setAttribute('onchange', 'updateTotalGuests(); calculateTotal();');
+            }
+            
+
         }
         
         function closeBookingModal() {
             document.getElementById('bookingModal').style.display = 'none';
+        }
+        
+        // Multiple rooms functionality
+        let roomCounter = 1;
+        
+        // Make sure functions are in global scope
+        window.addRoomSelection = function addRoomSelection() {
+            roomCounter++;
+            const roomsContainer = document.getElementById('roomsContainer');
+            
+            const roomHtml = `
+                <div class="room-selection-item" id="room-item-${roomCounter}" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #007bff;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0; color: #495057;">Room ${roomCounter}</h5>
+                        <button type="button" class="remove-room-btn btn btn-sm" onclick="removeRoomSelection(${roomCounter})" style="background: #dc3545; color: white; padding: 2px 8px; font-size: 0.8em;">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: start;">
+                        <div class="form-group">
+                            <select class="room-select" name="room_ids[]" required onchange="updateGuestOptions(); calculateTotal();" data-room-index="${roomCounter}">
+                                <option value="">Select Room</option>
+                                <?php foreach ($rooms as $room): ?>
+                                    <option value="<?php echo $room['id']; ?>">
+                                        Room <?php echo $room['room_number']; ?> - <?php echo $room['room_type']; ?> 
+                                        ($<?php echo number_format($room['price'] ?? 0, 2); ?> USD / S/ <?php echo number_format(($room['price'] ?? 0) * 3.75, 2); ?> PEN per night)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <!-- Guest count for this room -->
+                        <div class="form-group" style="width: 120px;">
+                            <label style="font-size: 0.9em;">👥 Guests</label>
+                            <select class="guests-select" name="room_guests[]" onchange="calculateTotal(); updateTotalGuests();" style="font-size: 0.9em;">
+                                <option value="1">1 Guest</option>
+                                <option value="2" selected>2 Guests</option>
+                                <option value="3">3 Guests</option>
+                                <option value="4">4 Guests</option>
+                                <option value="5">5 Guests</option>
+                                <option value="6">6 Guests</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Room photo previews -->
+                    <?php foreach ($rooms as $room): ?>
+                        <?php if (isset($roomPhotos[$room['id']])): ?>
+                            <div class="room-preview" id="room-preview-<?php echo $room['id']; ?>-${roomCounter}" style="margin-top: 10px; display: none;">
+                                <img src="<?php echo $roomPhotos[$room['id']]; ?>" alt="Habitación <?php echo $room['room_number']; ?>" style="max-width: 200px; border-radius: 5px;">
+                                <p style="font-size: 0.9em; color: #666; margin-top: 5px;">📸 Room preview</p>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            `;
+            
+            roomsContainer.insertAdjacentHTML('beforeend', roomHtml);
+            
+            // Add event listeners to the new room selection
+            const newRoomSelect = document.querySelector(`[data-room-index="${roomCounter}"]`);
+            const newGuestSelect = document.querySelector(`#room-item-${roomCounter} .guests-select`);
+            
+            if (newRoomSelect) {
+                newRoomSelect.addEventListener('change', () => {
+                    calculateTotal();
+                    showRoomPreview(newRoomSelect.value, roomCounter);
+                });
+            }
+            if (newGuestSelect) {
+                newGuestSelect.addEventListener('change', () => {
+                    updateTotalGuests();
+                    calculateTotal();
+                });
+            }
+            
+            updateTotalGuests();
+        }
+        
+        window.removeRoomSelection = function removeRoomSelection(roomIndex) {
+            console.log('removeRoomSelection called with index:', roomIndex);
+            const roomItem = document.getElementById(`room-item-${roomIndex}`);
+            const allRoomItems = document.querySelectorAll('.room-selection-item');
+            
+            console.log('Room item found:', roomItem);
+            console.log('Total room items:', allRoomItems.length);
+            
+            // Don't allow removing if only one room remains or if it's the first room
+            if (roomItem && allRoomItems.length > 1 && roomIndex !== 1) {
+                // Add a smooth fade out animation
+                roomItem.style.transition = 'all 0.3s ease';
+                roomItem.style.opacity = '0';
+                roomItem.style.transform = 'translateX(-20px)';
+                
+                setTimeout(() => {
+                    roomItem.remove();
+                    updateTotalGuests();
+                    calculateTotal();
+                    
+                    // Renumber remaining rooms for better UX
+                    renumberRooms();
+                }, 300);
+            } else {
+                // Show a brief message if trying to remove the last room
+                if (allRoomItems.length === 1) {
+                    alert('At least one room must be selected.');
+                }
+            }
+        }
+        
+        window.renumberRooms = function renumberRooms() {
+            const roomItems = document.querySelectorAll('.room-selection-item');
+            roomItems.forEach((item, index) => {
+                const roomNumber = index + 1;
+                const title = item.querySelector('h5');
+                if (title) {
+                    title.textContent = `Room ${roomNumber}`;
+                }
+            });
+        }
+        
+        window.updateTotalGuests = function updateTotalGuests() {
+            const guestSelects = document.querySelectorAll('.guests-select');
+            let totalGuests = 0;
+            
+            guestSelects.forEach(select => {
+                totalGuests += parseInt(select.value) || 0;
+            });
+            
+            document.getElementById('totalGuestsDisplay').textContent = totalGuests;
+            
+            // Update the hidden field for backward compatibility
+            document.getElementById('guest_count').value = totalGuests;
+        }
+        
+        // Multiple guests functionality
+        let guestCounter = 1;
+        
+        window.addGuestInfo = function addGuestInfo() {
+            guestCounter++;
+            const guestsContainer = document.getElementById('guestsContainer');
+            
+            const guestHtml = `
+                <div class="guest-info-item" id="guest-item-${guestCounter}" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #17a2b8;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0; color: #495057;">Guest ${guestCounter}</h5>
+                        <button type="button" class="remove-guest-btn btn btn-sm" onclick="removeGuestInfo(${guestCounter})" style="background: #dc3545; color: white; padding: 2px 8px; font-size: 0.8em;">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.9em;">👤 Full Name</label>
+                            <input type="text" class="guest-name" name="guest_names[]" 
+                                   placeholder="Full name" style="font-size: 0.9em;" data-guest-index="${guestCounter}">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.9em;">📧 Email</label>
+                            <input type="email" class="guest-email" name="guest_emails[]" 
+                                   placeholder="guest@email.com" style="font-size: 0.9em;" data-guest-index="${guestCounter}">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.9em;">📱 Phone</label>
+                            <input type="tel" class="guest-phone" name="guest_phones[]" 
+                                   placeholder="+51 999 999 999" style="font-size: 0.9em;"
+                                   pattern="[\+]?[0-9\s\-\(\)]+" data-guest-index="${guestCounter}">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.9em;">🛂 Passport</label>
+                            <input type="text" class="guest-passport" name="guest_passports[]" 
+                                   placeholder="A12345678" style="font-size: 0.9em;"
+                                   pattern="[A-Z0-9]+" data-guest-index="${guestCounter}">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.9em;">🆔 ID Number</label>
+                            <input type="text" class="guest-id" name="guest_ids[]" 
+                                   placeholder="12345678" style="font-size: 0.9em;"
+                                   pattern="[A-Z0-9\-]+" data-guest-index="${guestCounter}">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            guestsContainer.insertAdjacentHTML('beforeend', guestHtml);
+            updateLegacyGuestFields();
+        }
+        
+        window.removeGuestInfo = function removeGuestInfo(guestIndex) {
+            console.log('removeGuestInfo called with index:', guestIndex);
+            const guestItem = document.getElementById(`guest-item-${guestIndex}`);
+            const allGuestItems = document.querySelectorAll('.guest-info-item');
+            
+            // Don't allow removing if only one guest remains or if it's the primary guest
+            if (guestItem && allGuestItems.length > 1 && guestIndex !== 1) {
+                // Add a smooth fade out animation
+                guestItem.style.transition = 'all 0.3s ease';
+                guestItem.style.opacity = '0';
+                guestItem.style.transform = 'translateX(-20px)';
+                
+                setTimeout(() => {
+                    guestItem.remove();
+                    renumberGuests();
+                    updateLegacyGuestFields();
+                }, 300);
+            } else {
+                // Show a brief message if trying to remove the last guest
+                if (allGuestItems.length === 1) {
+                    alert('At least one guest must be present.');
+                } else if (guestIndex === 1) {
+                    alert('Cannot remove the primary guest.');
+                }
+            }
+        }
+        
+        window.renumberGuests = function renumberGuests() {
+            const guestItems = document.querySelectorAll('.guest-info-item');
+            guestItems.forEach((item, index) => {
+                const guestNumber = index + 1;
+                const title = item.querySelector('h5');
+                if (title && guestNumber > 1) {
+                    title.textContent = `Guest ${guestNumber}`;
+                } else if (title && guestNumber === 1) {
+                    title.textContent = 'Primary Guest';
+                }
+            });
+        }
+        
+        window.updateLegacyGuestFields = function updateLegacyGuestFields() {
+            // Update legacy single guest fields with primary guest data
+            const primaryGuestName = document.querySelector('.guest-name[data-guest-index="1"]');
+            const primaryGuestEmail = document.querySelector('.guest-email[data-guest-index="1"]');
+            const primaryGuestPhone = document.querySelector('.guest-phone[data-guest-index="1"]');
+            const primaryGuestPassport = document.querySelector('.guest-passport[data-guest-index="1"]');
+            const primaryGuestId = document.querySelector('.guest-id[data-guest-index="1"]');
+            
+            if (primaryGuestName) document.getElementById('guest_name').value = primaryGuestName.value;
+            if (primaryGuestEmail) document.getElementById('guest_email').value = primaryGuestEmail.value;
+            if (primaryGuestPhone) document.getElementById('guest_phone').value = primaryGuestPhone.value;
+            if (primaryGuestPassport) document.getElementById('passport_number').value = primaryGuestPassport.value;
+            if (primaryGuestId) document.getElementById('id_number').value = primaryGuestId.value;
+        }
+        
+        window.validateGuestInfo = function validateGuestInfo() {
+            const primaryGuestName = document.querySelector('.guest-name[data-guest-index="1"]');
+            const primaryGuestEmail = document.querySelector('.guest-email[data-guest-index="1"]');
+            
+            if (!primaryGuestName || !primaryGuestName.value.trim()) {
+                alert('Primary guest name is required.');
+                primaryGuestName?.focus();
+                return false;
+            }
+            
+            if (!primaryGuestEmail || !primaryGuestEmail.value.trim()) {
+                alert('Primary guest email is required.');
+                primaryGuestEmail?.focus();
+                return false;
+            }
+            
+            // Update legacy fields before submission
+            updateLegacyGuestFields();
+            return true;
         }
         
         function openEditBookingModal(bookingData) {
@@ -3414,17 +3801,28 @@ function getMonthName($month) {
             }
         }
         
-        function showRoomPreview() {
-            // Hide all previews
-            const allPreviews = document.querySelectorAll('.room-preview');
-            allPreviews.forEach(preview => preview.classList.remove('active'));
-            
-            // Show selected room preview
-            const selectedRoomId = document.getElementById('room_id').value;
-            if (selectedRoomId) {
-                const preview = document.getElementById('room-preview-' + selectedRoomId);
+        function showRoomPreview(roomId = null, roomIndex = null) {
+            if (roomId && roomIndex) {
+                // Hide all previews for this room index
+                const allPreviews = document.querySelectorAll(`[id^="room-preview-"][id$="-${roomIndex}"]`);
+                allPreviews.forEach(preview => preview.style.display = 'none');
+                
+                // Show selected room preview
+                const preview = document.getElementById(`room-preview-${roomId}-${roomIndex}`);
                 if (preview) {
-                    preview.classList.add('active');
+                    preview.style.display = 'block';
+                }
+            } else {
+                // Legacy single room mode
+                const allPreviews = document.querySelectorAll('.room-preview');
+                allPreviews.forEach(preview => preview.classList.remove('active'));
+                
+                const selectedRoomId = document.getElementById('room_id').value;
+                if (selectedRoomId) {
+                    const preview = document.getElementById('room-preview-' + selectedRoomId);
+                    if (preview) {
+                        preview.classList.add('active');
+                    }
                 }
             }
         }
@@ -3576,16 +3974,6 @@ function getMonthName($month) {
                 'refunded': '↩️ Reembolsado'
             };
             return texts[status] || status;
-        }
-
-        // Get the correct paid amount to display
-        function getPaidAmountDisplay(booking) {
-            // If payment status is 'paid' but paid_amount is 0 or null, show total amount
-            if (booking.payment_status === 'paid' && (!booking.paid_amount || booking.paid_amount == 0)) {
-                return booking.total_amount || 0;
-            }
-            // Otherwise show the actual paid amount
-            return booking.paid_amount || 0;
         }
         
         // Payment Action Functions
@@ -3822,19 +4210,37 @@ function getMonthName($month) {
         }
 
         function calculateTotal() {
-            const roomId = document.getElementById('room_id').value;
+            // Get all selected rooms and guest counts
+            const roomSelects = document.querySelectorAll('.room-select');
+            const guestSelects = document.querySelectorAll('.guests-select');
             const checkIn = document.getElementById('check_in_date').value;
             const checkOut = document.getElementById('check_out_date').value;
-            const guestCount = parseInt(document.getElementById('guest_count').value) || 2;
+            
+            // Calculate total guests for legacy compatibility
+            let totalGuestCount = 0;
+            guestSelects.forEach(select => {
+                totalGuestCount += parseInt(select.value) || 0;
+            });
             const customPriceType = document.getElementById('custom_price_type').value;
             const selectedCurrency = document.getElementById('booking_currency').value;
             const discountType = document.getElementById('discount_type').value;
             const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
 
-            if (!roomId || !checkIn || !checkOut) {
+            // Check if we have at least one room selected and dates
+            let hasValidRooms = false;
+            roomSelects.forEach(select => {
+                if (select.value) hasValidRooms = true;
+            });
+
+            if (!hasValidRooms || !checkIn || !checkOut) {
                 resetPriceDisplay();
                 return;
             }
+
+            // Update legacy fields for backward compatibility
+            const firstRoomId = roomSelects[0]?.value || '';
+            document.getElementById('room_id').value = firstRoomId;
+            document.getElementById('guest_count').value = totalGuestCount;
 
             const checkInDate = new Date(checkIn);
             const checkOutDate = new Date(checkOut);
@@ -3845,77 +4251,81 @@ function getMonthName($month) {
                 return;
             }
 
-            // Find the selected room data
-            const selectedRoom = roomsData.find(room => room.id == roomId);
-            if (!selectedRoom) {
-                resetPriceDisplay();
-                return;
-            }
-            
-            // Debug logging
-            console.log('Selected Room Data:', selectedRoom);
-            console.log('Guest Count:', guestCount);
+            // Calculate totals for all rooms
+            let totalPricePerNightUSD = 0;
+            let totalSubtotalUSD = 0;
+            let pricingBreakdownArray = [];
+            let anyDynamicPricingApplied = false;
+            // Process each selected room
+            roomSelects.forEach((roomSelect, index) => {
+                const roomId = roomSelect.value;
+                if (!roomId) return;
 
-            let pricePerNightUSD = 0;
-            let dynamicPricingApplied = false;
-            let pricingBreakdown = '';
-            
-            // Calculate base price using normal dynamic pricing logic
-            const basePrice = parseFloat(selectedRoom.price) || 0;
-            const maxOccupancy = parseInt(selectedRoom.max_occupancy) || 2;
-            const extraBedAvailable = selectedRoom.extra_bed_available == 1;
-            const extraBedPrice = parseFloat(selectedRoom.extra_bed_price) || 0;
-            const singleDiscountType = selectedRoom.single_discount_type || 'percentage';
-            const singleDiscountValue = parseFloat(selectedRoom.single_discount_value) || 0;
+                const guestCount = parseInt(guestSelects[index]?.value) || 2;
+                const selectedRoom = roomsData.find(room => room.id == roomId);
+                
+                if (!selectedRoom) return;
 
-            console.log('Pricing Logic:', {
-                basePrice,
-                maxOccupancy,
-                extraBedAvailable,
-                extraBedPrice,
-                guestCount,
-                comparison: guestCount > maxOccupancy,
-                extraBedCondition: extraBedAvailable && guestCount <= maxOccupancy + 1
+                console.log(`Room ${index + 1}:`, selectedRoom, 'Guests:', guestCount);
+
+                let roomPricePerNightUSD = 0;
+                let dynamicPricingApplied = false;
+                
+                // Calculate base price using normal dynamic pricing logic
+                const basePrice = parseFloat(selectedRoom.price) || 0;
+                const maxOccupancy = parseInt(selectedRoom.max_occupancy) || 2;
+                const extraBedAvailable = selectedRoom.extra_bed_available == 1;
+                const extraBedPrice = parseFloat(selectedRoom.extra_bed_price) || 0;
+                const singleDiscountType = selectedRoom.single_discount_type || 'percentage';
+                const singleDiscountValue = parseFloat(selectedRoom.single_discount_value) || 0;
+
+                // Calculate the base calculated price per night for this room
+                let baseCalculatedPricePerNight = basePrice;
+                let baseCalculatedBreakdown = '';
+                
+                if (guestCount === 1 && singleDiscountValue > 0) {
+                    // Single occupancy discount
+                    dynamicPricingApplied = true;
+                    if (singleDiscountType === 'percentage') {
+                        const discountAmount = basePrice * (singleDiscountValue / 100);
+                        baseCalculatedPricePerNight = basePrice - discountAmount;
+                        baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: Single guest (${singleDiscountValue}% off)`;
+                    } else {
+                        baseCalculatedPricePerNight = Math.max(0, basePrice - singleDiscountValue);
+                        baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: Single guest ($${singleDiscountValue.toFixed(2)} off)`;
+                    }
+                } else if (guestCount <= maxOccupancy) {
+                    // Standard pricing
+                    baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: ${guestCount} guest${guestCount > 1 ? 's' : ''} (standard rate)`;
+                } else if (guestCount > maxOccupancy) {
+                    // Guest count exceeds base capacity
+                    if (extraBedAvailable && guestCount <= maxOccupancy + 1) {
+                        // Extra bed pricing - exactly 1 person over capacity
+                        dynamicPricingApplied = true;
+                        baseCalculatedPricePerNight = basePrice + extraBedPrice;
+                        baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: ${guestCount} guests (extra bed +$${extraBedPrice.toFixed(2)})`;
+                    } else if (extraBedAvailable && guestCount > maxOccupancy + 1) {
+                        // Exceeds even with extra bed
+                        baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: ⚠️ Exceeds capacity (max ${maxOccupancy + 1} with extra bed)`;
+                    } else {
+                        // No extra bed available but exceeds capacity
+                        baseCalculatedBreakdown = `Room ${selectedRoom.room_number}: ⚠️ Exceeds capacity (max ${maxOccupancy})`;
+                    }
+                }
+
+                roomPricePerNightUSD = baseCalculatedPricePerNight;
+                totalPricePerNightUSD += roomPricePerNightUSD;
+                pricingBreakdownArray.push(baseCalculatedBreakdown);
+                
+                if (dynamicPricingApplied) {
+                    anyDynamicPricingApplied = true;
+                }
             });
 
-            // Calculate the base calculated price per night
-            let baseCalculatedPricePerNight = basePrice;
-            let baseCalculatedBreakdown = '';
-            
-            if (guestCount === 1 && singleDiscountValue > 0) {
-                // Single occupancy discount
-                dynamicPricingApplied = true;
-                if (singleDiscountType === 'percentage') {
-                    const discountAmount = basePrice * (singleDiscountValue / 100);
-                    baseCalculatedPricePerNight = basePrice - discountAmount;
-                    baseCalculatedBreakdown = `Single guest (${singleDiscountValue}% off)`;
-                } else {
-                    baseCalculatedPricePerNight = Math.max(0, basePrice - singleDiscountValue);
-                    baseCalculatedBreakdown = `Single guest ($${singleDiscountValue.toFixed(2)} off)`;
-                }
-            } else if (guestCount <= maxOccupancy) {
-                // Standard pricing
-                baseCalculatedBreakdown = `${guestCount} guest${guestCount > 1 ? 's' : ''} (standard rate)`;
-            } else if (guestCount > maxOccupancy) {
-                // Guest count exceeds base capacity
-                if (extraBedAvailable && guestCount <= maxOccupancy + 1) {
-                    // Extra bed pricing - exactly 1 person over capacity
-                    dynamicPricingApplied = true;
-                    baseCalculatedPricePerNight = basePrice + extraBedPrice;
-                    baseCalculatedBreakdown = `${guestCount} guests (extra bed +$${extraBedPrice.toFixed(2)})`;
-                    console.log('Extra bed pricing applied:', baseCalculatedPricePerNight);
-                } else if (extraBedAvailable && guestCount > maxOccupancy + 1) {
-                    // Exceeds even with extra bed
-                    baseCalculatedBreakdown = `⚠️ Exceeds room capacity (max ${maxOccupancy + 1} with extra bed)`;
-                } else {
-                    // No extra bed available but exceeds capacity
-                    baseCalculatedBreakdown = `⚠️ Exceeds room capacity (max ${maxOccupancy}, no extra bed available)`;
-                }
-            }
-
-            // Now apply custom pricing logic if enabled
-            let finalPricePerNightUSD = baseCalculatedPricePerNight;
+            // Now apply custom pricing logic if enabled (applies to total)
+            let finalPricePerNightUSD = totalPricePerNightUSD;
             let customPricingApplied = false;
+            let pricingBreakdown = pricingBreakdownArray.join('; ');
             
             if (customPriceType === 'override') {
                 // Override with custom total price
@@ -3930,37 +4340,30 @@ function getMonthName($month) {
                     finalPricePerNightUSD = (overridePricePEN / 3.75) / nights; // Convert PEN to USD and total to per night
                     pricingBreakdown = `Custom override: S/ ${overridePricePEN.toFixed(2)} total`;
                     customPricingApplied = true;
-                } else {
-                    pricingBreakdown = baseCalculatedBreakdown;
                 }
             } else if (customPriceType === 'adjustment') {
-                // Apply price adjustment
+                // Apply price adjustment to total
                 const adjustmentType = document.getElementById('adjustment_type').value;
                 const adjustmentAmount = parseFloat(document.getElementById('adjustment_amount').value) || 0;
                 const adjustmentReason = document.getElementById('adjustment_reason').value;
                 
                 if (adjustmentAmount > 0) {
                     if (adjustmentType === 'add') {
-                        finalPricePerNightUSD = baseCalculatedPricePerNight + adjustmentAmount;
-                        pricingBreakdown = baseCalculatedBreakdown + ` + $${adjustmentAmount.toFixed(2)}`;
+                        finalPricePerNightUSD = totalPricePerNightUSD + adjustmentAmount;
+                        pricingBreakdown += ` + $${adjustmentAmount.toFixed(2)}`;
                     } else {
-                        finalPricePerNightUSD = Math.max(0, baseCalculatedPricePerNight - adjustmentAmount);
-                        pricingBreakdown = baseCalculatedBreakdown + ` - $${adjustmentAmount.toFixed(2)}`;
+                        finalPricePerNightUSD = Math.max(0, totalPricePerNightUSD - adjustmentAmount);
+                        pricingBreakdown += ` - $${adjustmentAmount.toFixed(2)}`;
                     }
                     
                     if (adjustmentReason) {
                         pricingBreakdown += ` (${adjustmentReason})`;
                     }
                     customPricingApplied = true;
-                } else {
-                    pricingBreakdown = baseCalculatedBreakdown;
                 }
-            } else {
-                // Use calculated price
-                pricingBreakdown = baseCalculatedBreakdown;
             }
             
-            pricePerNightUSD = finalPricePerNightUSD;
+            const pricePerNightUSD = finalPricePerNightUSD;
 
             let subtotalUSD = pricePerNightUSD * nights;
             let discountAmountUSD = 0;
@@ -4002,7 +4405,7 @@ function getMonthName($month) {
                 } else if (customPriceType === 'adjustment') {
                     pricingDisplayText += ' [PRICE ADJUSTED]';
                 }
-            } else if (dynamicPricingApplied) {
+            } else if (anyDynamicPricingApplied) {
                 pricingDisplayText += ' [DYNAMIC PRICING]';
             }
             
@@ -4033,9 +4436,9 @@ function getMonthName($month) {
             document.getElementById('totalPrice').innerHTML = '<strong>' + formatCurrencyInput(totalUSD) + '</strong>';
             
             // Show dynamic pricing indicator if applied
-            if (dynamicPricingApplied || customerDiscountUSD > 0 || customPricingApplied) {
+            if (anyDynamicPricingApplied || customerDiscountUSD > 0 || customPricingApplied) {
                 let indicator = '';
-                if (dynamicPricingApplied) indicator += '✨ Dynamic pricing';
+                if (anyDynamicPricingApplied) indicator += '✨ Dynamic pricing';
                 if (customerDiscountUSD > 0) {
                     indicator += (indicator ? ' + ' : '') + '🏷️ Customer discount';
                 }
