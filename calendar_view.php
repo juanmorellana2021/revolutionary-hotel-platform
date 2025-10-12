@@ -3,6 +3,9 @@ session_start();
 require_once 'includes/classes.php';
 require_once 'includes/hotel_classes.php';
 
+// Set timezone to avoid date conflicts
+date_default_timezone_set('America/New_York'); // Adjust this to your preferred timezone
+
 // Get database connection
 $database = new Database();
 $connection = $database->getConnection();
@@ -2433,12 +2436,12 @@ function getMonthName($month) {
                     <div class="form-group">
                         <label for="check_in_date" style="font-size: 0.9em;">📅 Check-in</label>
                         <input type="date" id="check_in_date" name="check_in_date" required 
-                               min="<?php echo date('Y-m-d'); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
+                               min="<?php echo date('Y-m-d', strtotime('-1 day')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
                     <div class="form-group">
                         <label for="check_out_date" style="font-size: 0.9em;">📅 Check-out</label>
                         <input type="date" id="check_out_date" name="check_out_date" required
-                               min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
+                               min="<?php echo date('Y-m-d'); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
                     <!-- Guests count removed - now per room -->
                     <div class="form-group">
@@ -2809,11 +2812,13 @@ function getMonthName($month) {
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label for="edit_check_in">📅 Check-in</label>
-                        <input type="date" id="edit_check_in" name="edit_check_in" required>
+                        <input type="date" id="edit_check_in" name="edit_check_in" required 
+                               min="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
                     </div>
                     <div class="form-group">
                         <label for="edit_check_out">📅 Check-out</label>
-                        <input type="date" id="edit_check_out" name="edit_check_out" required>
+                        <input type="date" id="edit_check_out" name="edit_check_out" required
+                               min="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="form-group">
                         <label for="edit_total_price">💰 Total Price</label>
