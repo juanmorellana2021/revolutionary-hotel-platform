@@ -22,19 +22,6 @@ $reportManager = new FinancialReportManager();
 $hotelInfo = new HotelInfo();
 $hotel = $hotelInfo->getHotelInfo();
 
-// Currency conversion settings
-$USD_TO_PEN_RATE = 3.50; // Fixed exchange rate
-
-function formatCurrencyDual($amount, $usdToPenRate = 3.50) {
-    $penAmount = $amount * $usdToPenRate;
-    return [
-        'pen' => $penAmount,
-        'usd' => $amount,
-        'pen_formatted' => 'S/ ' . number_format($penAmount, 2),
-        'usd_formatted' => '$' . number_format($amount, 2)
-    ];
-}
-
 // Get date range for reports (default to current month)
 $startDate = $_GET['start_date'] ?? date('Y-m-01');
 $endDate = $_GET['end_date'] ?? date('Y-m-d');
@@ -101,12 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accounting Dashboard - <?php echo htmlspecialchars($hotel['hotel_name'] ?? 'Hotel Management'); ?></title>
-    
-    <!-- AINI Innovations Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="shortcut icon" href="favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
     <style>
         * {
             margin: 0;
@@ -326,60 +307,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #007bff;
         }
 
-        /* Dual Currency Display Styles */
-        .primary-currency {
-            font-size: 2rem;
-            font-weight: bold;
-            line-height: 1.2;
-        }
-
-        .secondary-currency {
-            font-size: 1.2rem;
-            font-weight: normal;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-
-        /* Currency flag indicators */
-        .primary-currency::before {
-            content: "🇵🇪 ";
-            font-size: 1rem;
-            margin-right: 5px;
-        }
-
-        .secondary-currency::before {
-            content: "🇺🇸 ";
-            font-size: 0.8rem;
-            margin-right: 3px;
-        }
-
-        /* Exchange Rate Badge */
-        .currency-info {
-            text-align: center;
-            margin: 15px 0;
-        }
-
-        .exchange-rate-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
-            color: white;
-            font-size: 0.9rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .exchange-rate-badge small {
-            opacity: 0.8;
-            margin-left: 5px;
-        }
-
-        .currency-flag {
-            font-size: 1.2rem;
-            margin-right: 5px;
-        }
-
         .stat-label {
             color: #6c757d;
             font-size: 1rem;
@@ -565,13 +492,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h1>💰 Financial Overview</h1>
             <p>Manage your hotel's income, expenses, and financial reports</p>
             
-            <div class="currency-info">
-                <div class="exchange-rate-badge">
-                    <span class="currency-flag">🇵🇪</span> 1 USD = S/ <?php echo number_format($USD_TO_PEN_RATE, 2); ?> PEN
-                    <small>(Fixed Rate)</small>
-                </div>
-            </div>
-            
             <form method="GET" class="date-filter">
                 <label>
                     From: <input type="date" name="start_date" value="<?php echo $startDate; ?>">
@@ -592,36 +512,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Financial Statistics -->
         <div class="stats-grid">
             <div class="stat-card">
-                <?php $totalIncome = formatCurrencyDual($financialReport['total_income'], $USD_TO_PEN_RATE); ?>
-                <div class="stat-number positive">
-                    <div class="primary-currency"><?php echo $totalIncome['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $totalIncome['usd_formatted']; ?></div>
-                </div>
+                <div class="stat-number positive">$<?php echo number_format($financialReport['total_income'], 2); ?></div>
                 <div class="stat-label">Total Income</div>
             </div>
             <div class="stat-card">
-                <?php $totalExpenses = formatCurrencyDual($financialReport['total_expenses'], $USD_TO_PEN_RATE); ?>
-                <div class="stat-number negative">
-                    <div class="primary-currency"><?php echo $totalExpenses['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $totalExpenses['usd_formatted']; ?></div>
-                </div>
+                <div class="stat-number negative">$<?php echo number_format($financialReport['total_expenses'], 2); ?></div>
                 <div class="stat-label">Current Expenses</div>
             </div>
             <?php if (isset($financialReport['future_expenses']) && $financialReport['future_expenses'] > 0): ?>
             <div class="stat-card">
-                <?php $futureExpenses = formatCurrencyDual($financialReport['future_expenses'], $USD_TO_PEN_RATE); ?>
-                <div class="stat-number warning">
-                    <div class="primary-currency"><?php echo $futureExpenses['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $futureExpenses['usd_formatted']; ?></div>
-                </div>
+                <div class="stat-number warning">$<?php echo number_format($financialReport['future_expenses'], 2); ?></div>
                 <div class="stat-label">Future Expenses</div>
             </div>
             <?php endif; ?>
             <div class="stat-card">
-                <?php $netProfit = formatCurrencyDual($financialReport['net_profit'], $USD_TO_PEN_RATE); ?>
                 <div class="stat-number <?php echo $financialReport['net_profit'] >= 0 ? 'positive' : 'negative'; ?>">
-                    <div class="primary-currency"><?php echo $netProfit['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $netProfit['usd_formatted']; ?></div>
+                    $<?php echo number_format($financialReport['net_profit'], 2); ?>
                 </div>
                 <div class="stat-label">Net Profit</div>
             </div>
@@ -630,19 +536,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="stat-label">Occupancy Rate</div>
             </div>
             <div class="stat-card">
-                <?php $roomRevenue = formatCurrencyDual($financialReport['room_revenue'], $USD_TO_PEN_RATE); ?>
-                <div class="stat-number neutral">
-                    <div class="primary-currency"><?php echo $roomRevenue['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $roomRevenue['usd_formatted']; ?></div>
-                </div>
+                <div class="stat-number neutral">$<?php echo number_format($financialReport['room_revenue'], 2); ?></div>
                 <div class="stat-label">Room Revenue</div>
             </div>
             <div class="stat-card">
-                <?php $avgDailyRate = formatCurrencyDual($financialReport['average_daily_rate'], $USD_TO_PEN_RATE); ?>
-                <div class="stat-number neutral">
-                    <div class="primary-currency"><?php echo $avgDailyRate['pen_formatted']; ?></div>
-                    <div class="secondary-currency"><?php echo $avgDailyRate['usd_formatted']; ?></div>
-                </div>
+                <div class="stat-number neutral">$<?php echo number_format($financialReport['average_daily_rate'], 2); ?></div>
                 <div class="stat-label">Average Daily Rate</div>
             </div>
         </div>
