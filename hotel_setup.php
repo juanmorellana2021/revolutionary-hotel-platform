@@ -4,13 +4,12 @@ require_once 'includes/classes.php';
 require_once 'includes/hotel_classes.php';
 
 // Check if user is logged in and is a manager
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION['user_role'])) {
     header('Location: index.php');
     exit;
 }
 
-$userManager = new UserManager();
-if (!$userManager->isManager($_SESSION['user']['id'])) {
+if ($_SESSION['user_role'] !== 'manager' && $_SESSION['user_role'] !== 'admin') {
     header('Location: dashboard.php');
     exit;
 }

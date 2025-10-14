@@ -61,12 +61,15 @@ class IncomeManager {
      */
     public function getIncome($filters = []) {
         $sql = "
-            SELECT i.*, b.room_id, b.guest_name, b.guest_email, b.guest_phone, 
-                   r.room_number, u.first_name, u.last_name
+            SELECT i.*, b.room_id, b.user_id as guest_user_id, 
+                   r.room_number, u.first_name, u.last_name,
+                   guest.first_name as guest_first_name, guest.last_name as guest_last_name, 
+                   guest.email as guest_email
             FROM income i
             LEFT JOIN bookings b ON i.booking_id = b.id
             LEFT JOIN rooms r ON b.room_id = r.id
             LEFT JOIN users u ON i.created_by = u.id
+            LEFT JOIN users guest ON b.user_id = guest.id
             WHERE 1=1
         ";
         

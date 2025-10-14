@@ -5,14 +5,8 @@ require_once 'includes/hotel_classes.php';
 require_once 'includes/accounting_classes.php';
 
 // Check if user is logged in and is a manager
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'manager') {
     header('Location: index.php');
-    exit;
-}
-
-$userManager = new UserManager();
-if (!$userManager->isManager($_SESSION['user']['id'])) {
-    header('Location: dashboard.php');
     exit;
 }
 
@@ -43,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'currency' => $_POST['currency'] ?? 'PEN',
             'payment_method' => $_POST['payment_method'],
             'transaction_date' => $_POST['transaction_date'],
-            'created_by' => $_SESSION['user']['id'],
+            'created_by' => $_SESSION['user_id'],
             'notes' => $_POST['notes'] ?? ''
         ]);
         
@@ -66,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'payment_method' => $_POST['payment_method'],
             'vendor_name' => $_POST['vendor_name'] ?? '',
             'expense_date' => $_POST['expense_date'],
-            'paid_by' => $_SESSION['user']['id'],
+            'paid_by' => $_SESSION['user_id'],
             'notes' => $_POST['notes'] ?? ''
         ]);
         

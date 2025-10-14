@@ -4,13 +4,12 @@ require_once 'includes/classes.php';
 require_once 'includes/hotel_classes.php';
 
 // Check if user is logged in and is a manager
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION['user_role'])) {
     echo "Error: Not logged in. <a href='index.php'>Please log in</a>";
     exit;
 }
 
-$userManager = new UserManager();
-if (!$userManager->isManager($_SESSION['user']['id'])) {
+if ($_SESSION['user_role'] !== 'manager' && $_SESSION['user_role'] !== 'admin') {
     echo "Error: Access denied. Only managers can access room management. <a href='dashboard.php'>Go to dashboard</a>";
     exit;
 }

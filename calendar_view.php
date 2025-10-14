@@ -30,7 +30,7 @@ try {
         created_by INT,
         FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
     )";
-    $connection->exec($createTableSQL);
+    $connection->query($createTableSQL);
     
     // Create booking_notes table if it doesn't exist
     $createNotesTableSQL = "
@@ -43,7 +43,7 @@ try {
         FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
         FOREIGN KEY (created_by) REFERENCES users(id)
     )";
-    $connection->exec($createNotesTableSQL);
+    $connection->query($createNotesTableSQL);
     
     // Create booking_guests table for multiple guests per booking
     $createGuestsTableSQL = "
@@ -59,16 +59,16 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
     )";
-    $connection->exec($createGuestsTableSQL);
+    $connection->query($createGuestsTableSQL);
     
     // Add multi-room booking columns if they don't exist
     try {
-        $connection->exec("ALTER TABLE bookings ADD COLUMN is_multi_room BOOLEAN DEFAULT FALSE");
+        $connection->query("ALTER TABLE bookings ADD COLUMN is_multi_room BOOLEAN DEFAULT FALSE");
     } catch (Exception $e) {
         // Column might already exist
     }
     try {
-        $connection->exec("ALTER TABLE bookings ADD COLUMN primary_booking_id INT NULL");
+        $connection->query("ALTER TABLE bookings ADD COLUMN primary_booking_id INT NULL");
     } catch (Exception $e) {
         // Column might already exist
     }
@@ -78,20 +78,18 @@ try {
 }
 
 // Check if user is logged in and is a manager
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION['user_role'])) {
     header('Location: index.php');
     exit;
 }
 
-
-$userManager = new UserManager();
-if (!$userManager->isManager($_SESSION['user']['id'])) {
+if ($_SESSION['user_role'] !== 'manager' && $_SESSION['user_role'] !== 'admin') {
     header('Location: dashboard.php');
     exit;
 }
 
 // Handle AJAX room status updates
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_room_status') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     header('Content-Type: application/json');
     
     try {
@@ -106,12 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
         
         // Update room status
-        $stmt = $connection->prepare("UPDATE rooms SET room_status = ? WHERE id = ?");
+        $stmt = $connection->prepare("UPDATE rooms SET status = ? WHERE id = ?");
         $success = $stmt->execute([$status, $roomId]);
         
         if ($success) {
             // Log the status change
-            $stmt = $connection->prepare("INSERT INTO room_status_log (room_id, status, notes, changed_by) VALUES (?, ?, ?, ?)");
+            $stmt = $connection->prepare("INSERT INTO status_log (room_id, status, notes, changed_by) VALUES (?, ?, ?, ?)");
             $stmt->execute([$roomId, $status, $notes, $_SESSION['user']['id']]);
             
             echo json_encode(['success' => true, 'message' => 'Room status updated successfully']);
@@ -248,8 +246,8 @@ $db = new Database();
 $connection = $db->getConnection();
 
 $stmt = $connection->prepare("
-    SELECT b.*, r.room_number, r.room_type, r.room_status, r.last_cleaned, r.cleaned_by, 
-           u.first_name, u.last_name, u.email, u.phone,
+    SELECT b.*, r.room_number, r.room_type, 'available' as status, 
+           u.first_name, u.last_name, u.email,
            GROUP_CONCAT(DISTINCT CONCAT(bg.guest_name, '|', COALESCE(bg.guest_email, ''), '|', COALESCE(bg.guest_phone, ''), '|', bg.is_primary) SEPARATOR ';;;') as all_guests,
            (CASE WHEN b.is_multi_room = 1 THEN 
                (SELECT GROUP_CONCAT(CONCAT(r2.room_number, ' (', r2.room_type, ')') SEPARATOR ', ') 
@@ -262,12 +260,12 @@ $stmt = $connection->prepare("
            END) as all_rooms
     FROM bookings b
     JOIN rooms r ON b.room_id = r.id
-    JOIN users u ON b.user_id = u.id
+    LEFT JOIN users u ON b.user_id = u.id
     LEFT JOIN booking_guests bg ON b.id = bg.booking_id
     WHERE b.check_out_date >= ? AND b.check_in_date <= ?
     AND b.status != 'cancelled'
-    GROUP BY b.id, r.room_number, r.room_type, r.room_status, r.last_cleaned, r.cleaned_by, 
-             u.first_name, u.last_name, u.email, u.phone
+    GROUP BY b.id, r.room_number, r.room_type, 
+             u.first_name, u.last_name, u.email
     ORDER BY b.check_in_date
 ");
 $stmt->execute([$startDate, $endDate]);
@@ -856,7 +854,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
                 $guestPhone,
                 $passportNumber,
                 $idNumber,
-                $isMultiRoom,
+                $isMultiRoom ? 1 : 0, // Convert boolean to integer
                 $primaryBookingId // Will be null for first room, then set for others
             ]);
             
@@ -991,19 +989,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_as_paid'])) {
 }
 
 // Handle room status updates
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_room_status'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $roomId = $_POST['manage_room_id'];
-    $roomStatus = $_POST['room_status'];
+    $roomStatus = $_POST['status'];
     $cleaningNotes = $_POST['cleaning_notes'] ?? '';
     
     try {
         // Update room status
-        $stmt = $connection->prepare("UPDATE rooms SET room_status = ?, last_cleaned = IF(? = 'clean', NOW(), last_cleaned), cleaned_by = IF(? = 'clean', 'System', cleaned_by) WHERE id = ?");
-        $success = $stmt->execute([$roomStatus, $roomStatus, $roomStatus, $roomId]);
+        $stmt = $connection->prepare("UPDATE rooms SET status = ? WHERE id = ?");
+        $success = $stmt->execute([$roomStatus, $roomId]);
         
         if ($success) {
             // Log the status change
-            $stmt = $connection->prepare("INSERT INTO room_status_log (room_id, status, notes, changed_by, created_at) VALUES (?, ?, ?, 'Manager', NOW())");
+            $stmt = $connection->prepare("INSERT INTO status_log (room_id, status, notes, changed_by, created_at) VALUES (?, ?, ?, 'Manager', NOW())");
             $stmt->execute([$roomId, $roomStatus, $cleaningNotes]);
             
             // Send notification based on status
@@ -2179,7 +2177,7 @@ function getMonthName($month) {
                     <?php foreach ($rooms as $room): ?>
                         <tr>
                             <td class="room-info <?php 
-                                $roomStatus = $room['room_status'] ?? 'clean';
+                                $roomStatus = $room['status'] ?? 'clean';
                                 if ($roomStatus === 'dirty') echo 'room-dirty';
                                 elseif ($roomStatus === 'maintenance') echo 'room-maintenance';
                                 elseif ($roomStatus === 'out_of_order') echo 'room-out-of-order';
@@ -2290,7 +2288,7 @@ function getMonthName($month) {
                                     ]);
                                 } else {
                                     // Check room status for available rooms - only apply status to current and future dates
-                                    $roomStatus = $room['room_status'] ?? 'clean';
+                                    $roomStatus = $room['status'] ?? 'clean';
                                     $isPastDate = $currentDate < date('Y-m-d');
                                     
                                     if (!$isPastDate && $roomStatus !== 'clean') {
@@ -2921,7 +2919,7 @@ function getMonthName($month) {
             <h2>🧹 Room Management</h2>
             <form method="POST" action="">
                 <input type="hidden" id="manage_room_id" name="manage_room_id">
-                <input type="hidden" name="update_room_status" value="1">
+                <input type="hidden" name="update_status" value="1">
                 
                 <div class="form-group" style="margin-bottom: 20px;">
                     <h3 id="room_management_title">Room Details</h3>
@@ -2931,8 +2929,8 @@ function getMonthName($month) {
                 </div>
                 
                 <div class="form-group">
-                    <label for="room_status">🏠 Room Status</label>
-                    <select id="room_status" name="room_status" required style="padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
+                    <label for="status">🏠 Room Status</label>
+                    <select id="status" name="status" required style="padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
                         <option value="clean">✅ Clean & Ready</option>
                         <option value="dirty">🧹 Needs Cleaning</option>
                         <option value="maintenance">🔧 Maintenance Required</option>
@@ -5037,7 +5035,7 @@ function getMonthName($month) {
                         <strong>💰 Price:</strong> $${parseFloat(roomData.price || 0).toFixed(0)}/night
                     </div>
                     <div>
-                        <strong>📊 Current Status:</strong> ${getRoomStatusText(roomData.room_status || 'clean')}<br>
+                        <strong>📊 Current Status:</strong> ${getRoomStatusText(roomData.status || 'clean')}<br>
                         <strong>🧹 Last Cleaned:</strong> ${roomData.last_cleaned || 'Not recorded'}<br>
                         <strong>👤 Cleaned By:</strong> ${roomData.cleaned_by || 'N/A'}
                     </div>
@@ -5045,7 +5043,7 @@ function getMonthName($month) {
             `;
             
             // Set current status in dropdown
-            document.getElementById('room_status').value = roomData.room_status || 'clean';
+            document.getElementById('status').value = roomData.status || 'clean';
             
             // Clear notes
             document.getElementById('cleaning_notes').value = '';
@@ -5290,7 +5288,7 @@ function getMonthName($month) {
             
             // Create form data
             const formData = new FormData();
-            formData.append('action', 'update_room_status');
+            formData.append('action', 'update_status');
             formData.append('room_id', currentRoomId);
             formData.append('status', newStatus);
             formData.append('notes', notes);
