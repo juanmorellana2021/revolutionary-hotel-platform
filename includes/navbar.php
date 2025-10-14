@@ -6,7 +6,8 @@
 
 // Determine current page for active nav highlighting
 $currentPage = basename($_SERVER['PHP_SELF']);
-$isManager = isset($_SESSION['user']) && $userManager->isManager($_SESSION['user']['id']);
+$userRole = $_SESSION['user_role'] ?? 'guest';
+$isManager = ($userRole === 'manager' || $userRole === 'admin');
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-hotel sticky-top">
@@ -97,7 +98,7 @@ $isManager = isset($_SESSION['user']) && $userManager->isManager($_SESSION['user
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-1"></i>
-                        <?php echo htmlspecialchars($_SESSION['user']['first_name'] ?? 'User'); ?>
+                        <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>
                         <?php if ($isManager): ?>
                             <span class="badge bg-warning text-dark ms-1">Manager</span>
                         <?php endif; ?>

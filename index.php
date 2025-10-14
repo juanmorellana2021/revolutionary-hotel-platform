@@ -28,14 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $messageType = $result['success'] ? 'success' : 'error';
     } elseif ($action === 'login') {
         $user = new User();
-        $userManager = new UserManager();
         $result = $user->login($_POST['email'], $_POST['password']);
         
         if ($result['success']) {
-            $_SESSION['user'] = $result['user'];
+            // Don't override session - User->login() already sets the correct session variables
             
-            // Check if user is a manager and redirect accordingly
-            if ($userManager->isManager($result['user']['id'])) {
+            // Check user role and redirect accordingly
+            $userRole = $_SESSION['user_role'] ?? 'guest';
+            if ($userRole === 'manager' || $userRole === 'admin') {
                 header('Location: manager_dashboard.php');
             } else {
                 header('Location: dashboard.php');

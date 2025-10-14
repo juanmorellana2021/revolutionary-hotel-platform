@@ -5,18 +5,17 @@ require_once 'includes/hotel_classes.php';
 require_once 'includes/employee_classes.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION['user_role'])) {
     header('Location: index.php');
     exit;
 }
 
-$userManager = new UserManager();
 $employeeManager = new EmployeeManager();
 $timeClockManager = new TimeClockManager();
 $hotelInfo = new HotelInfo();
 $hotel = $hotelInfo->getHotelInfo();
 
-$isManager = $userManager->isManager($_SESSION['user']['id']);
+$isManager = ($_SESSION['user_role'] === 'manager' || $_SESSION['user_role'] === 'admin');
 
 // Add missing columns to time_clock table if they don't exist
 try {

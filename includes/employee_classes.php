@@ -84,9 +84,9 @@ class EmployeeManager {
             $params[] = $filters['position'];
         }
         
-        if (!empty($filters['employment_status'])) {
-            $sql .= " AND e.employment_status = ?";
-            $params[] = $filters['employment_status'];
+        if (!empty($filters['status'])) {
+            $sql .= " AND e.status = ?";
+            $params[] = $filters['status'];
         }
         
         if (!empty($filters['search'])) {
@@ -137,7 +137,7 @@ class EmployeeManager {
                     first_name = ?, last_name = ?, email = ?, phone = ?, position = ?, 
                     department = ?, hourly_rate = ?, hourly_rate_currency = ?, overtime_rate = ?, 
                     overtime_rate_currency = ?, weekly_hours = ?, salary_type = ?, monthly_salary = ?, 
-                    employment_status = ?, emergency_contact_name = ?, emergency_contact_phone = ?, 
+                    status = ?, emergency_contact_name = ?, emergency_contact_phone = ?, 
                     address = ?, tax_id = ?, notes = ?
                 WHERE id = ?
             ");
@@ -156,7 +156,7 @@ class EmployeeManager {
                 $data['weekly_hours'],
                 $data['salary_type'],
                 $data['monthly_salary'],
-                $data['employment_status'],
+                $data['status'] ?? 'active',
                 $data['emergency_contact_name'],
                 $data['emergency_contact_phone'],
                 $data['address'],
