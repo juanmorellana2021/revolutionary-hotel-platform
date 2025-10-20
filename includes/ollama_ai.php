@@ -9,7 +9,8 @@ class OllamaAI {
     private $model;
     private $connection;
     
-    public function __construct($host = 'localhost', $port = 11434, $model = 'tinyllama') {
+    public function __construct($host = '72.60.1.16', $port = 11434, $model = 'tinyllama') {
+        // Connect to dedicated AI VPS for faster inference
         $this->apiUrl = "http://{$host}:{$port}/api/generate";
         $this->model = $model;
         
@@ -158,10 +159,12 @@ class OllamaAI {
             'model' => $this->model,
             'prompt' => $prompt,
             'stream' => false,
+            'keep_alive' => '5m',  // Keep model warm for 5 minutes
             'options' => [
-                'temperature' => 0.7,
+                'temperature' => 0.3,       // More focused responses for chatbot
                 'top_p' => 0.9,
-                'max_tokens' => 500
+                'num_predict' => 100,       // Limit to ~100 tokens for fast WhatsApp responses
+                'repeat_penalty' => 1.1     // Reduce repetition
             ]
         ];
         
@@ -173,19 +176,23 @@ class OllamaAI {
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json'
         ]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);  // 10 second timeout (model should respond in <1s)
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
         curl_close($ch);
         
         if ($httpCode !== 200) {
-            throw new Exception("Ollama API error: HTTP $httpCode");
+            error_log("Ollama API error: HTTP $httpCode - $error");
+            throw new Exception("AI service temporarily unavailable");
         }
         
         $decoded = json_decode($response, true);
         if (!$decoded || !isset($decoded['response'])) {
-            throw new Exception("Invalid response from Ollama API");
+            error_log("Invalid Ollama response: " . substr($response, 0, 200));
+            throw new Exception("Invalid response from AI");
         }
         
         return trim($decoded['response']);
