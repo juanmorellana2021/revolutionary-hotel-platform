@@ -1,4 +1,23 @@
 <?php
+// Check if Composer autoload exists
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (!class_exists('TCPDF')) {
+    // Try to load TCPDF from common locations
+    $possible_paths = [
+        __DIR__ . '/../vendor/tecnickcom/tcpdf/tcpdf.php',
+        __DIR__ . '/tcpdf/tcpdf.php',
+        __DIR__ . '/../tcpdf/tcpdf.php'
+    ];
+    
+    foreach ($possible_paths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            break;
+        }
+    }
+}
+
 class ReceiptPDFGenerator {
     private $booking;
     private $nights;
@@ -44,204 +63,348 @@ class ReceiptPDFGenerator {
         $this->booking['all_guest_names'] = !empty($this->booking['guests_list']) ? implode(', ', array_column($this->booking['guests_list'], 'name')) : $this->booking['display_guest_name'];
     }
     
-    public function generatePDF() {
-        // Start output buffering
-        ob_start();
-        
-        // Create HTML content for PDF conversion
-        $html = $this->generateHTML();
-        
-        // Clean any previous output
-        ob_end_clean();
-        
-        // Set headers for PDF download
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="receipt-' . $this->booking['booking_reference'] . '.pdf"');
-        
-        // For now, we'll use a simple HTML to PDF conversion
-        // In production, you'd want to use a proper PDF library
-        $this->htmlToPDF($html);
+    public function generatePDF($outputType = 'download') {
+        try {
+            if (class_exists('TCPDF')) {
+                return $this->generateWithTCPDF($outputType);
+            } else {
+                return $this->generateSimplePDF();
+            }
+        } catch (Exception $e) {
+            error_log("PDF Generation Error: " . $e->getMessage());
+            return $this->generateSimplePDF();
+        }
     }
     
-    private function generateHTML() {
+    public function getPDFContent() {
+        // Return PDF content as string for email attachment
+        return $this->generatePDF('string');
+    }
+    
+    private function generateWithTCPDF($outputType = 'download') {
+        // Create new PDF document
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator('AiNi Hotel Management System');
+        $pdf->SetAuthor('AiNi Hotel');
+        $pdf->SetTitle('Hotel Receipt - ' . $this->booking['booking_reference']);
+        $pdf->SetSubject('Hotel Booking Receipt');
+        
+        // Set default header data
+        $pdf->SetHeaderData('', 0, 'AiNi Hotel', 'Booking Receipt - ' . $this->booking['booking_reference']);
+        
+        // Set header and footer fonts
+        $pdf->setHeaderFont(['helvetica', '', 14]);
+        $pdf->setFooterFont(['helvetica', '', 8]);
+        
+        // Set default monospaced font
+        $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+        
+        // Set margins
+        $pdf->SetMargins(15, 27, 15);
+        $pdf->SetHeaderMargin(5);
+        $pdf->SetFooterMargin(10);
+        
+        // Set auto page breaks
+        $pdf->SetAutoPageBreak(TRUE, 25);
+        
+        // Add a page
+        $pdf->AddPage();
+        
+        // Set font
+        $pdf->SetFont('helvetica', '', 10);
+        
+        // Generate content
+        $html = $this->generatePDFContent();
+        
+        // Print text using writeHTMLCell()
+        $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Clean any output buffer
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        
+        // Output based on type
+        if ($outputType === 'string') {
+            // Return PDF as string for email attachment
+            return $pdf->Output('receipt-' . $this->booking['booking_reference'] . '.pdf', 'S');
+        } else {
+            // Download PDF
+            $pdf->Output('receipt-' . $this->booking['booking_reference'] . '.pdf', 'D');
+            exit;
+        }
+    }
+    
+    private function generateSimplePDF() {
+        // Fallback: Generate a simple text-based PDF
+        $content = $this->generateTextReceipt();
+        
+        // Clean any output buffer
+        ob_clean();
+        
+        // Set headers for download
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="receipt-' . $this->booking['booking_reference'] . '.pdf"');
+        header('Content-Length: ' . strlen($content));
+        
+        echo $content;
+        exit;
+    }
+    
+    private function generatePDFContent() {
         $paymentStatusEmoji = [
-            'pending' => '⏳ Pending',
-            'paid' => '✅ Paid',
-            'partial' => '⚡ Partial',
-            'refunded' => '↩️ Refunded'
+            'pending' => 'Pending',
+            'paid' => 'Paid',
+            'partial' => 'Partial',
+            'refunded' => 'Refunded'
         ];
         
         $paymentStatus = $paymentStatusEmoji[$this->booking['payment_status']] ?? ucfirst($this->booking['payment_status']);
+        $guestName = $this->booking['display_guest_name'] ?? $this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name']);
         
         return '
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Receipt - ' . htmlspecialchars($this->booking['booking_reference']) . '</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; background: #667eea; color: white; padding: 20px; margin-bottom: 20px; }
-                .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-                .info-section { display: table-cell; width: 50%; padding: 10px; vertical-align: top; }
-                .booking-details { background: #f8f9fa; padding: 15px; margin-bottom: 15px; }
-                .price-breakdown { background: #e8f5e8; padding: 15px; border-left: 4px solid #28a745; }
-                .price-row { display: table; width: 100%; margin-bottom: 8px; }
-                .price-label { display: table-cell; }
-                .price-value { display: table-cell; text-align: right; }
-                .total { border-top: 2px solid #28a745; padding-top: 10px; font-weight: bold; }
-                h1, h2, h3 { margin: 0 0 10px 0; }
-                .status-badge { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>🏨 AiNi Hotel</h1>
-                <h2>Booking Receipt</h2>
-                <p>Reference: <strong>' . htmlspecialchars($this->booking['booking_reference']) . '</strong></p>
-                <p>Issued: ' . date('F j, Y g:i A', strtotime($this->booking['created_at'])) . '</p>
-            </div>
-            
-            <div class="info-grid">
-                <div class="info-section">
-                    <h3>🏨 Hotel Information</h3>
+        <style>
+            .header { background-color: #667eea; color: white; padding: 15px; text-align: center; margin-bottom: 20px; }
+            .info-section { margin-bottom: 15px; }
+            .info-grid { width: 100%; }
+            .info-grid td { width: 50%; vertical-align: top; padding: 10px; }
+            .booking-details { background-color: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+            .price-breakdown { background-color: #e8f5e8; padding: 15px; border-left: 4px solid #28a745; margin-bottom: 15px; }
+            .price-row { margin-bottom: 8px; }
+            .total { border-top: 2px solid #28a745; padding-top: 10px; font-weight: bold; font-size: 14px; }
+            .terms { background-color: #f8f9fa; padding: 15px; font-size: 9px; margin-top: 20px; }
+            h1, h2, h3 { margin: 0 0 10px 0; color: #333; }
+            .status-badge { background-color: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; font-size: 9px; }
+        </style>
+        
+        <div class="header">
+            <h1>AiNi Hotel</h1>
+            <h2>Booking Receipt</h2>
+            <p><strong>Reference: ' . htmlspecialchars($this->booking['booking_reference']) . '</strong></p>
+            <p>Issued: ' . date('F j, Y g:i A', strtotime($this->booking['created_at'])) . '</p>
+        </div>
+        
+        <table class="info-grid" cellpadding="5" cellspacing="0" border="0">
+            <tr>
+                <td>
+                    <h3>Hotel Information</h3>
                     <p><strong>AiNi Hotel</strong><br>
                     123 Main Street<br>
                     Lima, Peru 15001<br>
                     Phone: +51 1 234 5678<br>
                     Email: reservas@ainihotel.com<br>
                     Web: www.ainihotel.com</p>
-                </div>
-                
-                <div class="info-section">
-                    <h3>👤 Guest Information</h3>';
-                    
-        if (!empty($this->booking['guests_list']) && count($this->booking['guests_list']) > 1) {
-            $html .= '<p><strong>Guests (' . count($this->booking['guests_list']) . '):</strong></p>';
-            foreach ($this->booking['guests_list'] as $guest) {
-                $html .= '<div style="margin-bottom: 8px; padding: 8px; background: ' . ($guest['is_primary'] ? '#e8f5e8' : '#f8f9fa') . '; border-radius: 4px;">
-                    <strong>' . htmlspecialchars($guest['name']) . '</strong>';
-                if ($guest['is_primary']) {
-                    $html .= ' <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em; margin-left: 5px;">Primary</span>';
-                }
-                $html .= '<br>';
-                if (!empty($guest['email'])) {
-                    $html .= 'Email: ' . htmlspecialchars($guest['email']) . '<br>';
-                }
-                if (!empty($guest['phone'])) {
-                    $html .= 'Phone: ' . htmlspecialchars($guest['phone']) . '<br>';
-                }
-                $html .= '</div>';
-            }
-        } else {
-            $html .= '<p><strong>' . htmlspecialchars($this->booking['display_guest_name'] ?? $this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name'])) . '</strong><br>
+                </td>
+                <td>
+                    <h3>Guest Information</h3>
+                    <p><strong>' . htmlspecialchars($guestName) . '</strong><br>
                     Email: ' . htmlspecialchars($this->booking['guest_email'] ?? $this->booking['email']) . '<br>
-                    ' . (($this->booking['guest_phone'] ?? $this->booking['phone']) ? 'Phone: ' . htmlspecialchars($this->booking['guest_phone'] ?? $this->booking['phone']) . '<br>' : '') . '</p>';
+                    ' . (($this->booking['guest_phone'] ?? $this->booking['phone']) ? 'Phone: ' . htmlspecialchars($this->booking['guest_phone'] ?? $this->booking['phone']) . '<br>' : '') . '
+                    Guest ID: #' . $this->booking['user_id'] . '</p>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="booking-details">
+            <h3>Booking Details</h3>
+            <p><strong>Room:</strong> ' . htmlspecialchars($this->booking['room_number']) . ' - ' . htmlspecialchars($this->booking['room_type']) . '</p>
+            <p><strong>Check-in:</strong> ' . date('M j, Y', strtotime($this->booking['check_in_date'])) . '</p>
+            <p><strong>Check-out:</strong> ' . date('M j, Y', strtotime($this->booking['check_out_date'])) . '</p>
+            <p><strong>Nights:</strong> ' . $this->nights . '</p>
+            <p><strong>Status:</strong> <span class="status-badge">' . ucfirst($this->booking['status']) . '</span></p>
+            <p><strong>Payment:</strong> <span class="status-badge">' . $paymentStatus . '</span></p>
+            ' . ($this->booking['payment_method'] ? '<p><strong>Payment Method:</strong> ' . ucfirst($this->booking['payment_method']) . '</p>' : '') . '
+            ' . ($this->booking['special_requests'] ? '<p><strong>Special Requests:</strong><br>' . nl2br(htmlspecialchars($this->booking['special_requests'])) . '</p>' : '') . '
+        </div>
+        
+        <div class="price-breakdown">
+            <h3>Price Breakdown</h3>
+            
+            <div class="price-row">
+                <table width="100%" cellpadding="2" cellspacing="0">
+                    <tr>
+                        <td>Room Rate (' . $this->nights . ' night' . ($this->nights > 1 ? 's' : '') . '):</td>
+                        <td align="right">$' . number_format(($this->booking['total_price'] + ($this->booking['discount_amount'] ?? 0)), 2) . ' USD</td>
+                    </tr>';
+                    
+        if (($this->booking['discount_amount'] ?? 0) > 0) {
+            $html .= '
+                    <tr>
+                        <td>Discount Applied:</td>
+                        <td align="right" style="color: #28a745;">-$' . number_format($this->booking['discount_amount'], 2) . ' USD</td>
+                    </tr>';
         }
         
-        $html .= '<p>Guest ID: #' . $this->booking['user_id'] . '</p>
-                </div>
-            </div>
-            
-            <div class="booking-details">
-                <h3>📋 Booking Details</h3>
-                <p><strong>Room:</strong> ' . htmlspecialchars($this->booking['room_number']) . ' - ' . htmlspecialchars($this->booking['room_type']) . '</p>
-                <p><strong>Check-in:</strong> ' . date('M j, Y', strtotime($this->booking['check_in_date'])) . '</p>
-                <p><strong>Check-out:</strong> ' . date('M j, Y', strtotime($this->booking['check_out_date'])) . '</p>
-                <p><strong>Nights:</strong> ' . $this->nights . '</p>
-                <p><strong>Status:</strong> <span class="status-badge">' . ucfirst($this->booking['status']) . '</span></p>
-                <p><strong>Payment:</strong> <span class="status-badge">' . $paymentStatus . '</span></p>
-                ' . ($this->booking['payment_method'] ? '<p><strong>Payment Method:</strong> ' . ucfirst($this->booking['payment_method']) . '</p>' : '') . '
-                ' . ($this->booking['special_requests'] ? '<p><strong>Special Requests:</strong><br>' . nl2br(htmlspecialchars($this->booking['special_requests'])) . '</p>' : '') . '
-            </div>
-            
-            <div class="price-breakdown">
-                <h3>💰 Price Breakdown</h3>
-                
-                <div class="price-row">
-                    <div class="price-label">Room Rate (' . $this->nights . ' night' . ($this->nights > 1 ? 's' : '') . '):</div>
-                    <div class="price-value">$' . number_format(($this->booking['total_price'] + ($this->booking['discount_amount'] ?? 0)), 2) . ' USD</div>
-                </div>
-                
-                ' . (($this->booking['discount_amount'] ?? 0) > 0 ? '
-                <div class="price-row">
-                    <div class="price-label">Discount Applied:</div>
-                    <div class="price-value" style="color: #28a745;">-$' . number_format($this->booking['discount_amount'], 2) . ' USD</div>
-                </div>' : '') . '
-                
-                <div class="price-row total">
-                    <div class="price-label">Total Amount:</div>
-                    <div class="price-value">$' . number_format($this->booking['total_price'], 2) . ' USD / S/ ' . number_format($this->booking['total_price'] * 3.75, 2) . ' PEN</div>
-                </div>
-                
-                ' . (($this->booking['paid_amount'] ?? 0) > 0 ? '
-                <div class="price-row">
-                    <div class="price-label">Amount Paid:</div>
-                    <div class="price-value" style="color: #17a2b8;">$' . number_format($this->booking['paid_amount'], 2) . ' USD / S/ ' . number_format($this->booking['paid_amount'] * 3.75, 2) . ' PEN</div>
-                </div>' : '') . '
-                
-                ' . ($this->booking['payment_status'] === 'partial' ? '
-                <div class="price-row">
-                    <div class="price-label">Outstanding Balance:</div>
-                    <div class="price-value" style="color: #dc3545; font-weight: bold;">$' . number_format($this->booking['total_price'] - ($this->booking['paid_amount'] ?? 0), 2) . ' USD</div>
-                </div>' : '') . '
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; font-size: 12px;">
-                <strong>Terms & Conditions:</strong><br>
-                • Check-in time: 3:00 PM | Check-out time: 12:00 PM<br>
-                • Valid government-issued photo ID required at check-in<br>
-                • Cancellation policy applies as per booking terms<br>
-                • For inquiries, contact us at reservas@ainihotel.com or +51 1 234 5678<br>
-                <br>
-                <em>Thank you for choosing AiNi Hotel!</em>
-            </div>
-        </body>
-        </html>';
-    }
-    
-    private function htmlToPDF($html) {
-        // For basic PDF generation without external libraries
-        // This is a simplified approach - in production use a proper PDF library
-        
-        // We'll use DomPDF-like approach with wkhtmltopdf if available
-        // or fallback to HTML output with PDF headers
-        
-        if (function_exists('exec') && $this->commandExists('wkhtmltopdf')) {
-            $this->generateWithWkhtmltopdf($html);
-        } else {
-            // Fallback: output HTML with PDF mime type
-            echo $html;
-        }
-    }
-    
-    private function commandExists($command) {
-        $return = shell_exec(sprintf("which %s", escapeshellarg($command)));
-        return !empty($return);
-    }
-    
-    private function generateWithWkhtmltopdf($html) {
-        // Create temporary HTML file
-        $tempHtml = tempnam(sys_get_temp_dir(), 'receipt_') . '.html';
-        file_put_contents($tempHtml, $html);
-        
-        // Generate PDF
-        $pdfOutput = tempnam(sys_get_temp_dir(), 'receipt_') . '.pdf';
-        $command = sprintf('wkhtmltopdf --page-size A4 --margin-top 0.75in --margin-right 0.75in --margin-bottom 0.75in --margin-left 0.75in %s %s',
-            escapeshellarg($tempHtml),
-            escapeshellarg($pdfOutput)
-        );
-        
-        exec($command, $output, $returnCode);
-        
-        if ($returnCode === 0 && file_exists($pdfOutput)) {
-            readfile($pdfOutput);
-            unlink($pdfOutput);
-        } else {
-            echo $html; // Fallback
+        $html .= '
+                    <tr class="total">
+                        <td><strong>Total Amount:</strong></td>
+                        <td align="right"><strong>$' . number_format($this->booking['total_price'], 2) . ' USD / S/ ' . number_format($this->booking['total_price'] * 3.75, 2) . ' PEN</strong></td>
+                    </tr>';
+                    
+        if (($this->booking['paid_amount'] ?? 0) > 0) {
+            $html .= '
+                    <tr>
+                        <td>Amount Paid:</td>
+                        <td align="right" style="color: #17a2b8;">$' . number_format($this->booking['paid_amount'], 2) . ' USD / S/ ' . number_format($this->booking['paid_amount'] * 3.75, 2) . ' PEN</td>
+                    </tr>';
         }
         
-        unlink($tempHtml);
+        if ($this->booking['payment_status'] === 'partial') {
+            $html .= '
+                    <tr>
+                        <td><strong>Outstanding Balance:</strong></td>
+                        <td align="right" style="color: #dc3545;"><strong>$' . number_format($this->booking['total_price'] - ($this->booking['paid_amount'] ?? 0), 2) . ' USD</strong></td>
+                    </tr>';
+        }
+        
+        $html .= '
+                </table>
+            </div>
+        </div>
+        
+        <div class="terms">
+            <strong>Terms & Conditions:</strong><br>
+            • Check-in time: 3:00 PM | Check-out time: 12:00 PM<br>
+            • Valid government-issued photo ID required at check-in<br>
+            • Cancellation policy applies as per booking terms<br>
+            • For inquiries, contact us at reservas@ainihotel.com or +51 1 234 5678<br>
+            <br>
+            <em>Thank you for choosing AiNi Hotel!</em>
+        </div>';
+        
+        return $html;
     }
+    
+    private function generateTextReceipt() {
+        $guestName = $this->booking['display_guest_name'] ?? $this->booking['guest_name'] ?? ($this->booking['first_name'] . ' ' . $this->booking['last_name']);
+        
+        $content = "%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/Contents 5 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+5 0 obj
+<<
+/Length 2000
+>>
+stream
+BT
+/F1 20 Tf
+50 750 Td
+(AiNi Hotel - Booking Receipt) Tj
+0 -30 Td
+/F1 12 Tf
+(Reference: " . $this->booking['booking_reference'] . ") Tj
+0 -20 Td
+(Issued: " . date('F j, Y g:i A', strtotime($this->booking['created_at'])) . ") Tj
+0 -40 Td
+(HOTEL INFORMATION) Tj
+0 -15 Td
+/F1 10 Tf
+(AiNi Hotel) Tj
+0 -12 Td
+(123 Main Street, Lima, Peru 15001) Tj
+0 -12 Td
+(Phone: +51 1 234 5678) Tj
+0 -12 Td
+(Email: reservas@ainihotel.com) Tj
+0 -30 Td
+/F1 12 Tf
+(GUEST INFORMATION) Tj
+0 -15 Td
+/F1 10 Tf
+(Name: " . $guestName . ") Tj
+0 -12 Td
+(Email: " . ($this->booking['guest_email'] ?? $this->booking['email']) . ") Tj
+0 -12 Td
+(Guest ID: #" . $this->booking['user_id'] . ") Tj
+0 -30 Td
+/F1 12 Tf
+(BOOKING DETAILS) Tj
+0 -15 Td
+/F1 10 Tf
+(Room: " . $this->booking['room_number'] . " - " . $this->booking['room_type'] . ") Tj
+0 -12 Td
+(Check-in: " . date('M j, Y', strtotime($this->booking['check_in_date'])) . ") Tj
+0 -12 Td
+(Check-out: " . date('M j, Y', strtotime($this->booking['check_out_date'])) . ") Tj
+0 -12 Td
+(Nights: " . $this->nights . ") Tj
+0 -12 Td
+(Status: " . ucfirst($this->booking['status']) . ") Tj
+0 -12 Td
+(Payment Status: " . ucfirst($this->booking['payment_status']) . ") Tj
+0 -30 Td
+/F1 12 Tf
+(PRICE BREAKDOWN) Tj
+0 -15 Td
+/F1 10 Tf
+(Total Amount: $" . number_format($this->booking['total_price'], 2) . " USD) Tj
+0 -12 Td
+(Amount Paid: $" . number_format(($this->booking['paid_amount'] ?? 0), 2) . " USD) Tj
+0 -30 Td
+(Thank you for choosing AiNi Hotel!) Tj
+ET
+endstream
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000079 00000 n 
+0000000173 00000 n 
+0000000301 00000 n 
+0000000380 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+2435
+%%EOF";
+        
+        return $content;
+    }
+
+
+    
+
 }
 ?>

@@ -1,26 +1,19 @@
 <?php
 /**
  * Email Configuration for AiNi Hotel Receipt System
- * 
- * To enable email functionality:
- * 1. Update the SMTP settings below with your email provider's details
- * 2. For Gmail: Use App Passwords instead of your regular password
- * 3. For other providers: Check their SMTP settings documentation
+ * Now loads configuration from database (email_config table)
  */
 
 class EmailConfig {
-    // SMTP Configuration
-    const SMTP_HOST = 'smtp.gmail.com';
-    const SMTP_PORT = 587;
-    const SMTP_USERNAME = 'your-email@gmail.com'; // Change this to your email
-    const SMTP_PASSWORD = 'your-app-password';    // Change this to your app password
+    private static $config = null;
     
-    // Email Settings
-    const FROM_EMAIL = 'reservas@ainihotel.com';
-    const FROM_NAME = 'AiNi Hotel';
-    const REPLY_TO = 'reservas@ainihotel.com';
+    // Fallback constants (used if database is not available)
+    const FALLBACK_SMTP_HOST = 'smtp.gmail.com';
+    const FALLBACK_SMTP_PORT = 587;
+    const FALLBACK_FROM_EMAIL = 'reservas@ainihotel.com';
+    const FALLBACK_FROM_NAME = 'AiNi Hotel';
     
-    // Hotel Information
+    // Hotel Information (can be moved to database too if needed)
     const HOTEL_NAME = 'AiNi Hotel';
     const HOTEL_ADDRESS = '123 Main Street';
     const HOTEL_CITY = 'Lima, Peru 15001';
@@ -28,34 +21,74 @@ class EmailConfig {
     const HOTEL_EMAIL = 'reservas@ainihotel.com';
     const HOTEL_WEBSITE = 'www.ainihotel.com';
     
-    /**
-     * Gmail Setup Instructions:
-     * 1. Enable 2-Factor Authentication on your Google account
-     * 2. Go to Google Account Settings > Security > App passwords
-     * 3. Generate an app password for "Mail"
-     * 4. Use that app password in SMTP_PASSWORD above
-     * 5. Update SMTP_USERNAME with your Gmail address
-     * 
-     * For other email providers:
-     * - Outlook/Hotmail: smtp-mail.outlook.com, port 587
-     * - Yahoo: smtp.mail.yahoo.com, port 587 or 465
-     * - Custom SMTP: Check with your hosting provider
-     */
+    private static function loadConfig() {
+        if (self::$config !== null) {
+            return;
+        }
+        
+        try {
+            require_once __DIR__ . '/../includes/classes.php';
+            $database = new Database();
+            $conn = $database->getConnection();
+            
+            $stmt = $conn->query("SELECT * FROM email_config WHERE is_enabled = 1 ORDER BY id DESC LIMIT 1");
+            $dbConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($dbConfig) {
+                self::$config = $dbConfig;
+            } else {
+                // Try to get any config (even if disabled)
+                $stmt = $conn->query("SELECT * FROM email_config ORDER BY id DESC LIMIT 1");
+                $dbConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+                self::$config = $dbConfig ?: false;
+            }
+        } catch (Exception $e) {
+            error_log("EmailConfig Error: " . $e->getMessage());
+            self::$config = false;
+        }
+    }
     
     public static function isConfigured() {
-        return self::SMTP_USERNAME !== 'your-email@gmail.com' && 
-               self::SMTP_PASSWORD !== 'your-app-password';
+        self::loadConfig();
+        
+        if (!self::$config || !is_array(self::$config)) {
+            return false;
+        }
+        
+        return !empty(self::$config['smtp_username']) && 
+               !empty(self::$config['smtp_password']) &&
+               self::$config['smtp_username'] !== 'your-email@gmail.com' &&
+               self::$config['is_enabled'] == 1;
     }
     
     public static function getConfig() {
+        self::loadConfig();
+        
+        if (self::$config && is_array(self::$config)) {
+            return [
+                'host' => self::$config['smtp_host'],
+                'port' => self::$config['smtp_port'],
+                'username' => self::$config['smtp_username'],
+                'password' => self::$config['smtp_password'],
+                'from_email' => self::$config['from_email'],
+                'from_name' => self::$config['from_name'],
+                'reply_to' => self::$config['reply_to'],
+                'use_ssl' => (bool)self::$config['use_ssl'],
+                'use_tls' => (bool)self::$config['use_tls']
+            ];
+        }
+        
+        // Fallback configuration
         return [
-            'host' => self::SMTP_HOST,
-            'port' => self::SMTP_PORT,
-            'username' => self::SMTP_USERNAME,
-            'password' => self::SMTP_PASSWORD,
-            'from_email' => self::FROM_EMAIL,
-            'from_name' => self::FROM_NAME,
-            'reply_to' => self::REPLY_TO
+            'host' => self::FALLBACK_SMTP_HOST,
+            'port' => self::FALLBACK_SMTP_PORT,
+            'username' => '',
+            'password' => '',
+            'from_email' => self::FALLBACK_FROM_EMAIL,
+            'from_name' => self::FALLBACK_FROM_NAME,
+            'reply_to' => self::FALLBACK_FROM_EMAIL,
+            'use_ssl' => false,
+            'use_tls' => true
         ];
     }
     

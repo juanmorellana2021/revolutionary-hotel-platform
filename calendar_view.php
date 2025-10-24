@@ -131,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $paidAmount = (float)$_POST['paid_amount'];
         $notes = $_POST['notes'] ?? '';
         
+        // Debug: Log session info
+        error_log("UPDATE_PAID_AMOUNT: Session user ID = " . ($_SESSION['user']['id'] ?? 'NULL'));
+        
         // Validate paid amount
         if ($paidAmount < 0) {
             throw new Exception('El monto pagado no puede ser negativo');
@@ -156,11 +159,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $logMessage .= " - Notas: " . $notes;
             }
             
+            // Get user ID safely, fallback to 1 if session user is not available
+            $userId = $_SESSION['user']['id'] ?? 1;
+            
             $stmt = $connection->prepare("
                 INSERT INTO booking_notes (booking_id, note_text, created_by, created_at) 
                 VALUES (?, ?, ?, NOW())
             ");
-            $stmt->execute([$bookingId, $logMessage, $_SESSION['user']['id']]);
+            $stmt->execute([$bookingId, $logMessage, $userId]);
             
             // Update payment status based on amount vs total
             $paymentStatus = 'pending';
@@ -403,10 +409,23 @@ if (isset($_GET['delete_booking'])) {
 
 // Handle booking editing
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
-    $bookingId = (int)$_POST['edit_booking_id'];
-    $roomId = $_POST['edit_room_id'];
-    $checkIn = $_POST['edit_check_in'];
-    $checkOut = $_POST['edit_check_out'];
+    // Debug: Log the incoming data
+    error_log("Edit booking request received - Booking ID: " . ($_POST['edit_booking_id'] ?? 'MISSING'));
+    error_log("Check-in date: " . ($_POST['edit_check_in'] ?? 'MISSING'));
+    error_log("Check-out date: " . ($_POST['edit_check_out'] ?? 'MISSING'));
+    error_log("Room ID: " . ($_POST['edit_room_id'] ?? 'MISSING'));
+    error_log("Guest name: " . ($_POST['edit_guest_name'] ?? 'MISSING'));
+    
+    // Validate required fields
+    if (empty($_POST['edit_booking_id']) || empty($_POST['edit_room_id']) || empty($_POST['edit_check_in']) || empty($_POST['edit_check_out'])) {
+        $message = "Error: Missing required fields for booking update";
+        $messageType = "error";
+        error_log("BOOKING UPDATE FAILED: Missing required fields");
+    } else {
+        $bookingId = (int)$_POST['edit_booking_id'];
+        $roomId = $_POST['edit_room_id'];
+        $checkIn = $_POST['edit_check_in'];
+        $checkOut = $_POST['edit_check_out'];
     $guestName = $_POST['edit_guest_name'];
     $guestEmail = $_POST['edit_guest_email'];
     $guestPhone = $_POST['edit_guest_phone'] ?? '';
@@ -432,13 +451,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         $connection->beginTransaction();
         
         // Update primary booking
-        $isMultiRoom = !empty($additionalRoomIds);
+        $isMultiRoom = !empty($additionalRoomIds) ? 1 : 0; // Convert boolean to integer
+        
+        // Debug: Log the update query parameters
+        error_log("Updating booking $bookingId with: checkIn=$checkIn, checkOut=$checkOut, totalPrice=$totalPrice, isMultiRoom=$isMultiRoom");
+        
         $stmt = $connection->prepare("
             UPDATE bookings 
             SET room_id = ?, check_in_date = ?, check_out_date = ?, total_price = ?, discount_amount = ?, special_requests = ?, guest_name = ?, guest_email = ?, guest_phone = ?, passport_number = ?, id_number = ?, is_multi_room = ?
             WHERE id = ?
         ");
-        $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $discountAmount, $specialRequests, $guestName, $guestEmail, $guestPhone, $passportNumber, $idNumber, $isMultiRoom, $bookingId]);
+        $updateResult = $stmt->execute([$roomId, $checkIn, $checkOut, $totalPrice, $discountAmount, $specialRequests, $guestName, $guestEmail, $guestPhone, $passportNumber, $idNumber, $isMultiRoom, $bookingId]);
+        
+        // Debug: Check if update succeeded
+        error_log("Update result: " . ($updateResult ? 'SUCCESS' : 'FAILED') . " - Rows affected: " . $stmt->rowCount());
         
         // Handle additional rooms
         if (!empty($additionalRoomIds)) {
@@ -515,15 +541,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         
         $connection->commit();
         
-        $message = "Reserva actualizada exitosamente";
+        $message = "Reserva actualizada exitosamente - Booking ID: $bookingId, Check-in: $checkIn, Check-out: $checkOut";
         $messageType = "success";
         header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
         exit;
     } catch (Exception $e) {
         $connection->rollBack();
-        $message = "Error al actualizar la reserva: " . $e->getMessage();
+        error_log("BOOKING UPDATE ERROR: " . $e->getMessage() . " | File: " . $e->getFile() . " | Line: " . $e->getLine());
+        $message = "Error al actualizar la reserva: " . $e->getMessage() . " (Line: " . $e->getLine() . ")";
         $messageType = "error";
     }
+    } // Close the validation if-else block
 }
 
 // Handle extend stay functionality
@@ -964,23 +992,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quick_booking'])) {
 
 // Handle mark as paid functionality
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_as_paid'])) {
+    // Debug logging
+    error_log("MARK AS PAID - Request received");
+    error_log("Booking ID: " . ($_POST['booking_id'] ?? 'MISSING'));
+    error_log("Paid Amount: " . ($_POST['paid_amount'] ?? 'MISSING'));
+    
     $bookingId = $_POST['booking_id'];
     $paidAmount = $_POST['paid_amount'];
     
-    try {
-        $stmt = $connection->prepare("UPDATE bookings SET payment_status = 'paid', paid_amount = ?, payment_method = 'cash' WHERE id = ?");
-        $success = $stmt->execute([$paidAmount, $bookingId]);
-        
-        if ($success) {
-            $message = 'Booking marked as paid successfully!';
-            $messageType = 'success';
-        } else {
-            $message = 'Failed to update payment status';
+    // Validate inputs
+    if (empty($bookingId) || empty($paidAmount)) {
+        error_log("MARK AS PAID ERROR: Missing required fields");
+        $message = 'Error: Faltan campos requeridos para marcar como pagado';
+        $messageType = 'error';
+    } else {
+        try {
+            $stmt = $connection->prepare("UPDATE bookings SET payment_status = 'paid', paid_amount = ?, payment_method = 'cash' WHERE id = ?");
+            $success = $stmt->execute([$paidAmount, $bookingId]);
+            
+            error_log("MARK AS PAID - Update result: " . ($success ? 'SUCCESS' : 'FAILED') . " - Rows affected: " . $stmt->rowCount());
+            
+            if ($success && $stmt->rowCount() > 0) {
+                $message = 'Reserva marcada como pagada exitosamente!';
+                $messageType = 'success';
+            } else {
+                $message = 'No se pudo actualizar el estado de pago - Reserva no encontrada';
+                $messageType = 'error';
+            }
+        } catch (Exception $e) {
+            error_log("MARK AS PAID ERROR: " . $e->getMessage());
+            $message = 'Error al actualizar estado de pago: ' . $e->getMessage();
             $messageType = 'error';
         }
-    } catch (Exception $e) {
-        $message = 'Error updating payment status: ' . $e->getMessage();
+    }
+    
+    // Refresh the page to show updated status
+    header('Location: calendar_view.php?month=' . $currentMonth . '&year=' . $currentYear);
+    exit;
+}
+
+// Handle payment status updates (new system)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_payment_status'])) {
+    // Debug logging
+    error_log("UPDATE PAYMENT STATUS - Request received");
+    error_log("Booking ID: " . ($_POST['booking_id'] ?? 'MISSING'));
+    error_log("Payment Status: " . ($_POST['payment_status'] ?? 'MISSING'));
+    error_log("Paid Amount: " . ($_POST['paid_amount'] ?? 'MISSING'));
+    
+    $bookingId = $_POST['booking_id'];
+    $paymentStatus = $_POST['payment_status'];
+    $paidAmount = $_POST['paid_amount'];
+    $paymentNotes = $_POST['payment_notes'] ?? '';
+    
+    // Validate inputs
+    if (empty($bookingId) || empty($paymentStatus)) {
+        error_log("UPDATE PAYMENT STATUS ERROR: Missing required fields");
+        $message = 'Error: Faltan campos requeridos para actualizar estado de pago';
         $messageType = 'error';
+    } else {
+        try {
+            $connection->beginTransaction();
+            
+            // Update booking payment status
+            $stmt = $connection->prepare("UPDATE bookings SET payment_status = ?, paid_amount = ? WHERE id = ?");
+            $success = $stmt->execute([$paymentStatus, $paidAmount, $bookingId]);
+            
+            error_log("UPDATE PAYMENT STATUS - Update result: " . ($success ? 'SUCCESS' : 'FAILED') . " - Rows affected: " . $stmt->rowCount());
+            
+            if ($success && $stmt->rowCount() > 0) {
+                // Add note to booking_notes
+                $userId = $_SESSION['user']['id'] ?? 1;
+                $statusText = [
+                    'paid' => 'Marcado como PAGADO COMPLETO',
+                    'pending' => 'Marcado como NO PAGADO',
+                    'partial' => 'Marcado como PAGO PARCIAL',
+                    'refunded' => 'Marcado como REEMBOLSADO'
+                ];
+                
+                $noteText = $statusText[$paymentStatus] . " - Monto: $" . number_format($paidAmount, 2);
+                if (!empty($paymentNotes)) {
+                    $noteText .= " | Notas: " . $paymentNotes;
+                }
+                
+                $noteStmt = $connection->prepare("
+                    INSERT INTO booking_notes (booking_id, note_text, created_by, created_at) 
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $noteStmt->execute([$bookingId, $noteText, $userId]);
+                
+                $connection->commit();
+                
+                $statusMessages = [
+                    'paid' => 'Reserva marcada como PAGADA exitosamente',
+                    'pending' => 'Reserva marcada como NO PAGADA',
+                    'partial' => 'Reserva marcada como PAGO PARCIAL',
+                    'refunded' => 'Reserva marcada como REEMBOLSADA'
+                ];
+                
+                $message = $statusMessages[$paymentStatus] ?? 'Estado de pago actualizado';
+                $messageType = 'success';
+            } else {
+                $connection->rollBack();
+                $message = 'No se pudo actualizar el estado de pago - Reserva no encontrada';
+                $messageType = 'error';
+            }
+        } catch (Exception $e) {
+            $connection->rollBack();
+            error_log("UPDATE PAYMENT STATUS ERROR: " . $e->getMessage());
+            $message = 'Error al actualizar estado de pago: ' . $e->getMessage();
+            $messageType = 'error';
+        }
     }
     
     // Refresh the page to show updated status
@@ -1891,6 +2012,48 @@ function getMonthName($month) {
             background: #c82333 !important;
             transform: scale(1.05);
         }
+
+        /* Payment Status Modal Styles */
+        .payment-status-btn {
+            transition: all 0.3s ease;
+        }
+
+        .payment-status-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .payment-status-btn.selected {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 2px solid #fff !important;
+        }
+
+        /* Force modal visibility */
+        #paymentStatusModal {
+            display: none !important;
+            position: fixed !important;
+            z-index: 10000 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0,0,0,0.5) !important;
+        }
+
+        #paymentStatusModal.show {
+            display: block !important;
+        }
+
+        #paymentStatusModal .modal-content {
+            position: relative !important;
+            background-color: white !important;
+            margin: 5% auto !important;
+            padding: 20px !important;
+            border-radius: 8px !important;
+            max-width: 500px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+        }
     </style>
 </head>
 <body>
@@ -2361,6 +2524,78 @@ function getMonthName($month) {
         </div>
     </div>
 
+    <!-- Payment Status Modal -->
+    <div id="paymentStatusModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🏦 Cambiar Estado de Pago</h3>
+                <span class="close" onclick="closePaymentStatusModal()">&times;</span>
+            </div>
+            
+            <div style="padding: 20px;">
+                <p><strong>Reserva:</strong> <span id="paymentModalBookingInfo"></span></p>
+                <p><strong>Monto Total:</strong> <span id="paymentModalAmount"></span></p>
+                
+                <div style="margin: 20px 0;">
+                    <label><strong>Seleccionar Estado de Pago:</strong></label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                        
+                        <button type="button" class="payment-status-btn" data-status="paid" 
+                                style="background: #28a745; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 1.2em;">✅</span>
+                            <span>Pago Completo</span>
+                        </button>
+                        
+                        <button type="button" class="payment-status-btn" data-status="pending"
+                                style="background: #dc3545; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 1.2em;">❌</span>
+                            <span>No Pagado</span>
+                        </button>
+                        
+                        <button type="button" class="payment-status-btn" data-status="partial"
+                                style="background: #ffc107; color: #212529; padding: 15px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 1.2em;">⚡</span>
+                            <span>Pago Parcial</span>
+                        </button>
+                        
+                        <button type="button" class="payment-status-btn" data-status="refunded"
+                                style="background: #fd7e14; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 1.2em;">↩️</span>
+                            <span>Reembolsado</span>
+                        </button>
+                        
+                    </div>
+                </div>
+                
+                <div id="paymentAmountSection" style="display: none; margin-top: 15px;">
+                    <label for="paymentAmount"><strong>Monto Pagado:</strong></label>
+                    <input type="number" id="paymentAmount" step="0.01" min="0" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"
+                           placeholder="Ingrese el monto pagado">
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <label for="paymentNotes"><strong>Notas (opcional):</strong></label>
+                    <textarea id="paymentNotes" rows="3" 
+                              style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"
+                              placeholder="Agregar notas sobre el pago..."></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+                    <button type="button" onclick="closePaymentStatusModal()" 
+                            style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="button" id="confirmPaymentStatus" 
+                            style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;" 
+                            disabled>
+                        Confirmar Cambio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Booking Modal -->
     <div id="bookingModal" class="modal">
         <div class="modal-content">
@@ -2434,12 +2669,12 @@ function getMonthName($month) {
                     <div class="form-group">
                         <label for="check_in_date" style="font-size: 0.9em;">📅 Check-in</label>
                         <input type="date" id="check_in_date" name="check_in_date" required 
-                               min="<?php echo date('Y-m-d', strtotime('-1 day')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
+                               min="<?php echo date('Y-m-d', strtotime('-6 months')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
                     <div class="form-group">
                         <label for="check_out_date" style="font-size: 0.9em;">📅 Check-out</label>
                         <input type="date" id="check_out_date" name="check_out_date" required
-                               min="<?php echo date('Y-m-d'); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
+                               min="<?php echo date('Y-m-d', strtotime('-6 months')); ?>" style="font-size: 0.9em;" onchange="calculateTotal()">
                     </div>
                     <!-- Guests count removed - now per room -->
                     <div class="form-group">
@@ -2728,7 +2963,7 @@ function getMonthName($month) {
             <div style="margin-top: 20px; text-align: center;">
                 <button type="button" onclick="editBooking()" class="btn btn-primary">✏️ Editar Reserva</button>
                 <button type="button" onclick="extendStay()" class="btn" style="background: #fd7e14; color: white;">📅 Extender Estadía</button>
-                <button type="button" onclick="markAsPaid()" class="btn btn-success" id="markPaidBtn">💳 Marcar como Pagado</button>
+                <button type="button" onclick="openPaymentStatusModal()" class="btn btn-info" id="paymentStatusBtn">💳 Estado de Pago</button>
                 <br style="margin: 10px 0;">
                 <button type="button" onclick="generateReceipt()" class="btn btn-info">🧾 Ver Recibo</button>
                 <button type="button" onclick="printReceipt()" class="btn" style="background: #28a745; color: white;">🖨️ Imprimir</button>
@@ -2811,12 +3046,12 @@ function getMonthName($month) {
                     <div class="form-group">
                         <label for="edit_check_in">📅 Check-in</label>
                         <input type="date" id="edit_check_in" name="edit_check_in" required 
-                               min="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
+                               min="<?php echo date('Y-m-d', strtotime('-6 months')); ?>">
                     </div>
                     <div class="form-group">
                         <label for="edit_check_out">📅 Check-out</label>
                         <input type="date" id="edit_check_out" name="edit_check_out" required
-                               min="<?php echo date('Y-m-d'); ?>">
+                               min="<?php echo date('Y-m-d', strtotime('-6 months')); ?>">
                     </div>
                     <div class="form-group">
                         <label for="edit_total_price">💰 Total Price</label>
@@ -3215,17 +3450,36 @@ function getMonthName($month) {
                 </h3>
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
-                        Monto Actual: ${formatDualCurrency(currentAmount)}
+                        Monto Actual: $${parseFloat(currentAmount).toFixed(2)} USD (S/ ${(currentAmount * 3.75).toFixed(2)} PEN)
                     </label>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
-                        Nuevo Monto (USD):
+                        Seleccionar Moneda:
+                    </label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="button" id="currencyUSD" onclick="selectCurrency('USD')"
+                                style="flex: 1; padding: 10px; border: 2px solid #007bff; background: #007bff; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                            💵 USD (Dólares)
+                        </button>
+                        <button type="button" id="currencyPEN" onclick="selectCurrency('PEN')"
+                                style="flex: 1; padding: 10px; border: 2px solid #ddd; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                            🪙 PEN (Soles)
+                        </button>
+                    </div>
+                    
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
+                        <span id="amountLabel">Nuevo Monto (USD):</span>
                     </label>
                     <input type="number" id="newPaidAmount" value="${currentAmount}" step="0.01" min="0"
-                           style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px;">
+                           style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px;"
+                           placeholder="Ingrese el monto">
                     <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 14px; color: #666;">
-                        <span id="convertedAmount">≈ S/ ${(currentAmount * USD_TO_PEN_RATE).toFixed(2)} PEN</span>
+                        <span id="convertedAmount">≈ S/ ${(currentAmount * 3.75).toFixed(2)} PEN</span>
                     </div>
                 </div>
+                
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">
                         Notas de Pago (Opcional):
@@ -3248,20 +3502,56 @@ function getMonthName($month) {
             modal.appendChild(content);
             document.body.appendChild(modal);
             
+            // Store modal reference for closing
+            window.currentPaidAmountModal = modal;
+            window.selectedCurrency = 'USD'; // Default currency
+            
             // Update converted amount when input changes
             const input = document.getElementById('newPaidAmount');
-            input.addEventListener('input', function() {
-                const usdAmount = parseFloat(this.value) || 0;
-                const penAmount = usdAmount * USD_TO_PEN_RATE;
-                document.getElementById('convertedAmount').textContent = `≈ S/ ${penAmount.toFixed(2)} PEN`;
-            });
+            input.addEventListener('input', updateConvertedAmount);
             
             // Focus on input
             input.focus();
             input.select();
+        }
+        
+        function selectCurrency(currency) {
+            console.log('Selected currency:', currency);
+            window.selectedCurrency = currency;
             
-            // Store modal reference for closing
-            window.currentPaidAmountModal = modal;
+            const usdBtn = document.getElementById('currencyUSD');
+            const penBtn = document.getElementById('currencyPEN');
+            const amountLabel = document.getElementById('amountLabel');
+            const amountInput = document.getElementById('newPaidAmount');
+            
+            if (currency === 'USD') {
+                // USD selected
+                usdBtn.style.cssText = 'flex: 1; padding: 10px; border: 2px solid #007bff; background: #007bff; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;';
+                penBtn.style.cssText = 'flex: 1; padding: 10px; border: 2px solid #ddd; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold;';
+                amountLabel.textContent = 'Nuevo Monto (USD):';
+                amountInput.placeholder = 'Ingrese monto en dólares';
+            } else {
+                // PEN selected
+                penBtn.style.cssText = 'flex: 1; padding: 10px; border: 2px solid #28a745; background: #28a745; color: white; border-radius: 6px; cursor: pointer; font-weight: bold;';
+                usdBtn.style.cssText = 'flex: 1; padding: 10px; border: 2px solid #ddd; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold;';
+                amountLabel.textContent = 'Nuevo Monto (PEN):';
+                amountInput.placeholder = 'Ingrese monto en soles';
+            }
+            
+            updateConvertedAmount();
+        }
+        
+        function updateConvertedAmount() {
+            const amount = parseFloat(document.getElementById('newPaidAmount').value) || 0;
+            const convertedSpan = document.getElementById('convertedAmount');
+            
+            if (window.selectedCurrency === 'USD') {
+                const penAmount = amount * 3.75;
+                convertedSpan.textContent = `≈ S/ ${penAmount.toFixed(2)} PEN`;
+            } else {
+                const usdAmount = amount / 3.75;
+                convertedSpan.textContent = `≈ $${usdAmount.toFixed(2)} USD`;
+            }
         }
         
         function closePaidAmountModal() {
@@ -3272,15 +3562,24 @@ function getMonthName($month) {
         }
         
         function savePaidAmount(bookingId) {
-            const newAmount = parseFloat(document.getElementById('newPaidAmount').value) || 0;
+            const inputAmount = parseFloat(document.getElementById('newPaidAmount').value) || 0;
             const notes = document.getElementById('paymentNotes').value.trim();
+            const currency = window.selectedCurrency || 'USD';
             
-            if (newAmount < 0) {
+            if (inputAmount < 0) {
                 alert('❌ El monto no puede ser negativo.');
                 return;
             }
             
-            console.log('Saving paid amount:', bookingId, newAmount, notes);
+            // Convert amount to USD for database storage
+            let amountInUSD;
+            if (currency === 'USD') {
+                amountInUSD = inputAmount;
+            } else { // PEN
+                amountInUSD = inputAmount / 3.75;
+            }
+            
+            console.log('Saving paid amount:', bookingId, 'Input:', inputAmount, currency, 'USD:', amountInUSD);
             
             // Show loading
             const saveButton = event.target;
@@ -3288,13 +3587,20 @@ function getMonthName($month) {
             saveButton.textContent = '⏳ Guardando...';
             saveButton.disabled = true;
             
-            // Send AJAX request to update paid amount
+            // Add currency info to notes
+            let finalNotes = notes;
+            if (currency === 'PEN') {
+                const currencyNote = `Pago ingresado en soles: S/ ${inputAmount.toFixed(2)} PEN`;
+                finalNotes = finalNotes ? `${currencyNote} | ${notes}` : currencyNote;
+            }
+            
+            // Send AJAX request to update paid amount (always in USD for database)
             fetch('calendar_view.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `action=update_paid_amount&booking_id=${bookingId}&paid_amount=${newAmount}&notes=${encodeURIComponent(notes)}`
+                body: `action=update_paid_amount&booking_id=${bookingId}&paid_amount=${amountInUSD}&notes=${encodeURIComponent(finalNotes)}`
             })
             .then(response => response.json())
             .then(data => {
@@ -4493,32 +4799,219 @@ function getMonthName($month) {
             return texts[status] || status;
         }
         
-        // Payment Action Functions
-        function markAsPaid() {
+        // Payment Status Functions (JavaScript vanilla)
+        let selectedPaymentStatus = null;
+        
+        function openPaymentStatusModal() {
+            console.log('Opening payment status modal...');
+            console.log('Current booking data:', currentBookingData);
+            
             if (!currentBookingData) {
                 alert('No hay datos de reserva disponibles.');
                 return;
             }
             
-            if (currentBookingData.payment_status === 'paid') {
-                alert('Esta reserva ya está marcada como pagada.');
+            // Check if modal exists
+            const modal = document.getElementById('paymentStatusModal');
+            console.log('Modal element found:', modal);
+            
+            if (!modal) {
+                console.error('Modal element not found in DOM!');
+                alert('Error: Modal no encontrado en DOM');
                 return;
             }
             
-            const confirmation = confirm(`¿Marcar la reserva #${currentBookingData.id} como PAGADA?\n\nMonto total: ${formatDualCurrency(currentBookingData.total_amount)}`);
+            // Populate modal info
+            const bookingInfo = document.getElementById('paymentModalBookingInfo');
+            const amountInfo = document.getElementById('paymentModalAmount');
             
-            if (confirmation) {
-                // Create a form to submit the payment update
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="mark_as_paid" value="1">
-                    <input type="hidden" name="booking_id" value="${currentBookingData.id}">
-                    <input type="hidden" name="paid_amount" value="${currentBookingData.total_amount}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
+            console.log('Booking info element:', bookingInfo);
+            console.log('Amount info element:', amountInfo);
+            console.log('Full booking data:', currentBookingData);
+            console.log('Available amount fields:', {
+                total_amount: currentBookingData.total_amount,
+                total_price: currentBookingData.total_price,
+                price: currentBookingData.price,
+                paid_amount: currentBookingData.paid_amount
+            });
+            
+            if (bookingInfo) {
+                bookingInfo.textContent = `#${currentBookingData.id} - ${currentBookingData.guest_name}`;
             }
+            if (amountInfo) {
+                // Try different amount fields
+                let amount = currentBookingData.total_amount || currentBookingData.total_price || currentBookingData.price || 0;
+                console.log('Using amount:', amount);
+                
+                if (amount && !isNaN(amount)) {
+                    amountInfo.innerHTML = `$${parseFloat(amount).toFixed(2)} USD <span style="color: #666; font-size: 0.9em;">(S/ ${(parseFloat(amount) * 3.75).toFixed(2)} PEN)</span>`;
+                } else {
+                    amountInfo.textContent = `Monto no disponible`;
+                    console.warn('No valid amount found in booking data');
+                }
+            }
+            
+            // Reset form
+            selectedPaymentStatus = null;
+            const paymentAmount = document.getElementById('paymentAmount');
+            const paymentNotes = document.getElementById('paymentNotes');
+            const paymentAmountSection = document.getElementById('paymentAmountSection');
+            const confirmButton = document.getElementById('confirmPaymentStatus');
+            
+            if (paymentAmount) paymentAmount.value = '';
+            if (paymentNotes) paymentNotes.value = '';
+            if (paymentAmountSection) paymentAmountSection.style.display = 'none';
+            if (confirmButton) confirmButton.disabled = true;
+            
+            // Remove selected class from all buttons
+            document.querySelectorAll('.payment-status-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.opacity = '1';
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = 'none';
+            });
+            
+            // Show modal with class instead of inline styles
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            
+            // Force show with explicit CSS
+            modal.setAttribute('style', 'display: block !important; position: fixed !important; z-index: 10000 !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0,0,0,0.5) !important;');
+            
+            console.log('Modal display style:', modal.style.display);
+            console.log('Modal computed style:', window.getComputedStyle(modal).display);
+            console.log('Modal classes:', modal.className);
+            console.log('Modal should be visible now');
+        }
+        
+        function closePaymentStatusModal() {
+            console.log('Closing payment status modal...');
+            const modal = document.getElementById('paymentStatusModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                modal.removeAttribute('style');
+            }
+        }
+        
+        // Initialize payment status system when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Payment status system initialized');
+            
+            // Handle payment status button clicks
+            document.querySelectorAll('.payment-status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectedPaymentStatus = this.dataset.status;
+                    console.log('Selected payment status:', selectedPaymentStatus);
+                    
+                    // Remove selected state from all buttons
+                    document.querySelectorAll('.payment-status-btn').forEach(b => {
+                        b.classList.remove('selected');
+                        b.style.opacity = '0.6';
+                        b.style.transform = 'scale(1)';
+                        b.style.boxShadow = 'none';
+                    });
+                    
+                    // Add selected state to clicked button
+                    this.classList.add('selected');
+                    this.style.opacity = '1';
+                    this.style.transform = 'scale(1.05)';
+                    this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                    
+                    // Show amount input for partial payments
+                    const amountSection = document.getElementById('paymentAmountSection');
+                    if (selectedPaymentStatus === 'partial') {
+                        amountSection.style.display = 'block';
+                        document.getElementById('paymentAmount').required = true;
+                    } else {
+                        amountSection.style.display = 'none';
+                        document.getElementById('paymentAmount').required = false;
+                        // Set default amounts
+                        if (selectedPaymentStatus === 'paid') {
+                            let amount = currentBookingData.total_amount || currentBookingData.total_price || currentBookingData.price || 0;
+                            document.getElementById('paymentAmount').value = amount;
+                        } else {
+                            document.getElementById('paymentAmount').value = 0;
+                        }
+                    }
+                    
+                    // Enable confirm button
+                    document.getElementById('confirmPaymentStatus').disabled = false;
+                });
+            });
+            
+            // Handle confirm button click
+            document.getElementById('confirmPaymentStatus').addEventListener('click', function() {
+                console.log('Confirm button clicked');
+                
+                if (!selectedPaymentStatus) {
+                    alert('Por favor seleccione un estado de pago.');
+                    return;
+                }
+                
+                let paidAmount = 0;
+                let totalAmount = currentBookingData.total_amount || currentBookingData.total_price || currentBookingData.price || 0;
+                
+                if (selectedPaymentStatus === 'paid') {
+                    paidAmount = totalAmount;
+                } else if (selectedPaymentStatus === 'partial') {
+                    const amountInput = document.getElementById('paymentAmount').value;
+                    if (!amountInput || amountInput <= 0) {
+                        alert('Por favor ingrese un monto válido para el pago parcial.');
+                        return;
+                    }
+                    paidAmount = parseFloat(amountInput);
+                } else if (selectedPaymentStatus === 'refunded') {
+                    paidAmount = totalAmount;
+                }
+                
+                const notes = document.getElementById('paymentNotes').value;
+                
+                // Confirmation
+                const statusText = {
+                    'paid': 'PAGADO COMPLETO',
+                    'pending': 'NO PAGADO', 
+                    'partial': 'PAGO PARCIAL',
+                    'refunded': 'REEMBOLSADO'
+                };
+                
+                const confirmation = confirm(
+                    `¿Cambiar estado a ${statusText[selectedPaymentStatus]}?\n\n` +
+                    `Reserva: #${currentBookingData.id}\n` +
+                    `Monto: $${parseFloat(paidAmount).toFixed(2)} USD (S/ ${(parseFloat(paidAmount) * 3.75).toFixed(2)} PEN)\n` +
+                    (notes ? `Notas: ${notes}` : '')
+                );
+                
+                if (confirmation) {
+                    console.log('Submitting payment status update...');
+                    // Create and submit form
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="update_payment_status" value="1">
+                        <input type="hidden" name="booking_id" value="${currentBookingData.id}">
+                        <input type="hidden" name="payment_status" value="${selectedPaymentStatus}">
+                        <input type="hidden" name="paid_amount" value="${paidAmount}">
+                        <input type="hidden" name="payment_notes" value="${notes}">
+                    `;
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+            
+            // Close modal when clicking outside
+            document.getElementById('paymentStatusModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closePaymentStatusModal();
+                }
+            });
+        });
+        
+        function markAsPaid() {
+            // Legacy function - redirect to new modal
+            console.log('markAsPaid called - redirecting to new modal');
+            openPaymentStatusModal();
         }
         
         function generateReceipt() {

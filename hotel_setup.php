@@ -19,6 +19,12 @@ $hotel = $hotelInfo->getHotelInfo();
 $services = $hotelInfo->getServices();
 $amenities = $hotelInfo->getAmenities();
 
+// Get email configuration
+$database = new Database();
+$conn = $database->getConnection();
+$stmt = $conn->query("SELECT * FROM email_config ORDER BY id DESC LIMIT 1");
+$emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_hotel_info'])) {
@@ -69,6 +75,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Amenity added successfully!";
             $messageType = 'success';
             $amenities = $hotelInfo->getAmenities();
+        }
+    }
+    
+    if (isset($_POST['update_email_config'])) {
+        try {
+            $userId = $_SESSION['user_id'] ?? null;
+            
+            if ($emailConfig) {
+                // Update existing config
+                $stmt = $conn->prepare("UPDATE email_config SET 
+                    smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?,
+                    from_email = ?, from_name = ?, reply_to = ?, is_enabled = ?,
+                    use_ssl = ?, use_tls = ?, updated_by = ?, updated_at = NOW()
+                    WHERE id = ?");
+                
+                $stmt->execute([
+                    $_POST['smtp_host'],
+                    $_POST['smtp_port'],
+                    $_POST['smtp_username'],
+                    $_POST['smtp_password'],
+                    $_POST['from_email'],
+                    $_POST['from_name'],
+                    $_POST['reply_to'],
+                    isset($_POST['is_enabled']) ? 1 : 0,
+                    isset($_POST['use_ssl']) ? 1 : 0,
+                    isset($_POST['use_tls']) ? 1 : 0,
+                    $userId,
+                    $emailConfig['id']
+                ]);
+            } else {
+                // Insert new config
+                $stmt = $conn->prepare("INSERT INTO email_config (
+                    smtp_host, smtp_port, smtp_username, smtp_password,
+                    from_email, from_name, reply_to, is_enabled,
+                    use_ssl, use_tls, updated_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                
+                $stmt->execute([
+                    $_POST['smtp_host'],
+                    $_POST['smtp_port'],
+                    $_POST['smtp_username'],
+                    $_POST['smtp_password'],
+                    $_POST['from_email'],
+                    $_POST['from_name'],
+                    $_POST['reply_to'],
+                    isset($_POST['is_enabled']) ? 1 : 0,
+                    isset($_POST['use_ssl']) ? 1 : 0,
+                    isset($_POST['use_tls']) ? 1 : 0,
+                    $userId
+                ]);
+            }
+            
+            $message = "Email configuration updated successfully!";
+            $messageType = 'success';
+            
+            // Refresh email config
+            $stmt = $conn->query("SELECT * FROM email_config ORDER BY id DESC LIMIT 1");
+            $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            $message = "Error updating email configuration: " . $e->getMessage();
+            $messageType = 'error';
         }
     }
 }
@@ -709,6 +777,147 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </form>
                 </div>
             </div>
+
+            <!-- Email Configuration -->
+            <div class="setup-section full-width-section">
+                <h2 class="section-title">📧 Email Configuration</h2>
+                <p style="margin-bottom: 1rem; color: #666;">Configure SMTP settings to send booking receipts and notifications to guests.</p>
+                
+                <?php if ($emailConfig && $emailConfig['is_enabled']): ?>
+                    <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        ✅ Email system is <strong>ENABLED</strong> and ready to send receipts
+                    </div>
+                <?php else: ?>
+                    <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        ⚠️ Email system is <strong>DISABLED</strong>. Configure and enable to start sending receipts
+                    </div>
+                <?php endif; ?>
+                
+                <form method="POST" class="hotel-form">
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">🔧 SMTP Server Settings</h3>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="smtp_host">SMTP Host *</label>
+                                <input type="text" id="smtp_host" name="smtp_host" 
+                                       value="<?php echo htmlspecialchars($emailConfig['smtp_host'] ?? 'smtp.gmail.com'); ?>" 
+                                       placeholder="smtp.gmail.com" required>
+                                <small>For Gmail: smtp.gmail.com | Outlook: smtp-mail.outlook.com</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="smtp_port">SMTP Port *</label>
+                                <input type="number" id="smtp_port" name="smtp_port" 
+                                       value="<?php echo $emailConfig['smtp_port'] ?? 587; ?>" 
+                                       placeholder="587" required>
+                                <small>Usually 587 (TLS) or 465 (SSL)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="smtp_username">SMTP Username (Email) *</label>
+                                <input type="email" id="smtp_username" name="smtp_username" 
+                                       value="<?php echo htmlspecialchars($emailConfig['smtp_username'] ?? ''); ?>" 
+                                       placeholder="your-email@gmail.com" required>
+                                <small>Your full email address</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="smtp_password">SMTP Password *</label>
+                                <input type="password" id="smtp_password" name="smtp_password" 
+                                       value="<?php echo htmlspecialchars($emailConfig['smtp_password'] ?? ''); ?>" 
+                                       placeholder="App Password" required>
+                                <small>For Gmail: Use App Password, not regular password</small>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 20px; margin-top: 15px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" name="use_tls" value="1" 
+                                       <?php echo ($emailConfig['use_tls'] ?? 1) ? 'checked' : ''; ?>>
+                                <span>Use TLS (Port 587)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" name="use_ssl" value="1" 
+                                       <?php echo ($emailConfig['use_ssl'] ?? 0) ? 'checked' : ''; ?>>
+                                <span>Use SSL (Port 465)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">✉️ Email Sender Information</h3>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="from_email">From Email *</label>
+                                <input type="email" id="from_email" name="from_email" 
+                                       value="<?php echo htmlspecialchars($emailConfig['from_email'] ?? 'reservas@ainihotel.com'); ?>" 
+                                       placeholder="reservas@ainihotel.com" required>
+                                <small>Email address that appears as sender</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="from_name">From Name *</label>
+                                <input type="text" id="from_name" name="from_name" 
+                                       value="<?php echo htmlspecialchars($emailConfig['from_name'] ?? 'AiNi Hotel'); ?>" 
+                                       placeholder="AiNi Hotel" required>
+                                <small>Name that appears as sender</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reply_to">Reply-To Email *</label>
+                            <input type="email" id="reply_to" name="reply_to" 
+                                   value="<?php echo htmlspecialchars($emailConfig['reply_to'] ?? 'reservas@ainihotel.com'); ?>" 
+                                   placeholder="reservas@ainihotel.com" required>
+                            <small>Email address for guest replies</small>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">📘 Setup Instructions</h3>
+                        
+                        <div style="line-height: 1.8;">
+                            <strong>For Gmail:</strong>
+                            <ol style="margin: 10px 0 20px 20px;">
+                                <li>Enable 2-Factor Authentication on your Google account</li>
+                                <li>Go to: Google Account → Security → App passwords</li>
+                                <li>Generate an app password for "Mail"</li>
+                                <li>Use that 16-character password in "SMTP Password" field above</li>
+                                <li>Set Host: smtp.gmail.com, Port: 587, Enable TLS</li>
+                            </ol>
+                            
+                            <strong>For Outlook/Hotmail:</strong>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>Host: smtp-mail.outlook.com, Port: 587</li>
+                                <li>Use your regular Outlook password</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px; background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 1.1em;">
+                            <input type="checkbox" name="is_enabled" value="1" 
+                                   <?php echo ($emailConfig['is_enabled'] ?? 0) ? 'checked' : ''; ?>
+                                   style="width: 20px; height: 20px; cursor: pointer;">
+                            <strong>Enable Email System</strong>
+                        </label>
+                        <span style="color: #666;">(Check this to start sending receipts to guests)</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button type="submit" name="update_email_config" class="btn" style="background: #28a745;">
+                            💾 Save Email Configuration
+                        </button>
+                        <a href="test_email.php" class="btn" style="background: #17a2b8; text-decoration: none; display: inline-block;" target="_blank">
+                            📧 Test Email System
+                        </a>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div style="text-align: center; margin-top: 2rem;">
@@ -722,3 +931,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+```

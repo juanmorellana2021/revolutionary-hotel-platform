@@ -1,5 +1,14 @@
 <?php
+// Load Composer autoload
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 require_once __DIR__ . '/../config/EmailConfig.php';
+require_once __DIR__ . '/ReceiptPDFGenerator.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class ReceiptEmailSender {
     private $config;
@@ -22,11 +31,42 @@ class ReceiptEmailSender {
             return ['success' => false, 'message' => 'No email address available'];
         }
         
-        $subject = 'Booking Receipt - ' . $booking['booking_reference'];
+        // Validate email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'message' => 'Invalid email address: ' . $email];
+        }
+        
+        $subject = 'Booking Receipt - ' . $booking['booking_reference'] . ' - AiNi Hotel';
         $htmlContent = $this->generateEmailHTML($booking);
         $textContent = $this->generateEmailText($booking);
         
-        return $this->sendEmail($email, $subject, $htmlContent, $textContent);
+        // Generate PDF for attachment
+        $pdfAttachment = $this->generatePDFAttachment($booking);
+        
+        return $this->sendEmail($email, $subject, $htmlContent, $textContent, $pdfAttachment);
+    }
+    
+    private function generatePDFAttachment($booking) {
+        try {
+            $pdfGenerator = new ReceiptPDFGenerator($booking);
+            
+            // Get PDF content as string
+            $pdfContent = $pdfGenerator->getPDFContent();
+            
+            if (!$pdfContent) {
+                error_log("PDF content is empty for booking: " . $booking['id']);
+                return null;
+            }
+            
+            return [
+                'content' => $pdfContent,
+                'filename' => 'receipt-' . $booking['booking_reference'] . '.pdf',
+                'type' => 'application/pdf'
+            ];
+        } catch (Exception $e) {
+            error_log("PDF Generation Error for email: " . $e->getMessage());
+            return null;
+        }
     }
     
     private function generateEmailHTML($booking) {
@@ -219,10 +259,58 @@ class ReceiptEmailSender {
         return $text;
     }
     
-    private function sendEmail($to, $subject, $htmlContent, $textContent) {
-        // Using PHP's built-in mail() function with proper headers
-        // For production, consider using PHPMailer or similar library
-        
+    private function sendEmail($to, $subject, $htmlContent, $textContent, $pdfAttachment = null) {
+        try {
+            // Check if PHPMailer is available
+            if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+                return $this->sendEmailFallback($to, $subject, $htmlContent);
+            }
+            
+            $mail = new PHPMailer(true);
+            
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = $this->config['host'];
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $this->config['username'];
+            $mail->Password   = $this->config['password'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = $this->config['port'];
+            $mail->CharSet    = 'UTF-8';
+            
+            // Recipients
+            $mail->setFrom($this->config['from_email'], $this->config['from_name']);
+            $mail->addAddress($to);
+            $mail->addReplyTo($this->config['reply_to'], $this->config['from_name']);
+            
+            // Attach PDF if available
+            if ($pdfAttachment && isset($pdfAttachment['content'])) {
+                $mail->addStringAttachment(
+                    $pdfAttachment['content'],
+                    $pdfAttachment['filename'],
+                    'base64',
+                    $pdfAttachment['type']
+                );
+            }
+            
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $htmlContent;
+            $mail->AltBody = $textContent;
+            
+            $mail->send();
+            
+            return ['success' => true, 'message' => 'Receipt sent successfully to ' . $to];
+            
+        } catch (Exception $e) {
+            error_log("PHPMailer Error: " . $mail->ErrorInfo);
+            return ['success' => false, 'message' => 'Failed to send email: ' . $mail->ErrorInfo];
+        }
+    }
+    
+    private function sendEmailFallback($to, $subject, $htmlContent) {
+        // Fallback to PHP mail() function
         $headers = [];
         $headers[] = 'MIME-Version: 1.0';
         $headers[] = 'Content-type: text/html; charset=UTF-8';
@@ -233,9 +321,9 @@ class ReceiptEmailSender {
         $success = mail($to, $subject, $htmlContent, implode("\r\n", $headers));
         
         if ($success) {
-            return ['success' => true, 'message' => 'Receipt sent successfully to ' . $to];
+            return ['success' => true, 'message' => 'Receipt sent successfully to ' . $to . ' (without PDF attachment - PHPMailer not available)'];
         } else {
-            return ['success' => false, 'message' => 'Failed to send email. Please check your mail server configuration in config/EmailConfig.php'];
+            return ['success' => false, 'message' => 'Failed to send email. Please check your mail server configuration.'];
         }
     }
 

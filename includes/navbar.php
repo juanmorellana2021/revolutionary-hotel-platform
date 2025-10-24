@@ -71,6 +71,7 @@ $isManager = ($userRole === 'manager' || $userRole === 'admin');
                             <li><a class="dropdown-item" href="hotelcoin_admin.php"><i class="bi bi-currency-bitcoin me-2"></i>HotelCoin Admin</a></li>
                             <li><a class="dropdown-item" href="wallet.php"><i class="bi bi-wallet2 me-2"></i>Loyalty System</a></li>
                             <li><a class="dropdown-item" href="whatsapp_management.php"><i class="bi bi-whatsapp me-2"></i>WhatsApp</a></li>
+                            <li><a class="dropdown-item" href="whatsapp-bot-enhanced/whatsapp_bot_admin.php"><i class="fab fa-whatsapp me-2"></i>Bot WhatsApp</a></li>
                         </ul>
                     </li>
                 <?php else: ?>
