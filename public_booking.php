@@ -736,53 +736,7 @@
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features">
-        <div class="container">
-            <h2>🌟 Why Choose AiNi Travel?</h2>
-            <p class="features-subtitle">The world's first platform combining hotel booking, social travel, and digital rewards</p>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <span class="feature-icon">📱</span>
-                    <h3>WhatsApp Booking</h3>
-                    <p>Book hotels directly through WhatsApp chat. No apps to download, just natural conversation with our AI assistant.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">🪙</span>
-                    <h3>Earn AiNi Coins</h3>
-                    <p>Get rewarded with AiNi coins for every booking. Use them for future stays, upgrades, and exclusive experiences.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">🌍</span>
-                    <h3>Social Travel Network</h3>
-                    <p>Connect with fellow travelers, join meetups, share experiences, and discover hidden gems together.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">🤖</span>
-                    <h3>AI Travel Assistant</h3>
-                    <p>Get personalized recommendations, instant support, and smart travel planning powered by advanced AI.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">💰</span>
-                    <h3>Best Price Guarantee</h3>
-                    <p>We offer the lowest rates plus AiNi coin rewards. Find a better price? We'll match it and give you extra coins.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">🌟</span>
-                    <h3>Exclusive Experiences</h3>
-                    <p>Access member-only deals, room upgrades, and unique local experiences you won't find anywhere else.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Hotels Section with Map -->
+    <!-- Propiedades Disponibles Section -->
     <section class="hotels-section" id="hotels">
         <div class="container">
             <div class="section-header">
@@ -829,6 +783,52 @@
                         <div class="spinner"></div>
                         Cargando hoteles increíbles para ti...
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>🌟 Why Choose AiNi Travel?</h2>
+            <p class="features-subtitle">The world's first platform combining hotel booking, social travel, and digital rewards</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">📱</span>
+                    <h3>WhatsApp Booking</h3>
+                    <p>Book hotels directly through WhatsApp chat. No apps to download, just natural conversation with our AI assistant.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🪙</span>
+                    <h3>Earn AiNi Coins</h3>
+                    <p>Get rewarded with AiNi coins for every booking. Use them for future stays, upgrades, and exclusive experiences.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🌍</span>
+                    <h3>Social Travel Network</h3>
+                    <p>Connect with fellow travelers, join meetups, share experiences, and discover hidden gems together.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🤖</span>
+                    <h3>AI Travel Assistant</h3>
+                    <p>Get personalized recommendations, instant support, and smart travel planning powered by advanced AI.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">💰</span>
+                    <h3>Best Price Guarantee</h3>
+                    <p>We offer the lowest rates plus AiNi coin rewards. Find a better price? We'll match it and give you extra coins.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🌟</span>
+                    <h3>Exclusive Experiences</h3>
+                    <p>Access member-only deals, room upgrades, and unique local experiences you won't find anywhere else.</p>
                 </div>
             </div>
         </div>
