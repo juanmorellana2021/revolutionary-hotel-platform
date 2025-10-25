@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AiNi Travel - Revolutionary Hotel Booking with AI & WhatsApp</title>
+    <title>AiNi Travel - Reserva Revolucionaria de Hoteles con IA & WhatsApp</title>
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
         * {
             margin: 0;
@@ -295,6 +299,108 @@
             gap: 2rem;
         }
 
+        /* View Toggle Styles */
+        .view-toggle {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .view-btn {
+            padding: 12px 30px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .view-btn:hover,
+        .view-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Map Container Styles */
+        .map-container {
+            margin-bottom: 3rem;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .map-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            height: 600px;
+        }
+
+        .hotel-map {
+            background: #f8f9fa;
+            position: relative;
+        }
+
+        .map-sidebar {
+            background: white;
+            padding: 2rem;
+            overflow-y: auto;
+            border-left: 1px solid #e9ecef;
+        }
+
+        .map-sidebar h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .map-info {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .map-hotel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .map-hotel-item {
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .map-hotel-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .map-hotel-item.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .map-hotel-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+
+        .map-hotel-price {
+            color: #667eea;
+            font-weight: 700;
+        }
+
         .hotel-card {
             background: white;
             border-radius: 20px;
@@ -531,6 +637,21 @@
             .hotels-grid {
                 grid-template-columns: 1fr;
             }
+
+            .map-wrapper {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .hotel-map {
+                height: 400px;
+            }
+
+            .map-sidebar {
+                border-left: none;
+                border-top: 1px solid #e9ecef;
+                max-height: 400px;
+            }
         }
 
         .loading {
@@ -552,6 +673,11 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+            50% { transform: scale(1.02); box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3); }
         }
     </style>
 </head>
@@ -656,29 +782,53 @@
         </div>
     </section>
 
-    <!-- Hotels Section -->
+    <!-- Hotels Section with Map -->
     <section class="hotels-section" id="hotels">
         <div class="container">
             <div class="section-header">
-                <h2>🏨 Featured Hotels</h2>
-                <p>Discover amazing properties and earn AiNi coins with every stay</p>
+                <h2>🏨 Propiedades Disponibles</h2>
+                <p>Descubre increíbles hoteles y gana monedas AiNi con cada estadía</p>
             </div>
             
             <!-- Filters -->
             <div class="filters">
-                <button class="filter-btn active" onclick="filterHotels('all')">All Hotels</button>
-                <button class="filter-btn" onclick="filterHotels('luxury')">🌟 Luxury</button>
-                <button class="filter-btn" onclick="filterHotels('budget')">💰 Budget</button>
-                <button class="filter-btn" onclick="filterHotels('business')">💼 Business</button>
-                <button class="filter-btn" onclick="filterHotels('family')">👨‍👩‍👧‍👦 Family</button>
-                <button class="filter-btn" onclick="filterHotels('beach')">🏖️ Beach</button>
+                <button class="filter-btn active" onclick="filterHotels('all')">Todos</button>
+                <button class="filter-btn" onclick="filterHotels('luxury')">🌟 Lujo</button>
+                <button class="filter-btn" onclick="filterHotels('budget')">💰 Económico</button>
+                <button class="filter-btn" onclick="filterHotels('business')">💼 Negocios</button>
+                <button class="filter-btn" onclick="filterHotels('family')">👨‍👩‍👧‍👦 Familiar</button>
+                <button class="filter-btn" onclick="filterHotels('beach')">🏖️ Playa</button>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="toggleView('list')">
+                    📋 Vista Lista
+                </button>
+                <button class="view-btn" onclick="toggleView('map')">
+                    🗺️ Vista Mapa
+                </button>
+            </div>
+
+            <!-- Map Section -->
+            <div class="map-container" id="mapContainer" style="display: none;">
+                <div class="map-wrapper">
+                    <div id="hotelMap" class="hotel-map"></div>
+                    <div class="map-sidebar">
+                        <h3>📍 Hoteles en el Mapa</h3>
+                        <p class="map-info">Haz clic en los marcadores para ver detalles</p>
+                        <div id="mapHotelList" class="map-hotel-list"></div>
+                    </div>
+                </div>
             </div>
             
-            <!-- Hotels Grid -->
-            <div class="hotels-grid" id="hotelsGrid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading amazing hotels for you...
+            <!-- Hotels List View -->
+            <div class="hotels-list-view" id="listContainer">
+                <div class="hotels-grid" id="hotelsGrid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Cargando hoteles increíbles para ti...
+                    </div>
                 </div>
             </div>
         </div>
@@ -762,7 +912,14 @@
         </div>
     </footer>
 
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
+        let hotelMap = null;
+        let hotelMarkers = [];
+        let allHotels = [];
+        
         // Set default dates
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
@@ -824,7 +981,10 @@
                                 price: 180,
                                 amenities: ["Ocean View", "Pool", "WiFi", "Spa"],
                                 aini_reward: 36,
-                                category: "luxury beach"
+                                category: "luxury beach",
+                                latitude: 25.7907,
+                                longitude: -80.1300,
+                                stars: "⭐⭐⭐⭐⭐"
                             },
                             {
                                 hotel_id: 2,
@@ -835,7 +995,10 @@
                                 price: 220,
                                 amenities: ["Business Center", "Gym", "WiFi", "Restaurant"],
                                 aini_reward: 44,
-                                category: "business luxury"
+                                category: "business luxury",
+                                latitude: 40.7580,
+                                longitude: -73.9855,
+                                stars: "⭐⭐⭐⭐⭐"
                             },
                             {
                                 hotel_id: 3,
@@ -846,7 +1009,52 @@
                                 price: 85,
                                 amenities: ["WiFi", "Parking", "Breakfast"],
                                 aini_reward: 17,
-                                category: "budget"
+                                category: "budget",
+                                latitude: 30.2672,
+                                longitude: -97.7431,
+                                stars: "⭐⭐⭐⭐"
+                            },
+                            {
+                                hotel_id: 4,
+                                name: "Family Paradise Resort",
+                                location: "Orlando, FL",
+                                image_emoji: "👨‍👩‍👧‍👦",
+                                avg_rating: 4.7,
+                                price: 195,
+                                amenities: ["Kids Club", "Pool", "Theme Park Shuttle", "Restaurant"],
+                                aini_reward: 39,
+                                category: "family luxury",
+                                latitude: 28.3852,
+                                longitude: -81.5639,
+                                stars: "⭐⭐⭐⭐⭐"
+                            },
+                            {
+                                hotel_id: 5,
+                                name: "Beachfront Paradise",
+                                location: "Cancún, México",
+                                image_emoji: "🌴",
+                                avg_rating: 4.9,
+                                price: 250,
+                                amenities: ["All-Inclusive", "Beach Access", "Spa", "Multiple Pools"],
+                                aini_reward: 50,
+                                category: "luxury beach",
+                                latitude: 21.1619,
+                                longitude: -86.8515,
+                                stars: "⭐⭐⭐⭐⭐"
+                            },
+                            {
+                                hotel_id: 6,
+                                name: "Eco Lodge Retreat",
+                                location: "San José, Costa Rica",
+                                image_emoji: "🌿",
+                                avg_rating: 4.5,
+                                price: 120,
+                                amenities: ["Nature Tours", "Organic Restaurant", "WiFi", "Yoga"],
+                                aini_reward: 24,
+                                category: "budget",
+                                latitude: 9.9281,
+                                longitude: -84.0907,
+                                stars: "⭐⭐⭐⭐"
                             }
                         ];
                         displayHotels(sampleHotels);
@@ -944,6 +1152,9 @@
         }
 
         function displayHotels(hotels) {
+            // Store hotels globally for map view
+            allHotels = hotels;
+            
             const grid = document.getElementById('hotelsGrid');
             grid.innerHTML = hotels.map(hotel => `
                 <div class="hotel-card" data-category="${hotel.category}">
@@ -1064,6 +1275,118 @@
                 }
             });
         });
+
+        // Toggle between list and map view
+        function toggleView(view) {
+            const listContainer = document.getElementById('listContainer');
+            const mapContainer = document.getElementById('mapContainer');
+            const viewBtns = document.querySelectorAll('.view-btn');
+            
+            viewBtns.forEach(btn => btn.classList.remove('active'));
+            
+            if (view === 'map') {
+                listContainer.style.display = 'none';
+                mapContainer.style.display = 'block';
+                document.querySelector('.view-btn:nth-child(2)').classList.add('active');
+                
+                // Initialize map if not already done
+                if (!hotelMap) {
+                    initializeMap();
+                }
+                updateMapMarkers();
+            } else {
+                listContainer.style.display = 'block';
+                mapContainer.style.display = 'none';
+                document.querySelector('.view-btn:nth-child(1)').classList.add('active');
+            }
+        }
+
+        // Initialize the map
+        function initializeMap() {
+            hotelMap = L.map('hotelMap').setView([25.7617, -80.1918], 12); // Default to Miami
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(hotelMap);
+        }
+
+        // Update map markers with hotels
+        function updateMapMarkers() {
+            if (!hotelMap) return;
+            
+            // Clear existing markers
+            hotelMarkers.forEach(marker => hotelMap.removeLayer(marker));
+            hotelMarkers = [];
+            
+            const mapHotelList = document.getElementById('mapHotelList');
+            mapHotelList.innerHTML = '';
+            
+            // Add markers for each hotel
+            allHotels.forEach((hotel, index) => {
+                if (hotel.latitude && hotel.longitude) {
+                    // Create marker
+                    const marker = L.marker([hotel.latitude, hotel.longitude])
+                        .addTo(hotelMap)
+                        .bindPopup(`
+                            <div style="min-width: 200px;">
+                                <h4 style="margin: 0 0 8px 0;">${hotel.name}</h4>
+                                <p style="margin: 0 0 8px 0; color: #666;">${hotel.location}</p>
+                                <p style="margin: 0; color: #667eea; font-weight: 700;">$${hotel.price}/noche</p>
+                                <button onclick="scrollToHotel(${index})" 
+                                    style="margin-top: 10px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    Ver Detalles
+                                </button>
+                            </div>
+                        `);
+                    
+                    hotelMarkers.push(marker);
+                    
+                    // Add to sidebar list
+                    const listItem = document.createElement('div');
+                    listItem.className = 'map-hotel-item';
+                    listItem.innerHTML = `
+                        <div class="map-hotel-name">${hotel.name}</div>
+                        <div style="color: #666; font-size: 0.9rem; margin: 0.3rem 0;">
+                            <span style="margin-right: 0.5rem;">${hotel.stars}</span>
+                            ${hotel.location}
+                        </div>
+                        <div class="map-hotel-price">$${hotel.price}/noche</div>
+                    `;
+                    
+                    listItem.addEventListener('click', () => {
+                        hotelMap.setView([hotel.latitude, hotel.longitude], 15);
+                        marker.openPopup();
+                        
+                        // Highlight this item
+                        document.querySelectorAll('.map-hotel-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        listItem.classList.add('active');
+                    });
+                    
+                    mapHotelList.appendChild(listItem);
+                }
+            });
+            
+            // Fit map to show all markers
+            if (hotelMarkers.length > 0) {
+                const group = new L.featureGroup(hotelMarkers);
+                hotelMap.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // Scroll to hotel in list view
+        function scrollToHotel(index) {
+            toggleView('list');
+            setTimeout(() => {
+                const hotelCards = document.querySelectorAll('.hotel-card');
+                if (hotelCards[index]) {
+                    hotelCards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    hotelCards[index].style.animation = 'pulse 0.5s';
+                }
+            }, 300);
+        }
     </script>
 </body>
 </html>
