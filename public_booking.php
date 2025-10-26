@@ -3,22 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AiNi Travel - Reserva Revolucionaria de Hoteles con IA & WhatsApp</title>
+    <title>AiNi Travel - Encuentra tu Hotel Perfecto</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
     <!-- Leaflet CSS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
+                    }
+                }
+            }
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
+    </script>
+    
+    <style>
+        /* Minimal custom CSS for map */
+        .hotel-map {
+            height: 100%;
+            min-height: 500px;
+        }
+        
+        .hotel-list-scroll {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        /* Smooth scrollbar */
+        .hotel-list-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .hotel-list-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .hotel-list-scroll::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+        
+        .hotel-list-scroll::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
             padding-top: 110px; /* Space for fixed header */
         }
 
@@ -764,22 +802,167 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50">
+    
     <!-- Split Menu Header -->
-    <header class="header">
-        <div class="header-top">
-            <div class="logo">
-                🪙 AiNi Travel
-            </div>
-            <div class="header-icons">
-                <div class="language-selector">
-                    <button class="icon-btn">🌐 ES</button>
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+        <!-- Top Bar -->
+        <div class="border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <!-- Logo -->
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            🪙 AiNi Travel
+                        </span>
+                    </div>
+                    
+                    <!-- Header Icons -->
+                    <div class="flex items-center space-x-3">
+                        <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-semibold transition">
+                            🌐 ES
+                        </button>
+                        <button class="relative px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition">
+                            🔔
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                        <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition">
+                            👤
+                        </button>
+                    </div>
                 </div>
-                <button class="icon-btn notification-btn">
-                    🔔
-                    <span class="notification-badge">3</span>
-                </button>
-                <button class="icon-btn profile-btn">
+            </div>
+        </div>
+        
+        <!-- Navigation Bar -->
+        <div class="bg-gradient-to-r from-primary to-secondary">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex items-center justify-center space-x-8 h-12">
+                    <a href="#hotels" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
+                        🏨 Hotels
+                    </a>
+                    <span class="text-white/50">•</span>
+                    <a href="#experiences" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
+                        🎯 Experiences
+                    </a>
+                    <span class="text-white/50">•</span>
+                    <a href="travel_social.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
+                        � Social
+                    </a>
+                    <span class="text-white/50">•</span>
+                    <a href="wallet.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
+                        🪙 Coins
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content - ONE SCREEN SPLIT VIEW -->
+    <main class="pt-28 h-screen flex flex-col">
+        
+        <!-- Search Bar (Compact at top) -->
+        <div class="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1 relative">
+                        <input 
+                            type="text" 
+                            id="searchDestination" 
+                            placeholder="🔍 ¿A dónde quieres ir?" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        />
+                    </div>
+                    <input 
+                        type="date" 
+                        id="searchCheckin"
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    <input 
+                        type="date" 
+                        id="searchCheckout"
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    <select 
+                        id="searchGuests"
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                        <option>1 Guest</option>
+                        <option>2 Guests</option>
+                        <option>3 Guests</option>
+                        <option>4 Guests</option>
+                        <option>5+ Guests</option>
+                    </select>
+                    <button 
+                        onclick="searchHotels()" 
+                        class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:opacity-90 transition font-semibold"
+                    >
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPLIT SCREEN: Map Left / Hotels Right -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- LEFT: Interactive Map -->
+            <div class="w-1/2 bg-gray-100 relative">
+                <div id="hotelMap" class="hotel-map"></div>
+                
+                <!-- Map Controls -->
+                <div class="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3">
+                    <div class="text-sm font-semibold text-gray-700 mb-2">📍 Filtros</div>
+                    <div class="space-y-2">
+                        <button onclick="filterByCategory('all')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn active-filter">
+                            ✨ Todos
+                        </button>
+                        <button onclick="filterByCategory('luxury')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
+                            ⭐ Lujo
+                        </button>
+                        <button onclick="filterByCategory('budget')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
+                            💰 Económico
+                        </button>
+                        <button onclick="filterByCategory('beach')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
+                            🏖️ Playa
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RIGHT: Hotels List -->
+            <div class="w-1/2 bg-white">
+                <div class="hotel-list-scroll p-6">
+                    
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">🏨 Propiedades Disponibles</h2>
+                        <p class="text-gray-600" id="hotelCount">Cargando hoteles...</p>
+                    </div>
+                    
+                    <!-- Hotels Grid -->
+                    <div id="hotelsList" class="space-y-4">
+                        <!-- Loading -->
+                        <div class="text-center py-12">
+                            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-primary"></div>
+                            <p class="mt-4 text-gray-600">Cargando hoteles increíbles...</p>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+        </div>
+        
+    </main>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="https://wa.me/1234567890" 
+       class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition z-50">
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+    </a>
                     👤
                 </button>
             </div>
@@ -1004,11 +1187,7 @@
                 <a href="travel_social.php">🌍 Social Network</a>
             </div>
         </div>
-        
-        <div class="footer-bottom">
-            <p>&copy; 2025 AiNi Travel Platform. All rights reserved. | Revolutionary Hotel Booking with AI & Social Features</p>
-        </div>
-    </footer>
+    </a>
 
     <!-- Leaflet JavaScript -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1018,390 +1197,25 @@
         let hotelMarkers = [];
         let allHotels = [];
         
-        // Set default dates
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize on page load
+        $(document).ready(function() {
+            // Set default dates
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             
-            document.getElementById('checkin').value = today.toISOString().split('T')[0];
-            document.getElementById('checkout').value = tomorrow.toISOString().split('T')[0];
+            $('#searchCheckin').val(today.toISOString().split('T')[0]);
+            $('#searchCheckout').val(tomorrow.toISOString().split('T')[0]);
+            
+            // Initialize map
+            initializeMap();
             
             // Load hotels
-            loadFeaturedHotels();
+            loadHotels();
         });
 
-        function searchHotels() {
-            const destination = document.getElementById('destination').value;
-            const checkin = document.getElementById('checkin').value;
-            const checkout = document.getElementById('checkout').value;
-            const guests = document.getElementById('guests').value;
-            
-            if (!destination) {
-                alert('Please enter a destination');
-                return;
-            }
-            
-            if (!checkin || !checkout) {
-                alert('Please select check-in and check-out dates');
-                return;
-            }
-            
-            // Show loading
-            document.getElementById('hotelsGrid').innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Searching hotels in ${destination}...
-                </div>
-            `;
-            
-            // Simulate search (replace with actual API call)
-            setTimeout(() => {
-                loadHotelsForDestination(destination, checkin, checkout, guests);
-            }, 1500);
-        }
-
-        function loadFeaturedHotels() {
-            fetch('public_booking_api.php?action=get_featured_hotels')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayHotels(data.hotels);
-                    } else {
-                        // Fallback to sample data if API fails
-                        const sampleHotels = [
-                            {
-                                hotel_id: 1,
-                                name: "Ocean View Resort",
-                                location: "Miami Beach, FL",
-                                image_emoji: "🏖️",
-                                avg_rating: 4.8,
-                                price: 180,
-                                amenities: ["Ocean View", "Pool", "WiFi", "Spa"],
-                                aini_reward: 36,
-                                category: "luxury beach",
-                                latitude: 25.7907,
-                                longitude: -80.1300,
-                                stars: "⭐⭐⭐⭐⭐"
-                            },
-                            {
-                                hotel_id: 2,
-                                name: "Downtown Business Hotel",  
-                                location: "New York, NY",
-                                image_emoji: "🏙️",
-                                avg_rating: 4.6,
-                                price: 220,
-                                amenities: ["Business Center", "Gym", "WiFi", "Restaurant"],
-                                aini_reward: 44,
-                                category: "business luxury",
-                                latitude: 40.7580,
-                                longitude: -73.9855,
-                                stars: "⭐⭐⭐⭐⭐"
-                            },
-                            {
-                                hotel_id: 3,
-                                name: "Budget Traveler Inn",
-                                location: "Austin, TX", 
-                                image_emoji: "🏨",
-                                avg_rating: 4.3,
-                                price: 85,
-                                amenities: ["WiFi", "Parking", "Breakfast"],
-                                aini_reward: 17,
-                                category: "budget",
-                                latitude: 30.2672,
-                                longitude: -97.7431,
-                                stars: "⭐⭐⭐⭐"
-                            },
-                            {
-                                hotel_id: 4,
-                                name: "Family Paradise Resort",
-                                location: "Orlando, FL",
-                                image_emoji: "👨‍👩‍👧‍👦",
-                                avg_rating: 4.7,
-                                price: 195,
-                                amenities: ["Kids Club", "Pool", "Theme Park Shuttle", "Restaurant"],
-                                aini_reward: 39,
-                                category: "family luxury",
-                                latitude: 28.3852,
-                                longitude: -81.5639,
-                                stars: "⭐⭐⭐⭐⭐"
-                            },
-                            {
-                                hotel_id: 5,
-                                name: "Beachfront Paradise",
-                                location: "Cancún, México",
-                                image_emoji: "🌴",
-                                avg_rating: 4.9,
-                                price: 250,
-                                amenities: ["All-Inclusive", "Beach Access", "Spa", "Multiple Pools"],
-                                aini_reward: 50,
-                                category: "luxury beach",
-                                latitude: 21.1619,
-                                longitude: -86.8515,
-                                stars: "⭐⭐⭐⭐⭐"
-                            },
-                            {
-                                hotel_id: 6,
-                                name: "Eco Lodge Retreat",
-                                location: "San José, Costa Rica",
-                                image_emoji: "🌿",
-                                avg_rating: 4.5,
-                                price: 120,
-                                amenities: ["Nature Tours", "Organic Restaurant", "WiFi", "Yoga"],
-                                aini_reward: 24,
-                                category: "budget",
-                                latitude: 9.9281,
-                                longitude: -84.0907,
-                                stars: "⭐⭐⭐⭐"
-                            }
-                        ];
-                        displayHotels(sampleHotels);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading hotels:', error);
-                    // Fallback to sample data
-                    const sampleHotels = [
-                        {
-                            hotel_id: 1,
-                            name: "Sample Hotel Resort",
-                            location: "Demo City, State",
-                            image_emoji: "�",
-                            avg_rating: 4.5,
-                            price: 150,
-                            amenities: ["WiFi", "Pool", "Restaurant"],
-                            aini_reward: 30,
-                            category: "luxury"
-                        }
-                    ];
-                    displayHotels(sampleHotels);
-                });
-        }
-
-        function loadHotelsForDestination(destination, checkin, checkout, guests) {
-            const params = new URLSearchParams({
-                action: 'search_hotels',
-                destination: destination,
-                check_in: checkin,
-                check_out: checkout,
-                guests: guests
-            });
-            
-            fetch(`public_booking_api.php?${params}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displaySearchResults(data.hotels);
-                    } else {
-                        document.getElementById('hotelsGrid').innerHTML = `
-                            <div class="loading">
-                                <p>No hotels found for "${destination}". Try a different destination or dates.</p>
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error searching hotels:', error);
-                    document.getElementById('hotelsGrid').innerHTML = `
-                        <div class="loading">
-                            <p>Search temporarily unavailable. Please try again later.</p>
-                        </div>
-                    `;
-                });
-        }
-        
-        function displaySearchResults(hotels) {
-            if (hotels.length === 0) {
-                document.getElementById('hotelsGrid').innerHTML = `
-                    <div class="loading">
-                        <p>No hotels found for your search criteria. Try different dates or destination.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            displayHotels(hotels.map(hotel => ({
-                hotel_id: hotel.hotel_id,
-                name: hotel.name,
-                location: hotel.location,
-                image_emoji: getHotelEmoji(hotel.category),
-                avg_rating: hotel.avg_rating,
-                price: hotel.min_price,
-                amenities: hotel.amenities.slice(0, 4),
-                aini_reward: hotel.aini_reward,
-                category: hotel.category,
-                whatsapp_number: hotel.whatsapp_number,
-                available: hotel.available,
-                whatsapp_booking_url: hotel.whatsapp_booking_url
-            })));
-        }
-        
-        function getHotelEmoji(category) {
-            const emojis = {
-                'luxury': '🌟',
-                'beach': '🏖️',
-                'business': '🏙️',
-                'family': '🎡',
-                'budget': '🏠',
-                'resort': '🏖️',
-                'boutique': '🏛️'
-            };
-            return emojis[category] || '🏨';
-        }
-
-        function displayHotels(hotels) {
-            // Store hotels globally for map view
-            allHotels = hotels;
-            
-            const grid = document.getElementById('hotelsGrid');
-            grid.innerHTML = hotels.map(hotel => `
-                <div class="hotel-card" data-category="${hotel.category}">
-                    <div class="hotel-image">
-                        ${hotel.image_emoji || getHotelEmoji(hotel.category)}
-                        <div class="hotel-badge">⭐ ${hotel.avg_rating || hotel.rating || 4.5}</div>
-                        ${hotel.available === false ? '<div class="hotel-badge" style="background: #ff5722; left: 15px; right: auto;">Not Available</div>' : ''}
-                    </div>
-                    <div class="hotel-info">
-                        <h3>${hotel.name}</h3>
-                        <div class="hotel-location">
-                            📍 ${hotel.location}
-                        </div>
-                        <div class="hotel-features">
-                            ${(hotel.amenities || hotel.features || []).map(feature => `<span class="feature-tag">${feature}</span>`).join('')}
-                        </div>
-                        <div class="hotel-pricing">
-                            <div class="price-info">
-                                <div class="price">$${hotel.price || hotel.min_price}</div>
-                                <div class="price-note">per night</div>
-                            </div>
-                            <div class="aini-reward">
-                                🪙 ${hotel.aini_reward || hotel.ainiReward} AiNi
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <button class="book-btn" style="flex: 1;" 
-                                    onclick="bookHotel(${hotel.hotel_id || hotel.id}, '${hotel.name}', '${hotel.whatsapp_number || ''}', '${hotel.whatsapp_booking_url || ''}')"
-                                    ${hotel.available === false ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                                📱 ${hotel.available === false ? 'Not Available' : 'Book Now'}
-                            </button>
-                            <button class="book-btn" style="background: #6c757d; flex: 0 0 auto; padding: 12px;" 
-                                    onclick="viewHotelDetails(${hotel.hotel_id || hotel.id})"
-                                    title="View Details">
-                                👁️
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function filterHotels(category) {
-            // Update active filter button
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const cards = document.querySelectorAll('.hotel-card');
-            cards.forEach(card => {
-                if (category === 'all' || card.dataset.category.includes(category)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        function bookHotel(hotelId, hotelName, whatsappNumber = '', whatsappUrl = '') {
-            const checkin = document.getElementById('checkin').value;
-            const checkout = document.getElementById('checkout').value;
-            const guests = document.getElementById('guests').value;
-            
-            // Use provided WhatsApp URL if available, otherwise construct one
-            if (whatsappUrl) {
-                window.open(whatsappUrl, '_blank');
-                return;
-            }
-            
-            const phoneNumber = whatsappNumber || '1234567890'; // Fallback number
-            const message = `Hi! 🏨 I'd like to book ${hotelName}`;
-            const dateMessage = checkin && checkout ? ` from ${checkin} to ${checkout} for ${guests}` : '';
-            const fullMessage = `${message}${dateMessage}. Can you help me with the booking and AiNi coin rewards? 🪙`;
-            const encodedMessage = encodeURIComponent(fullMessage);
-            
-            // Open WhatsApp with pre-filled message
-            window.open(`https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}?text=${encodedMessage}`, '_blank');
-            
-            // Track booking attempt
-            trackBookingAttempt(hotelId, hotelName);
-        }
-        
-        function trackBookingAttempt(hotelId, hotelName) {
-            // Optional: Track booking attempts for analytics
-            console.log(`Booking attempt for Hotel ID: ${hotelId}, Name: ${hotelName}`);
-            
-            // You could send this to your analytics API
-            fetch('public_booking_api.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'track_booking_attempt',
-                    hotel_id: hotelId,
-                    hotel_name: hotelName,
-                    timestamp: new Date().toISOString()
-                })
-            }).catch(error => {
-                // Silent fail for tracking
-                console.log('Tracking error:', error);
-            });
-        }
-        
-        function viewHotelDetails(hotelId) {
-            window.open(`hotel_details.php?hotel_id=${hotelId}`, '_blank');
-        }
-
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Toggle between list and map view
-        function toggleView(view) {
-            const listContainer = document.getElementById('listContainer');
-            const mapContainer = document.getElementById('mapContainer');
-            const viewBtns = document.querySelectorAll('.view-btn');
-            
-            viewBtns.forEach(btn => btn.classList.remove('active'));
-            
-            if (view === 'map') {
-                listContainer.style.display = 'none';
-                mapContainer.style.display = 'block';
-                document.querySelector('.view-btn:nth-child(2)').classList.add('active');
-                
-                // Initialize map if not already done
-                if (!hotelMap) {
-                    initializeMap();
-                }
-                updateMapMarkers();
-            } else {
-                listContainer.style.display = 'block';
-                mapContainer.style.display = 'none';
-                document.querySelector('.view-btn:nth-child(1)').classList.add('active');
-            }
-        }
-
-        // Initialize the map
         function initializeMap() {
-            hotelMap = L.map('hotelMap').setView([25.7617, -80.1918], 12); // Default to Miami
+            hotelMap = L.map('hotelMap').setView([25.7617, -80.1918], 3); // World view initially
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
@@ -1409,62 +1223,184 @@
             }).addTo(hotelMap);
         }
 
-        // Update map markers with hotels
-        function updateMapMarkers() {
-            if (!hotelMap) return;
+        function loadHotels() {
+            // Sample hotels data with coordinates
+            allHotels = [
+                {
+                    id: 1,
+                    name: "Ocean View Resort",
+                    location: "Miami Beach, FL",
+                    emoji: "🏖️",
+                    rating: 4.8,
+                    price: 180,
+                    features: ["Vista al Mar", "Piscina", "WiFi", "Spa"],
+                    aini_coins: 36,
+                    category: "luxury beach",
+                    latitude: 25.7907,
+                    longitude: -80.1300
+                },
+                {
+                    id: 2,
+                    name: "Downtown Business Hotel",
+                    location: "New York, NY",
+                    emoji: "🏙️",
+                    rating: 4.6,
+                    price: 220,
+                    features: ["Centro Negocios", "Gimnasio", "WiFi", "Restaurante"],
+                    aini_coins: 44,
+                    category: "business luxury",
+                    latitude: 40.7580,
+                    longitude: -73.9855
+                },
+                {
+                    id: 3,
+                    name: "Budget Traveler Inn",
+                    location: "Austin, TX",
+                    emoji: "🏨",
+                    rating: 4.3,
+                    price: 85,
+                    features: ["WiFi", "Estacionamiento", "Desayuno"],
+                    aini_coins: 17,
+                    category: "budget",
+                    latitude: 30.2672,
+                    longitude: -97.7431
+                },
+                {
+                    id: 4,
+                    name: "Family Paradise Resort",
+                    location: "Orlando, FL",
+                    emoji: "👨‍👩‍👧‍👦",
+                    rating: 4.7,
+                    price: 195,
+                    features: ["Kids Club", "Piscina", "Transporte Parques", "Restaurante"],
+                    aini_coins: 39,
+                    category: "family luxury",
+                    latitude: 28.3852,
+                    longitude: -81.5639
+                },
+                {
+                    id: 5,
+                    name: "Beachfront Paradise",
+                    location: "Cancún, México",
+                    emoji: "🌴",
+                    rating: 4.9,
+                    price: 250,
+                    features: ["Todo Incluido", "Playa", "Spa", "Varias Piscinas"],
+                    aini_coins: 50,
+                    category: "luxury beach",
+                    latitude: 21.1619,
+                    longitude: -86.8515
+                },
+                {
+                    id: 6,
+                    name: "Eco Lodge Retreat",
+                    location: "San José, Costa Rica",
+                    emoji: "🌿",
+                    rating: 4.5,
+                    price: 120,
+                    features: ["Tours Naturaleza", "Restaurante Orgánico", "WiFi", "Yoga"],
+                    aini_coins: 24,
+                    category: "budget",
+                    latitude: 9.9281,
+                    longitude: -84.0907
+                }
+            ];
             
+            displayHotels(allHotels);
+            updateMapMarkers(allHotels);
+        }
+
+        function displayHotels(hotels) {
+            $('#hotelCount').text(`${hotels.length} hoteles encontrados`);
+            
+            const hotelsHTML = hotels.map(hotel => `
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer hotel-card" 
+                     data-id="${hotel.id}" 
+                     data-lat="${hotel.latitude}" 
+                     data-lng="${hotel.longitude}">
+                    <div class="flex">
+                        <!-- Hotel Image/Emoji -->
+                        <div class="w-32 h-32 bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-5xl">
+                            ${hotel.emoji}
+                        </div>
+                        
+                        <!-- Hotel Info -->
+                        <div class="flex-1 p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-800">${hotel.name}</h3>
+                                    <p class="text-sm text-gray-600">📍 ${hotel.location}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-yellow-500 text-sm">⭐ ${hotel.rating}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Features -->
+                            <div class="flex flex-wrap gap-1 mb-3">
+                                ${hotel.features.slice(0, 3).map(f => `
+                                    <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">${f}</span>
+                                `).join('')}
+                            </div>
+                            
+                            <!-- Price and Coins -->
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-2xl font-bold text-primary">$${hotel.price}</span>
+                                    <span class="text-gray-600 text-sm">/noche</span>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-yellow-600 font-semibold">🪙 ${hotel.aini_coins} AiNi</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Book Button -->
+                            <button onclick="bookHotel(${hotel.id}, '${hotel.name}')" 
+                                    class="mt-3 w-full bg-gradient-to-r from-primary to-secondary text-white py-2 rounded-lg hover:opacity-90 transition font-semibold">
+                                📱 Reservar Ahora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            $('#hotelsList').html(hotelsHTML);
+            
+            // Add click handler to zoom map
+            $('.hotel-card').click(function() {
+                const lat = $(this).data('lat');
+                const lng = $(this).data('lng');
+                hotelMap.setView([lat, lng], 13);
+                
+                // Highlight this card
+                $('.hotel-card').removeClass('ring-2 ring-primary');
+                $(this).addClass('ring-2 ring-primary');
+            });
+        }
+
+        function updateMapMarkers(hotels) {
             // Clear existing markers
             hotelMarkers.forEach(marker => hotelMap.removeLayer(marker));
             hotelMarkers = [];
             
-            const mapHotelList = document.getElementById('mapHotelList');
-            mapHotelList.innerHTML = '';
-            
             // Add markers for each hotel
-            allHotels.forEach((hotel, index) => {
-                if (hotel.latitude && hotel.longitude) {
-                    // Create marker
-                    const marker = L.marker([hotel.latitude, hotel.longitude])
-                        .addTo(hotelMap)
-                        .bindPopup(`
-                            <div style="min-width: 200px;">
-                                <h4 style="margin: 0 0 8px 0;">${hotel.name}</h4>
-                                <p style="margin: 0 0 8px 0; color: #666;">${hotel.location}</p>
-                                <p style="margin: 0; color: #667eea; font-weight: 700;">$${hotel.price}/noche</p>
-                                <button onclick="scrollToHotel(${index})" 
-                                    style="margin-top: 10px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                                    Ver Detalles
-                                </button>
-                            </div>
-                        `);
-                    
-                    hotelMarkers.push(marker);
-                    
-                    // Add to sidebar list
-                    const listItem = document.createElement('div');
-                    listItem.className = 'map-hotel-item';
-                    listItem.innerHTML = `
-                        <div class="map-hotel-name">${hotel.name}</div>
-                        <div style="color: #666; font-size: 0.9rem; margin: 0.3rem 0;">
-                            <span style="margin-right: 0.5rem;">${hotel.stars}</span>
-                            ${hotel.location}
+            hotels.forEach(hotel => {
+                const marker = L.marker([hotel.latitude, hotel.longitude])
+                    .addTo(hotelMap)
+                    .bindPopup(`
+                        <div class="text-center p-2">
+                            <div class="text-3xl mb-2">${hotel.emoji}</div>
+                            <h4 class="font-bold">${hotel.name}</h4>
+                            <p class="text-sm text-gray-600">${hotel.location}</p>
+                            <p class="text-primary font-bold mt-2">$${hotel.price}/noche</p>
+                            <button onclick="bookHotel(${hotel.id}, '${hotel.name}')" 
+                                    class="mt-2 px-4 py-1 bg-primary text-white rounded text-sm">
+                                Reservar
+                            </button>
                         </div>
-                        <div class="map-hotel-price">$${hotel.price}/noche</div>
-                    `;
-                    
-                    listItem.addEventListener('click', () => {
-                        hotelMap.setView([hotel.latitude, hotel.longitude], 15);
-                        marker.openPopup();
-                        
-                        // Highlight this item
-                        document.querySelectorAll('.map-hotel-item').forEach(item => {
-                            item.classList.remove('active');
-                        });
-                        listItem.classList.add('active');
-                    });
-                    
-                    mapHotelList.appendChild(listItem);
-                }
+                    `);
+                
+                hotelMarkers.push(marker);
             });
             
             // Fit map to show all markers
@@ -1474,16 +1410,59 @@
             }
         }
 
-        // Scroll to hotel in list view
-        function scrollToHotel(index) {
-            toggleView('list');
-            setTimeout(() => {
-                const hotelCards = document.querySelectorAll('.hotel-card');
-                if (hotelCards[index]) {
-                    hotelCards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    hotelCards[index].style.animation = 'pulse 0.5s';
-                }
-            }, 300);
+        function filterByCategory(category) {
+            // Update active button
+            $('.filter-btn').removeClass('active-filter bg-primary text-white');
+            event.target.classList.add('active-filter', 'bg-primary', 'text-white');
+            
+            let filtered = allHotels;
+            if (category !== 'all') {
+                filtered = allHotels.filter(h => h.category.includes(category));
+            }
+            
+            displayHotels(filtered);
+            updateMapMarkers(filtered);
+        }
+
+        function searchHotels() {
+            const destination = $('#searchDestination').val().toLowerCase();
+            
+            if (!destination) {
+                displayHotels(allHotels);
+                updateMapMarkers(allHotels);
+                return;
+            }
+            
+            const filtered = allHotels.filter(h => 
+                h.name.toLowerCase().includes(destination) || 
+                h.location.toLowerCase().includes(destination)
+            );
+            
+            if (filtered.length > 0) {
+                displayHotels(filtered);
+                updateMapMarkers(filtered);
+            } else {
+                $('#hotelsList').html(`
+                    <div class="text-center py-12 text-gray-500">
+                        <div class="text-5xl mb-4">🔍</div>
+                        <p>No se encontraron hoteles para "${destination}"</p>
+                        <button onclick="loadHotels()" class="mt-4 px-6 py-2 bg-primary text-white rounded-lg">
+                            Ver todos los hoteles
+                        </button>
+                    </div>
+                `);
+            }
+        }
+
+        function bookHotel(hotelId, hotelName) {
+            const checkin = $('#searchCheckin').val();
+            const checkout = $('#searchCheckout').val();
+            const guests = $('#searchGuests').val();
+            
+            const message = `Hola! 🏨 Quiero reservar ${hotelName} del ${checkin} al ${checkout} para ${guests}. ¿Me puedes ayudar con la reserva y las monedas AiNi? 🪙`;
+            const encodedMessage = encodeURIComponent(message);
+            
+            window.open(`https://wa.me/1234567890?text=${encodedMessage}`, '_blank');
         }
     </script>
 </body>
