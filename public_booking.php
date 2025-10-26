@@ -19,71 +19,154 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
+            padding-top: 110px; /* Space for fixed header */
         }
 
+        /* Split Menu Header Styles */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 0;
-            position: sticky;
+            background: white;
+            color: #333;
+            position: fixed;
             top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 20px rgba(102, 126, 234, 0.3);
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
         }
 
-        .header-content {
-            max-width: 1200px;
+        .header-top {
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 0 2rem;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .logo {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: bold;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .nav-links {
+        .header-icons {
             display: flex;
-            gap: 2rem;
+            gap: 1rem;
             align-items: center;
         }
 
-        .nav-links a {
+        .icon-btn {
+            background: #f8f9fa;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff5722;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .language-selector button {
+            font-weight: 600;
+        }
+
+        .header-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0.8rem 0;
+        }
+
+        .main-nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .nav-item {
             color: white;
             text-decoration: none;
             font-weight: 500;
+            font-size: 1rem;
             transition: all 0.3s;
             padding: 0.5rem 1rem;
-            border-radius: 25px;
+            border-radius: 20px;
         }
 
-        .nav-links a:hover {
+        .nav-item:hover {
             background: rgba(255,255,255,0.2);
             transform: translateY(-2px);
         }
 
-        .cta-button {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
+        .nav-dot {
+            color: rgba(255,255,255,0.5);
+            font-weight: bold;
         }
 
-        .cta-button:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        /* Responsive Header */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 140px;
+            }
+
+            .header-top {
+                padding: 0.8rem 1rem;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .icon-btn {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .main-nav {
+                flex-wrap: wrap;
+                padding: 0 1rem;
+                gap: 0.8rem;
+            }
+
+            .nav-item {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .nav-dot {
+                display: none;
+            }
         }
 
         .hero {
@@ -682,19 +765,34 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
+    <!-- Split Menu Header -->
     <header class="header">
-        <div class="header-content">
+        <div class="header-top">
             <div class="logo">
                 🪙 AiNi Travel
             </div>
-            <nav class="nav-links">
-                <a href="#home">Home</a>
-                <a href="#hotels">Hotels</a>
-                <a href="#about">About</a>
-                <a href="#contact">Contact</a>
-                <a href="travel_social.php">🌍 Travel Social</a>
-                <a href="index.php" class="cta-button">Sign In</a>
+            <div class="header-icons">
+                <div class="language-selector">
+                    <button class="icon-btn">🌐 ES</button>
+                </div>
+                <button class="icon-btn notification-btn">
+                    🔔
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="icon-btn profile-btn">
+                    👤
+                </button>
+            </div>
+        </div>
+        <div class="header-nav">
+            <nav class="main-nav">
+                <a href="#hotels" class="nav-item">🏨 Hotels</a>
+                <span class="nav-dot">•</span>
+                <a href="#experiences" class="nav-item">🎯 Experiences</a>
+                <span class="nav-dot">•</span>
+                <a href="travel_social.php" class="nav-item">🌍 Social</a>
+                <span class="nav-dot">•</span>
+                <a href="wallet.php" class="nav-item">🪙 Coins</a>
             </nav>
         </div>
     </header>
