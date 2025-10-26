@@ -800,6 +800,53 @@
             0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
             50% { transform: scale(1.02); box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3); }
         }
+        
+        /* Booking Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .booking-modal {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -963,6 +1010,104 @@
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
     </a>
+
+    <!-- Booking Confirmation Modal -->
+    <div id="bookingModal" class="modal-overlay" onclick="closeModalOnOutside(event)">
+        <div class="booking-modal" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-primary to-secondary text-white p-6 rounded-t-20">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1">Confirma tu Reserva</h3>
+                        <p class="text-white/80 text-sm">Revisa los detalles antes de continuar</p>
+                    </div>
+                    <button onclick="closeBookingModal()" class="text-white/80 hover:text-white text-3xl leading-none">
+                        ×
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Hotel Info -->
+                <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                    <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-4xl" id="modalHotelEmoji">
+                        🏖️
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-xl text-gray-800" id="modalHotelName">Ocean View Resort</h4>
+                        <p class="text-gray-600 text-sm" id="modalHotelLocation">📍 Miami Beach, FL</p>
+                        <p class="text-yellow-500 text-sm mt-1" id="modalHotelRating">⭐ 4.8</p>
+                    </div>
+                </div>
+                
+                <!-- Booking Details -->
+                <div class="space-y-4 mb-6">
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            📅 Check-in
+                        </label>
+                        <input type="date" id="modalCheckin" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            📅 Check-out
+                        </label>
+                        <input type="date" id="modalCheckout" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            👥 Huéspedes
+                        </label>
+                        <select id="modalGuests" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="1">1 Huésped</option>
+                            <option value="2" selected>2 Huéspedes</option>
+                            <option value="3">3 Huéspedes</option>
+                            <option value="4">4 Huéspedes</option>
+                            <option value="5+">5+ Huéspedes</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Price Summary -->
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Precio por noche</span>
+                        <span class="font-semibold text-gray-800" id="modalPricePerNight">$180</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700" id="modalNightsLabel">× 2 noches</span>
+                        <span class="font-semibold text-gray-800" id="modalSubtotal">$360</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-gray-300">
+                        <span class="text-gray-700">🪙 Ganas AiNi Coins</span>
+                        <span class="font-bold text-yellow-600" id="modalAiniCoins">72</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-3 mt-3 border-t-2 border-gray-400">
+                        <span class="text-lg font-bold text-gray-800">Total</span>
+                        <span class="text-2xl font-bold text-primary" id="modalTotal">$360</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="closeBookingModal()" 
+                            class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                        ❌ Cancelar
+                    </button>
+                    <button onclick="confirmWhatsAppBooking()" 
+                            class="flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Continuar en WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
                     👤
                 </button>
             </div>
@@ -1454,16 +1599,125 @@
             }
         }
 
+        let selectedHotelData = null;
+
         function bookHotel(hotelId, hotelName) {
+            // Find the hotel data
+            selectedHotelData = allHotels.find(h => h.id == hotelId);
+            
+            if (!selectedHotelData) {
+                alert('Hotel no encontrado');
+                return;
+            }
+            
+            // Populate modal with hotel data
+            $('#modalHotelEmoji').text(selectedHotelData.emoji);
+            $('#modalHotelName').text(selectedHotelData.name);
+            $('#modalHotelLocation').text(`📍 ${selectedHotelData.location}`);
+            $('#modalHotelRating').text(`⭐ ${selectedHotelData.rating}`);
+            
+            // Set dates from search
             const checkin = $('#searchCheckin').val();
             const checkout = $('#searchCheckout').val();
             const guests = $('#searchGuests').val();
             
-            const message = `Hola! 🏨 Quiero reservar ${hotelName} del ${checkin} al ${checkout} para ${guests}. ¿Me puedes ayudar con la reserva y las monedas AiNi? 🪙`;
+            $('#modalCheckin').val(checkin);
+            $('#modalCheckout').val(checkout);
+            $('#modalGuests').val(guests);
+            
+            // Calculate and display prices
+            updateModalPrices();
+            
+            // Show modal
+            $('#bookingModal').addClass('active');
+            $('body').css('overflow', 'hidden'); // Prevent scrolling
+        }
+        
+        function updateModalPrices() {
+            if (!selectedHotelData) return;
+            
+            const checkin = $('#modalCheckin').val();
+            const checkout = $('#modalCheckout').val();
+            
+            let nights = 1;
+            if (checkin && checkout) {
+                const date1 = new Date(checkin);
+                const date2 = new Date(checkout);
+                const diffTime = Math.abs(date2 - date1);
+                nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+            
+            const pricePerNight = selectedHotelData.price;
+            const subtotal = pricePerNight * nights;
+            const ainiCoins = selectedHotelData.aini_coins * nights;
+            
+            $('#modalPricePerNight').text(`$${pricePerNight}`);
+            $('#modalNightsLabel').text(`× ${nights} ${nights === 1 ? 'noche' : 'noches'}`);
+            $('#modalSubtotal').text(`$${subtotal}`);
+            $('#modalTotal').text(`$${subtotal}`);
+            $('#modalAiniCoins').text(ainiCoins);
+        }
+        
+        function closeBookingModal() {
+            $('#bookingModal').removeClass('active');
+            $('body').css('overflow', 'auto'); // Restore scrolling
+            selectedHotelData = null;
+        }
+        
+        function closeModalOnOutside(event) {
+            if (event.target.id === 'bookingModal') {
+                closeBookingModal();
+            }
+        }
+        
+        function confirmWhatsAppBooking() {
+            if (!selectedHotelData) return;
+            
+            const checkin = $('#modalCheckin').val();
+            const checkout = $('#modalCheckout').val();
+            const guests = $('#modalGuests').val();
+            const total = $('#modalTotal').text();
+            const coins = $('#modalAiniCoins').text();
+            
+            // Calculate nights
+            let nights = 1;
+            if (checkin && checkout) {
+                const date1 = new Date(checkin);
+                const date2 = new Date(checkout);
+                const diffTime = Math.abs(date2 - date1);
+                nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+            
+            // Create detailed WhatsApp message
+            const message = `Hola! 🏨 Quiero hacer una reserva:
+
+✨ Hotel: ${selectedHotelData.name}
+📍 Ubicación: ${selectedHotelData.location}
+⭐ Rating: ${selectedHotelData.rating}
+
+📅 Check-in: ${checkin}
+📅 Check-out: ${checkout}
+🛏️ ${nights} ${nights === 1 ? 'noche' : 'noches'}
+👥 ${guests} ${guests === '1' ? 'huésped' : 'huéspedes'}
+
+💰 Precio Total: ${total}
+🪙 Ganaré ${coins} AiNi Coins
+
+¿Puedes ayudarme a completar la reserva? 😊`;
+            
             const encodedMessage = encodeURIComponent(message);
             
+            // Open WhatsApp
             window.open(`https://wa.me/1234567890?text=${encodedMessage}`, '_blank');
+            
+            // Close modal
+            closeBookingModal();
         }
+        
+        // Update prices when dates change
+        $(document).on('change', '#modalCheckin, #modalCheckout', function() {
+            updateModalPrices();
+        });
     </script>
 </body>
 </html>
