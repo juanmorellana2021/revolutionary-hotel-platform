@@ -4,14 +4,19 @@ require_once 'includes/classes.php';
 require_once 'includes/hotel_classes.php';
 require_once 'includes/whatsapp_bot.php';
 
-// Check if user is logged in and is a manager/admin
-if (!isset($_SESSION['user'])) {
+// Check if user is logged in (support both session formats)
+$isLoggedIn = isset($_SESSION['user']) || isset($_SESSION['user_id']);
+if (!$isLoggedIn) {
     header('Location: index.php');
     exit;
 }
 
-$userManager = new UserManager();
-if (!$userManager->isManager($_SESSION['user']['id'])) {
+// Get user ID and role (support both session formats)
+$userId = $_SESSION['user']['id'] ?? $_SESSION['user_id'] ?? null;
+$userRole = $_SESSION['user']['role'] ?? $_SESSION['user_role'] ?? 'guest';
+
+// Check if user is manager/admin
+if ($userRole !== 'manager' && $userRole !== 'admin') {
     header('Location: dashboard.php');
     exit;
 }

@@ -35,10 +35,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Check user role and redirect accordingly
             $userRole = $_SESSION['user_role'] ?? 'guest';
-            if ($userRole === 'manager' || $userRole === 'admin') {
-                header('Location: manager_dashboard.php');
-            } else {
-                header('Location: dashboard.php');
+            
+            // Role-based dashboard routing
+            switch ($userRole) {
+                case 'owner':
+                case 'manager':
+                case 'admin':
+                    header('Location: manager_dashboard.php');
+                    break;
+                case 'employee':
+                    header('Location: employee_dashboard.php');
+                    break;
+                case 'receptionist':
+                    header('Location: receptionist_dashboard.php');
+                    break;
+                case 'investor':
+                    header('Location: investor_dashboard.php');
+                    break;
+                case 'guest':
+                default:
+                    header('Location: dashboard.php');
+                    break;
             }
             exit;
         }
