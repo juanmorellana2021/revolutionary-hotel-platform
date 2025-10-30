@@ -1,6 +1,26 @@
 <?php
 session_start();
+
+// Set timezone based on hotel settings BEFORE any database operations
+if (!isset($_SESSION['current_hotel_id'])) {
+    $_SESSION['current_hotel_id'] = 1; // Default to hotel 1
+}
+
 require_once 'includes/classes.php';
+
+// Get hotel timezone and set it
+$db = new Database();
+$conn = $db->getConnection();
+$timezone_stmt = $conn->prepare("SELECT timezone FROM hotel_info WHERE id = ? LIMIT 1");
+$timezone_stmt->execute([$_SESSION['current_hotel_id']]);
+$timezone_result = $timezone_stmt->fetch(PDO::FETCH_ASSOC);
+if ($timezone_result) {
+    $hotel_timezone = $timezone_result['timezone'] ?? 'America/Lima';
+    date_default_timezone_set($hotel_timezone);
+} else {
+    date_default_timezone_set('America/Lima'); // Default to Peru timezone
+}
+
 require_once 'includes/hotel_classes.php';
 require_once 'includes/employee_classes.php';
 
