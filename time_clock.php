@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'warning';
         } else {
             $_SESSION[$submissionKey] = $currentTime;
-            $result = $timeClockManager->clockIn((int)$_POST['employee_id'], $_POST['notes'] ?? '');
+            $result = $timeClockManager->clockIn((int)$_POST['employee_id'], 'hotel', $_POST['notes'] ?? '');
             $message = $result['message'];
             $messageType = $result['success'] ? 'success' : 'error';
             
