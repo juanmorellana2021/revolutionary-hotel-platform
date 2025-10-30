@@ -222,7 +222,7 @@ class TimeClockManager {
             // Check if employee is already clocked in
             $stmt = $this->connection->prepare("
                 SELECT id FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
             ");
             $stmt->execute([$employeeId]);
             
@@ -235,7 +235,7 @@ class TimeClockManager {
             
             $stmt = $this->connection->prepare("
                 INSERT INTO time_clock (employee_id, clock_in, location, notes, status) 
-                VALUES (?, NOW(), ?, ?, 'active')
+                VALUES (?, NOW(), ?, ?, 'clocked_in')
             ");
             
             $stmt->execute([$employeeId, $location, $notes]);
@@ -263,7 +263,7 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 SELECT id, clock_in, total_break_minutes 
                 FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
                 ORDER BY clock_in DESC LIMIT 1
             ");
             $stmt->execute([$employeeId]);
@@ -582,7 +582,6 @@ class TimeClockManager {
             FROM employees e
             JOIN time_clock tc ON e.id = tc.employee_id
             WHERE tc.clock_out IS NULL
-            AND tc.status = 'active'
             ORDER BY tc.clock_in ASC
         ";
         
