@@ -295,7 +295,7 @@ class TimeClockManager {
                     total_hours = ?, 
                     overtime_hours = ?,
                     notes = CONCAT(COALESCE(notes, ''), ?),
-                    status = 'completed'
+                    status = 'clocked_out'
                 WHERE id = ?
             ");
             
@@ -323,8 +323,8 @@ class TimeClockManager {
     public function startBreak($employeeId) {
         try {
             $stmt = $this->connection->prepare("
-                UPDATE time_clock SET break_start = NOW() 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                UPDATE time_clock SET break_start = NOW(), status = 'on_break'
+                WHERE employee_id = ? AND clock_out IS NULL
                 AND break_start IS NULL
             ");
             
@@ -359,7 +359,7 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 SELECT break_start, total_break_minutes 
                 FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
                 AND break_start IS NOT NULL AND break_end IS NULL
             ");
             $stmt->execute([$employeeId]);
@@ -382,8 +382,9 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 UPDATE time_clock SET 
                     break_end = NOW(), 
-                    total_break_minutes = ?
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                    total_break_minutes = ?,
+                    status = 'clocked_in'
+                WHERE employee_id = ? AND clock_out IS NULL
             ");
             
             $stmt->execute([$totalBreakMinutes, $employeeId]);
@@ -556,7 +557,7 @@ class TimeClockManager {
                     ELSE 'clocked_out'
                 END as current_status
             FROM time_clock 
-            WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+            WHERE employee_id = ? AND clock_out IS NULL
             ORDER BY clock_in DESC LIMIT 1
         ");
         $stmt->execute([$employeeId]);
