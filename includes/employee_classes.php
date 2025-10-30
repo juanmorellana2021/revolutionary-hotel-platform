@@ -233,12 +233,15 @@ class TimeClockManager {
                 ];
             }
             
+            // Use PHP's current time (which respects timezone) instead of MySQL NOW()
+            $currentTime = date('Y-m-d H:i:s');
+            
             $stmt = $this->connection->prepare("
                 INSERT INTO time_clock (employee_id, clock_in, location, notes, status) 
-                VALUES (?, NOW(), ?, ?, 'clocked_in')
+                VALUES (?, ?, ?, ?, 'clocked_in')
             ");
             
-            $stmt->execute([$employeeId, $location, $notes]);
+            $stmt->execute([$employeeId, $currentTime, $location, $notes]);
             
             // Get the clock in time in 12-hour format
             $clockInTime = date('g:i A'); // e.g., "4:46 PM"
@@ -281,7 +284,8 @@ class TimeClockManager {
             
             // Calculate total hours
             $clockIn = new DateTime($clockEntry['clock_in']);
-            $clockOut = new DateTime();
+            $currentTime = date('Y-m-d H:i:s'); // Use PHP timezone
+            $clockOut = new DateTime($currentTime);
             $interval = $clockIn->diff($clockOut);
             $totalMinutes = ($interval->h * 60) + $interval->i;
             $breakMinutes = $clockEntry['total_break_minutes'] ?? 0;
@@ -294,7 +298,7 @@ class TimeClockManager {
             
             $stmt = $this->connection->prepare("
                 UPDATE time_clock SET 
-                    clock_out = NOW(), 
+                    clock_out = ?, 
                     total_hours = ?, 
                     overtime_hours = ?,
                     notes = CONCAT(COALESCE(notes, ''), ?),
@@ -303,7 +307,7 @@ class TimeClockManager {
             ");
             
             $additionalNotes = $notes ? "\nClock out: " . $notes : '';
-            $stmt->execute([$totalHours, $overtimeHours, $additionalNotes, $clockEntry['id']]);
+            $stmt->execute([$currentTime, $totalHours, $overtimeHours, $additionalNotes, $clockEntry['id']]);
             
             // Get the clock out time in 12-hour format
             $clockOutTime = date('g:i A'); // e.g., "5:30 PM"
