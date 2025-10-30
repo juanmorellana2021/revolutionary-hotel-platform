@@ -582,7 +582,7 @@ class TimeClockManager {
             FROM employees e
             JOIN time_clock tc ON e.id = tc.employee_id
             WHERE tc.clock_out IS NULL
-            AND DATE(tc.clock_in) = CURDATE()
+            AND tc.status = 'active'
             ORDER BY tc.clock_in ASC
         ";
         
