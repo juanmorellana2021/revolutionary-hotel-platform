@@ -100,7 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -124,7 +128,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -147,7 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -170,7 +182,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
