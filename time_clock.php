@@ -878,7 +878,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-play-circle me-2"></i>Clock In Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                <form method="POST">
                                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>
@@ -909,7 +909,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-stop-circle me-2"></i>Clock Out Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                <form method="POST">
                                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>
