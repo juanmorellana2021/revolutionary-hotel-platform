@@ -83,6 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Invalid security token. Please refresh the page and try again.';
         $messageType = 'error';
     } else if (isset($_POST['clock_in'])) {
+        // Log the attempt
+        error_log("Clock In Attempt - Employee ID: " . ($_POST['employee_id'] ?? 'MISSING') . " Notes: " . ($_POST['notes'] ?? ''));
+        
         // Check for duplicate submission using session tracking
         $submissionKey = 'last_clock_in_' . (int)$_POST['employee_id'];
         $currentTime = time();
@@ -90,9 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
             $message = 'Duplicate submission prevented. Please wait before trying again.';
             $messageType = 'warning';
+            error_log("Clock In - Duplicate prevention triggered");
         } else {
             $_SESSION[$submissionKey] = $currentTime;
             $result = $timeClockManager->clockIn((int)$_POST['employee_id'], 'hotel', $_POST['notes'] ?? '');
+            error_log("Clock In Result - Success: " . ($result['success'] ? 'YES' : 'NO') . " Message: " . $result['message']);
             $message = $result['message'];
             $messageType = $result['success'] ? 'success' : 'error';
             
@@ -104,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($_POST['employee_id'])) {
                     $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
                 }
+                error_log("Clock In - Redirecting to: " . $redirectUrl);
                 header('Location: ' . $redirectUrl);
                 exit;
             }
