@@ -13,6 +13,9 @@ class EmployeeManager {
      */
     public function addEmployee($data) {
         try {
+            // Convert empty email to NULL to avoid duplicate empty string conflicts
+            $email = !empty($data['email']) ? $data['email'] : null;
+            
             $stmt = $this->connection->prepare("
                 INSERT INTO employees (
                     employee_id, first_name, last_name, email, phone, position, department, 
@@ -26,7 +29,7 @@ class EmployeeManager {
                 $data['employee_id'],
                 $data['first_name'],
                 $data['last_name'],
-                $data['email'],
+                $email,
                 $data['phone'],
                 $data['position'],
                 $data['department'],
@@ -132,6 +135,9 @@ class EmployeeManager {
      */
     public function updateEmployee($employeeId, $data) {
         try {
+            // Convert empty email to NULL to avoid duplicate empty string conflicts
+            $email = !empty($data['email']) ? $data['email'] : null;
+            
             $stmt = $this->connection->prepare("
                 UPDATE employees SET 
                     first_name = ?, last_name = ?, email = ?, phone = ?, position = ?, 
@@ -145,7 +151,7 @@ class EmployeeManager {
             $stmt->execute([
                 $data['first_name'],
                 $data['last_name'],
-                $data['email'],
+                $email,
                 $data['phone'],
                 $data['position'],
                 $data['department'],
