@@ -26,13 +26,14 @@ class HotelInfo {
             $stmt = $this->connection->prepare("
                 UPDATE hotel_info SET 
                 hotel_name = ?, description = ?, address = ?, city = ?, state = ?, zip_code = ?, 
-                country = ?, phone = ?, email = ?, website = ?, check_in_time = ?, check_out_time = ?, 
+                country = ?, timezone = ?, phone = ?, email = ?, website = ?, check_in_time = ?, check_out_time = ?, 
                 total_rooms = ?, star_rating = ?
                 WHERE id = ?
             ");
             $result = $stmt->execute([
                 $data['hotel_name'] ?? '', $data['hotel_description'] ?? '', $data['address'] ?? '', 
                 $data['city'] ?? '', $data['state'] ?? '', $data['zip_code'] ?? '', $data['country'] ?? '', 
+                $data['timezone'] ?? 'America/Lima',
                 $data['phone'] ?? '', $data['email'] ?? '', $data['website'] ?? '', 
                 $data['check_in_time'] ?? '15:00:00', $data['check_out_time'] ?? '11:00:00',
                 $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3, $existing['id']
@@ -42,12 +43,13 @@ class HotelInfo {
             $stmt = $this->connection->prepare("
                 INSERT INTO hotel_info 
                 (hotel_name, description, address, city, state, zip_code, 
-                country, phone, email, website, check_in_time, check_out_time, total_rooms, star_rating)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                country, timezone, phone, email, website, check_in_time, check_out_time, total_rooms, star_rating)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $result = $stmt->execute([
                 $data['hotel_name'] ?? '', $data['hotel_description'] ?? '', $data['address'] ?? '',
                 $data['city'] ?? '', $data['state'] ?? '', $data['zip_code'] ?? '', $data['country'] ?? '', 
+                $data['timezone'] ?? 'America/Lima',
                 $data['phone'] ?? '', $data['email'] ?? '', $data['website'] ?? '', 
                 $data['check_in_time'] ?? '15:00:00', $data['check_out_time'] ?? '11:00:00',
                 $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3

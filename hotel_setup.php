@@ -539,6 +539,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="text" id="country" name="country" 
                                    value="<?php echo htmlspecialchars($hotel['country'] ?? ''); ?>">
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="timezone">🌍 Timezone</label>
+                            <select id="timezone" name="timezone" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%;">
+                                <optgroup label="Americas">
+                                    <option value="America/Lima" <?php echo ($hotel['timezone'] ?? 'America/Lima') == 'America/Lima' ? 'selected' : ''; ?>>Peru (Lima) - UTC-5</option>
+                                    <option value="America/New_York" <?php echo ($hotel['timezone'] ?? '') == 'America/New_York' ? 'selected' : ''; ?>>USA (New York) - UTC-5/-4</option>
+                                    <option value="America/Chicago" <?php echo ($hotel['timezone'] ?? '') == 'America/Chicago' ? 'selected' : ''; ?>>USA (Chicago) - UTC-6/-5</option>
+                                    <option value="America/Denver" <?php echo ($hotel['timezone'] ?? '') == 'America/Denver' ? 'selected' : ''; ?>>USA (Denver) - UTC-7/-6</option>
+                                    <option value="America/Los_Angeles" <?php echo ($hotel['timezone'] ?? '') == 'America/Los_Angeles' ? 'selected' : ''; ?>>USA (Los Angeles) - UTC-8/-7</option>
+                                    <option value="America/Mexico_City" <?php echo ($hotel['timezone'] ?? '') == 'America/Mexico_City' ? 'selected' : ''; ?>>Mexico (Mexico City) - UTC-6/-5</option>
+                                    <option value="America/Bogota" <?php echo ($hotel['timezone'] ?? '') == 'America/Bogota' ? 'selected' : ''; ?>>Colombia (Bogotá) - UTC-5</option>
+                                    <option value="America/Buenos_Aires" <?php echo ($hotel['timezone'] ?? '') == 'America/Buenos_Aires' ? 'selected' : ''; ?>>Argentina (Buenos Aires) - UTC-3</option>
+                                    <option value="America/Santiago" <?php echo ($hotel['timezone'] ?? '') == 'America/Santiago' ? 'selected' : ''; ?>>Chile (Santiago) - UTC-3/-4</option>
+                                    <option value="America/Caracas" <?php echo ($hotel['timezone'] ?? '') == 'America/Caracas' ? 'selected' : ''; ?>>Venezuela (Caracas) - UTC-4</option>
+                                </optgroup>
+                                <optgroup label="Europe">
+                                    <option value="Europe/London" <?php echo ($hotel['timezone'] ?? '') == 'Europe/London' ? 'selected' : ''; ?>>UK (London) - UTC+0/+1</option>
+                                    <option value="Europe/Paris" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Paris' ? 'selected' : ''; ?>>France (Paris) - UTC+1/+2</option>
+                                    <option value="Europe/Madrid" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Madrid' ? 'selected' : ''; ?>>Spain (Madrid) - UTC+1/+2</option>
+                                    <option value="Europe/Berlin" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Berlin' ? 'selected' : ''; ?>>Germany (Berlin) - UTC+1/+2</option>
+                                    <option value="Europe/Rome" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Rome' ? 'selected' : ''; ?>>Italy (Rome) - UTC+1/+2</option>
+                                    <option value="Europe/Moscow" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Moscow' ? 'selected' : ''; ?>>Russia (Moscow) - UTC+3</option>
+                                </optgroup>
+                                <optgroup label="Asia">
+                                    <option value="Asia/Dubai" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Dubai' ? 'selected' : ''; ?>>UAE (Dubai) - UTC+4</option>
+                                    <option value="Asia/Bangkok" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Bangkok' ? 'selected' : ''; ?>>Thailand (Bangkok) - UTC+7</option>
+                                    <option value="Asia/Singapore" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Singapore' ? 'selected' : ''; ?>>Singapore - UTC+8</option>
+                                    <option value="Asia/Hong_Kong" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Hong_Kong' ? 'selected' : ''; ?>>Hong Kong - UTC+8</option>
+                                    <option value="Asia/Tokyo" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Tokyo' ? 'selected' : ''; ?>>Japan (Tokyo) - UTC+9</option>
+                                    <option value="Asia/Seoul" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Seoul' ? 'selected' : ''; ?>>South Korea (Seoul) - UTC+9</option>
+                                    <option value="Asia/Shanghai" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Shanghai' ? 'selected' : ''; ?>>China (Shanghai) - UTC+8</option>
+                                </optgroup>
+                                <optgroup label="Oceania">
+                                    <option value="Australia/Sydney" <?php echo ($hotel['timezone'] ?? '') == 'Australia/Sydney' ? 'selected' : ''; ?>>Australia (Sydney) - UTC+10/+11</option>
+                                    <option value="Pacific/Auckland" <?php echo ($hotel['timezone'] ?? '') == 'Pacific/Auckland' ? 'selected' : ''; ?>>New Zealand (Auckland) - UTC+12/+13</option>
+                                </optgroup>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">Select your hotel's local timezone for accurate time tracking</small>
+                        </div>
                     </div>
 
                     <button type="submit" name="update_hotel_info" class="btn btn-success">
