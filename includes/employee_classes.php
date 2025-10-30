@@ -240,9 +240,12 @@ class TimeClockManager {
             
             $stmt->execute([$employeeId, $location, $notes]);
             
+            // Get the clock in time in 12-hour format
+            $clockInTime = date('g:i A'); // e.g., "4:46 PM"
+            
             return [
                 'success' => true,
-                'message' => 'Successfully clocked in',
+                'message' => 'Successfully clocked in at ' . $clockInTime,
                 'clock_id' => $this->connection->lastInsertId()
             ];
             
@@ -302,9 +305,12 @@ class TimeClockManager {
             $additionalNotes = $notes ? "\nClock out: " . $notes : '';
             $stmt->execute([$totalHours, $overtimeHours, $additionalNotes, $clockEntry['id']]);
             
+            // Get the clock out time in 12-hour format
+            $clockOutTime = date('g:i A'); // e.g., "5:30 PM"
+            
             return [
                 'success' => true,
-                'message' => 'Successfully clocked out',
+                'message' => 'Successfully clocked out at ' . $clockOutTime . ' (' . number_format($totalHours, 2) . 'h worked)',
                 'total_hours' => $totalHours,
                 'overtime_hours' => $overtimeHours
             ];
