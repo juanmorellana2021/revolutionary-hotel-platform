@@ -129,14 +129,16 @@ class Room {
     }
 
     public function getAllRooms() {
-        $stmt = $this->connection->prepare("SELECT * FROM rooms ORDER BY room_number");
-        $stmt->execute();
+        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
+        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE hotel_id = ? ORDER BY room_number");
+        $stmt->execute([$hotelId]);
         return $stmt->fetchAll();
     }
 
     public function getRoomById($id) {
-        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE id = ?");
-        $stmt->execute([$id]);
+        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
+        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE id = ? AND hotel_id = ?");
+        $stmt->execute([$id, $hotelId]);
         return $stmt->fetch();
     }
 
@@ -227,14 +229,15 @@ class Booking {
 
     public function createBooking($userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests = '', $discountAmount = 0) {
         try {
+            $hotelId = $_SESSION['current_hotel_id'] ?? 1;
             $this->connection->beginTransaction();
             
             $stmt = $this->connection->prepare("
-                INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')
+                INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, status, hotel_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
             ");
             
-            if ($stmt->execute([$userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $discountAmount])) {
+            if ($stmt->execute([$userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $discountAmount, $hotelId])) {
                 $bookingId = $this->connection->lastInsertId();
                 
                 // Award HotelCoins and Loyalty Points
@@ -272,14 +275,15 @@ class Booking {
     }
 
     public function getUserBookings($userId) {
+        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
         $stmt = $this->connection->prepare("
             SELECT b.*, r.room_number, r.room_type, r.price_per_night
             FROM bookings b
             JOIN rooms r ON b.room_id = r.id
-            WHERE b.user_id = ?
+            WHERE b.user_id = ? AND b.hotel_id = ?
             ORDER BY b.created_at DESC
         ");
-        $stmt->execute([$userId]);
+        $stmt->execute([$userId, $hotelId]);
         return $stmt->fetchAll();
     }
 
