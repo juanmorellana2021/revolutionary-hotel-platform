@@ -3,13 +3,18 @@ session_start();
 require_once 'classes.php';
 require_once 'includes/hotel_classes.php';
 
-// Check if user is logged in and is a manager
-if (!isset($_SESSION['user_role'])) {
-    header('Location: index.php');
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: owner_login.php');
     exit;
 }
 
-if ($_SESSION['user_role'] !== 'manager' && $_SESSION['user_role'] !== 'admin') {
+// Allow owners, managers, and admins
+$allowed = ($_SESSION['user_type'] === 'owner') || 
+           ($_SESSION['user_role'] === 'manager') || 
+           ($_SESSION['user_role'] === 'admin');
+
+if (!$allowed) {
     header('Location: dashboard.php');
     exit;
 }
@@ -29,7 +34,7 @@ $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // If no config exists for this hotel, create default
 if (!$emailConfig) {
-    $stmt = $conn->prepare("INSERT INTO email_config (hotel_id, smtp_host, smtp_port, from_name, is_enabled) VALUES (?, 'smtp.gmail.com', 587, ?, 0)");
+    $stmt = $conn->prepare("INSERT INTO email_config (hotel_id, smtp_host, smtp_port, smtp_username, smtp_password, from_email, from_name, reply_to, is_enabled) VALUES (?, 'smtp.gmail.com', 587, '', '', '', ?, '', 0)");
     $stmt->execute([$currentHotelId, $hotel['name'] ?? 'AiNi Hotel']);
     $stmt = $conn->prepare("SELECT * FROM email_config WHERE hotel_id = ? LIMIT 1");
     $stmt->execute([$currentHotelId]);
