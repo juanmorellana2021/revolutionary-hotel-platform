@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db_connection.php';
+require_once 'classes.php';
 
 $error = '';
 $success = '';
@@ -35,9 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Redirect based on user type
             if ($user['user_type'] === 'owner' || $user['role'] === 'admin') {
-                header('Location: hotel_setup.php');
+                header('Location: /hotel_setup.php');
             } else {
-                header('Location: dashboard.php');
+                header('Location: /dashboard.php');
             }
             exit();
         } else {
