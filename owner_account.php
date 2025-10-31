@@ -49,10 +49,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 // Get current hotel name
 $currentHotelName = '';
 if (isset($_SESSION['current_hotel_id'])) {
-    $stmt = $conn->prepare("SELECT name FROM hotel_info WHERE id = ?");
+    $stmt = $conn->prepare("SELECT hotel_name FROM hotel_info WHERE id = ?");
     $stmt->execute([$_SESSION['current_hotel_id']]);
     $currentHotel = $stmt->fetch(PDO::FETCH_ASSOC);
-    $currentHotelName = $currentHotel['name'] ?? '';
+    $currentHotelName = $currentHotel['hotel_name'] ?? '';
 }
 ?>
 <!DOCTYPE html>
@@ -494,15 +494,18 @@ if (isset($_SESSION['current_hotel_id'])) {
                     
                     <div class="property-header">
                         <h3 class="property-title">
-                            <?php echo htmlspecialchars($property['name'] ?: 'Unnamed Property'); ?>
+                            <?php echo htmlspecialchars($property['hotel_name'] ?: 'Unnamed Property'); ?>
                         </h3>
                         <span class="property-type-badge">
                             <i class="fas fa-tag"></i> <?php echo htmlspecialchars($property['property_type'] ?: 'Hotel'); ?>
                         </span>
-                        <?php if ($property['address']): ?>
+                        <?php 
+                        $address = trim(($property['address_line1'] ?? '') . ' ' . ($property['city'] ?? '') . ', ' . ($property['state'] ?? ''));
+                        if ($address && $address !== ', '): 
+                        ?>
                             <p class="property-address">
                                 <i class="fas fa-map-marker-alt"></i>
-                                <?php echo htmlspecialchars($property['address']); ?>
+                                <?php echo htmlspecialchars($address); ?>
                             </p>
                         <?php endif; ?>
                     </div>
