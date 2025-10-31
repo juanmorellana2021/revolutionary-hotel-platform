@@ -472,6 +472,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="icon">🏡</div>
                             <div class="name">Villa</div>
                         </div>
+                        <div class="property-type-option" data-type="retreat_center">
+                            <div class="icon">🧘</div>
+                            <div class="name">Retreat Center</div>
+                        </div>
                     </div>
                 </div>
 
