@@ -460,10 +460,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="container">
-        <div class="welcome-banner">
-            <h1>🎉 Welcome to Hotel Setup!</h1>
-            <p>Configure your hotel information, services, and amenities to create the perfect guest experience</p>
-        </div>
+        <?php if (isset($_GET['new_property']) && $_GET['new_property'] == '1'): ?>
+            <div class="welcome-banner" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: center;">
+                <h1>🎉 Congratulations! Your Property is Registered!</h1>
+                <p style="font-size: 1.1rem; margin: 10px 0;">Welcome to AiNi Hotel Platform! Let's complete your property setup.</p>
+                <p style="opacity: 0.9;">✅ Account created | ✅ Property registered | 📋 Now complete your hotel details below</p>
+            </div>
+        <?php else: ?>
+            <div class="welcome-banner">
+                <h1>🎉 Welcome to Hotel Setup!</h1>
+                <p>Configure your hotel information, services, and amenities to create the perfect guest experience</p>
+            </div>
+        <?php endif; ?>
 
         <?php if (isset($message)): ?>
             <div class="message <?php echo $messageType; ?>">
