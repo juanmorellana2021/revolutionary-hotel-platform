@@ -34,7 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['current_hotel_id'] = $access ? $access['hotel_id'] : $user['current_hotel_id'] ?? 1;
             
             // Redirect based on user type
-            if ($user['user_type'] === 'owner' || $user['role'] === 'admin') {
+            if ($user['user_type'] === 'owner') {
+                header('Location: /owner_account.php');
+            } elseif ($user['role'] === 'admin' || $user['role'] === 'manager') {
                 header('Location: /hotel_setup.php');
             } else {
                 header('Location: /dashboard.php');
