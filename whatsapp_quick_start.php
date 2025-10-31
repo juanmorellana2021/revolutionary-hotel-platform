@@ -2,14 +2,21 @@
 session_start();
 require_once 'db_connection.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user'])) {
+// Check if user is logged in (support both session formats)
+$isLoggedIn = isset($_SESSION['user']) || isset($_SESSION['user_id']);
+if (!$isLoggedIn) {
     header('Location: index.php');
     exit;
 }
 
-// For now, allow any logged-in user to access WhatsApp setup
-// In production, you'd want proper role checking here
+// Get user role (support both session formats)
+$userRole = $_SESSION['user']['role'] ?? $_SESSION['user_role'] ?? 'guest';
+
+// Check if user is manager/admin
+if ($userRole !== 'manager' && $userRole !== 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
 
 $connection = $conn;
 

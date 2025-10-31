@@ -4,7 +4,7 @@
  * Test if AI responds to WhatsApp-style messages
  */
 
-require_once 'includes/ollama_ai.php';
+require_once '/var/www/html/manage/includes/ollama_ai.php';
 
 echo "<h1>WhatsApp AI Bot Test</h1>";
 echo "<style>body{font-family:Arial;padding:20px;background:#f0f0f0;} .chat{background:white;padding:20px;border-radius:10px;max-width:600px;margin:20px auto;} .msg{margin:10px 0;padding:10px;border-radius:5px;} .user{background:#e3f2fd;} .ai{background:#e8f5e9;}</style>";
