@@ -19,11 +19,22 @@ $hotel = $hotelInfo->getHotelInfo();
 $services = $hotelInfo->getServices();
 $amenities = $hotelInfo->getAmenities();
 
-// Get email configuration
+// Get email configuration for this hotel
 $database = new Database();
 $conn = $database->getConnection();
-$stmt = $conn->query("SELECT * FROM email_config ORDER BY id DESC LIMIT 1");
+$currentHotelId = $_SESSION['current_hotel_id'] ?? 1;
+$stmt = $conn->prepare("SELECT * FROM email_config WHERE hotel_id = ? LIMIT 1");
+$stmt->execute([$currentHotelId]);
 $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// If no config exists for this hotel, create default
+if (!$emailConfig) {
+    $stmt = $conn->prepare("INSERT INTO email_config (hotel_id, smtp_host, smtp_port, from_name, is_enabled) VALUES (?, 'smtp.gmail.com', 587, ?, 0)");
+    $stmt->execute([$currentHotelId, $hotel['name'] ?? 'AiNi Hotel']);
+    $stmt = $conn->prepare("SELECT * FROM email_config WHERE hotel_id = ? LIMIT 1");
+    $stmt->execute([$currentHotelId]);
+    $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

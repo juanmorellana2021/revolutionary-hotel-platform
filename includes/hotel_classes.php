@@ -11,9 +11,14 @@ class HotelInfo {
         $this->connection = $this->db->getConnection();
     }
 
-    public function getHotelInfo() {
-        $stmt = $this->connection->prepare("SELECT * FROM hotel_info ORDER BY id DESC LIMIT 1");
-        $stmt->execute();
+    public function getHotelInfo($hotelId = null) {
+        // If no hotel ID provided, use session's current hotel
+        if ($hotelId === null) {
+            $hotelId = $_SESSION['current_hotel_id'] ?? 1;
+        }
+        
+        $stmt = $this->connection->prepare("SELECT * FROM hotel_info WHERE id = ? LIMIT 1");
+        $stmt->execute([$hotelId]);
         return $stmt->fetch();
     }
 
