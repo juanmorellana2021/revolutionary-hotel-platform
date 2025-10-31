@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'includes/classes.php';
+require_once 'classes.php';
 require_once 'includes/hotel_classes.php';
 
 // Check if user is logged in and is a manager
