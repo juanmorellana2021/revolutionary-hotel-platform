@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 timezone, total_rooms, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->bind_param("isssssi", $userId, $propertyName, $propertyType, $address, $city, $country, $timezone, $totalRooms);
+        $stmt->bind_param("issssssi", $userId, $propertyName, $propertyType, $address, $city, $country, $timezone, $totalRooms);
         $stmt->execute();
         $hotelId = $conn->insert_id;
 
