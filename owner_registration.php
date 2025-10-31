@@ -91,8 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_type'] = 'owner';
         $_SESSION['current_hotel_id'] = $hotelId;
 
-        // Redirect to dashboard
-        header('Location: manager_dashboard.php?welcome=1');
+        // Redirect to hotel setup page for new owners
+        header('Location: hotel_setup.php?welcome=1&new_property=1');
         exit;
 
     } catch (Exception $e) {
