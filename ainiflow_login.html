@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniFlow - Login</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .phone-input {
+            padding-left: 2.5rem !important;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    
+    <div x-data="loginApp()" class="w-full max-w-md">
+        
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+                <i class="fas fa-comments text-4xl text-purple-600"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">AiniFlow</h1>
+            <p class="text-purple-100">Connect with travelers worldwide</p>
+        </div>
+        
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            
+            <!-- Step 1: Enter Phone Number -->
+            <div x-show="step === 1" x-transition>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome!</h2>
+                <p class="text-gray-600 mb-6">Enter your phone number to get started</p>
+                
+                <form @submit.prevent="requestCode">
+                    <!-- Phone Number Input -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                                <i class="fas fa-phone text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="tel" 
+                                x-model="phone"
+                                placeholder="+1 305 555 1234"
+                                class="phone-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                required
+                            >
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-info-circle"></i> Include country code (e.g., +1 for USA)
+                        </p>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div x-show="error" x-transition class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-sm text-red-600" x-text="error"></p>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit"
+                        :disabled="loading"
+                        class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
+                    >
+                        <span x-show="!loading">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Send Verification Code
+                        </span>
+                        <span x-show="loading" class="flex items-center">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Sending...
+                        </span>
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-gray-500">
+                        By continuing, you agree to AiniFlow's Terms of Service and Privacy Policy
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Step 2: Verify Code -->
+            <div x-show="step === 2" x-transition>
+                <button @click="step = 1" class="text-purple-600 hover:text-purple-700 mb-4 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+                
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Verify Code</h2>
+                <p class="text-gray-600 mb-6">
+                    Enter the 6-digit code sent to<br>
+                    <strong x-text="phone"></strong>
+                </p>
+                
+                <form @submit.prevent="verifyCode">
+                    <!-- Verification Code Input -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Verification Code
+                        </label>
+                        <input 
+                            type="text" 
+                            x-model="code"
+                            placeholder="123456"
+                            maxlength="6"
+                            class="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                        >
+                    </div>
+                    
+                    <!-- Dev Mode: Show Code -->
+                    <div x-show="devCode" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-code mr-2"></i>
+                            <strong>Dev Mode:</strong> Your code is <strong x-text="devCode"></strong>
+                        </p>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div x-show="error" x-transition class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-sm text-red-600" x-text="error"></p>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit"
+                        :disabled="loading"
+                        class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
+                    >
+                        <span x-show="!loading">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Verify
+                        </span>
+                        <span x-show="loading" class="flex items-center">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Verifying...
+                        </span>
+                    </button>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <button @click="requestCode" class="text-sm text-purple-600 hover:text-purple-700">
+                        <i class="fas fa-redo mr-1"></i> Resend Code
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Create Profile (First Time Users) -->
+            <div x-show="step === 3" x-transition>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Create Your Profile</h2>
+                <p class="text-gray-600 mb-6">Tell us a bit about yourself</p>
+                
+                <form @submit.prevent="createProfile">
+                    <!-- Name Input -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Name <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            x-model="name"
+                            placeholder="John Doe"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            required
+                        >
+                    </div>
+                    
+                    <!-- Profile Photo (Optional) -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Profile Photo (Optional)
+                        </label>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                <i class="fas fa-user text-3xl text-gray-400"></i>
+                            </div>
+                            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                                <i class="fas fa-upload mr-2"></i>
+                                Upload Photo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bio (Optional) -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Bio (Optional)
+                        </label>
+                        <textarea 
+                            x-model="bio"
+                            rows="3"
+                            placeholder="Love traveling and meeting new people..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div x-show="error" x-transition class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-sm text-red-600" x-text="error"></p>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit"
+                        :disabled="loading"
+                        class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
+                    >
+                        <span x-show="!loading">
+                            <i class="fas fa-rocket mr-2"></i>
+                            Get Started
+                        </span>
+                        <span x-show="loading" class="flex items-center">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Creating Profile...
+                        </span>
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-6">
+            <p class="text-white text-sm">
+                <i class="fas fa-shield-alt mr-1"></i>
+                Secure phone authentication • No passwords needed
+            </p>
+        </div>
+        
+    </div>
+    
+    <script>
+        function loginApp() {
+            return {
+                // State
+                step: 1, // 1: phone, 2: verify code, 3: create profile
+                phone: '',
+                code: '',
+                name: '',
+                bio: '',
+                devCode: '', // For development - shows the SMS code
+                error: '',
+                loading: false,
+                
+                // API Base URL
+                apiUrl: window.location.origin + '/api',
+                
+                // Request SMS verification code
+                async requestCode() {
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        const response = await fetch(`${this.apiUrl}/auth/request-code`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ phone: this.phone })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Failed to send code');
+                        }
+                        
+                        // Store dev code (remove in production)
+                        this.devCode = data.dev_code || '';
+                        
+                        // Move to verification step
+                        this.step = 2;
+                        
+                    } catch (err) {
+                        this.error = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                // Verify SMS code
+                async verifyCode() {
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        const response = await fetch(`${this.apiUrl}/auth/verify-code`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                phone: this.phone,
+                                code: this.code,
+                                name: this.name || 'User'
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Invalid verification code');
+                        }
+                        
+                        // Check if new user (needs profile) or existing user
+                        if (data.user.name === 'User') {
+                            // New user - go to profile creation
+                            this.step = 3;
+                        } else {
+                            // Existing user - save token and redirect to dashboard
+                            localStorage.setItem('ainiflow_token', data.token);
+                            localStorage.setItem('ainiflow_user', JSON.stringify(data.user));
+                            window.location.href = '/dashboard.html';
+                        }
+                        
+                    } catch (err) {
+                        this.error = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                // Create user profile
+                async createProfile() {
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${encodeURIComponent(this.phone)}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                name: this.name,
+                                bio: this.bio
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Failed to create profile');
+                        }
+                        
+                        // Save user data and redirect
+                        localStorage.setItem('ainiflow_user', JSON.stringify({
+                            phone: this.phone,
+                            name: this.name,
+                            bio: this.bio
+                        }));
+                        
+                        window.location.href = '/dashboard.html';
+                        
+                    } catch (err) {
+                        this.error = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }
+        }
+    </script>
+    
+</body>
+</html>

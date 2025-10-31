@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniCoin Wallet - AiniFlow</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="walletApp()">
+    
+    <!-- Top Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-14 sm:h-16">
+                <div class="flex items-center">
+                    <a href="/dashboard.html" class="text-gray-600 hover:text-purple-600 mr-4">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <i class="fas fa-wallet text-xl sm:text-2xl text-purple-600 mr-2"></i>
+                    <span class="text-lg sm:text-xl font-bold text-gray-800">AiniCoin Wallet</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                        <span x-text="user.name ? user.name.charAt(0).toUpperCase() : 'U'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        
+        <!-- Wallet Balance Card -->
+        <div class="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-white mb-6">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <p class="text-purple-200 text-sm mb-2">Total Balance</p>
+                    <h1 class="text-4xl sm:text-5xl font-bold">
+                        <span x-text="balance.toFixed(2)"></span>
+                        <span class="text-2xl sm:text-3xl ml-2">AC</span>
+                    </h1>
+                    <p class="text-purple-200 text-sm mt-2">
+                        ≈ $<span x-text="balance.toFixed(2)"></span> USD
+                    </p>
+                </div>
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-coins text-3xl"></i>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-3 gap-3">
+                <button @click="showDepositModal = true" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-center transition">
+                    <i class="fas fa-arrow-down text-xl mb-2"></i>
+                    <p class="text-xs font-medium">Deposit</p>
+                </button>
+                <button @click="showTransferModal = true" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-center transition">
+                    <i class="fas fa-paper-plane text-xl mb-2"></i>
+                    <p class="text-xs font-medium">Send</p>
+                </button>
+                <button @click="showWithdrawModal = true" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-center transition">
+                    <i class="fas fa-arrow-up text-xl mb-2"></i>
+                    <p class="text-xs font-medium">Withdraw</p>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Transaction History -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800">Transaction History</h2>
+                <button @click="loadTransactions()" class="text-purple-600 hover:text-purple-700">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 sm:p-6">
+                <!-- Loading State -->
+                <div x-show="loading" class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i>
+                    <p class="text-gray-600 mt-2">Loading transactions...</p>
+                </div>
+                
+                <!-- Transactions List -->
+                <div x-show="!loading" class="space-y-3">
+                    <template x-for="tx in transactions" :key="tx.id">
+                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-300 transition">
+                            <div class="flex items-center space-x-4">
+                                <div 
+                                    class="w-10 h-10 rounded-full flex items-center justify-center"
+                                    :class="{
+                                        'bg-green-100 text-green-600': tx.transaction_type === 'deposit',
+                                        'bg-red-100 text-red-600': tx.transaction_type === 'withdrawal' || tx.transaction_type === 'booking_payment',
+                                        'bg-blue-100 text-blue-600': tx.transaction_type === 'transfer',
+                                        'bg-purple-100 text-purple-600': tx.transaction_type === 'refund'
+                                    }"
+                                >
+                                    <i class="fas" 
+                                       :class="{
+                                           'fa-arrow-down': tx.transaction_type === 'deposit',
+                                           'fa-arrow-up': tx.transaction_type === 'withdrawal',
+                                           'fa-hotel': tx.transaction_type === 'booking_payment',
+                                           'fa-exchange-alt': tx.transaction_type === 'transfer',
+                                           'fa-undo': tx.transaction_type === 'refund'
+                                       }"
+                                    ></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800 capitalize" x-text="tx.transaction_type.replace('_', ' ')"></p>
+                                    <p class="text-xs text-gray-500" x-text="formatDate(tx.created_at)"></p>
+                                    <p x-show="tx.description" class="text-xs text-gray-600 mt-1" x-text="tx.description"></p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p 
+                                    class="font-bold text-lg"
+                                    :class="{
+                                        'text-green-600': tx.transaction_type === 'deposit' || tx.transaction_type === 'refund',
+                                        'text-red-600': tx.transaction_type === 'withdrawal' || tx.transaction_type === 'booking_payment' || tx.transaction_type === 'transfer'
+                                    }"
+                                >
+                                    <span x-text="tx.from_phone === user.phone ? '-' : '+'"></span>
+                                    <span x-text="tx.amount"></span> AC
+                                </p>
+                                <p class="text-xs" 
+                                   :class="{
+                                       'text-green-600': tx.status === 'completed',
+                                       'text-yellow-600': tx.status === 'pending',
+                                       'text-red-600': tx.status === 'failed'
+                                   }"
+                                   x-text="tx.status"
+                                ></p>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- Empty State -->
+                    <div x-show="!loading && transactions.length === 0" class="text-center py-12">
+                        <i class="fas fa-receipt text-5xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-600">No transactions yet</p>
+                        <p class="text-sm text-gray-500 mt-2">Make your first deposit to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Deposit Modal -->
+    <div x-show="showDepositModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+         @click.self="showDepositModal = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Deposit AiniCoin</h3>
+                <button @click="showDepositModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form @submit.prevent="deposit">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount (AC)</label>
+                    <input 
+                        type="number" 
+                        x-model="depositAmount"
+                        step="0.01"
+                        min="1"
+                        placeholder="100.00"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                    >
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle"></i> Minimum deposit: 1 AC
+                    </p>
+                </div>
+                
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-shield-alt mr-2"></i>
+                        <strong>Dev Mode:</strong> Deposits are instant for testing. Blockchain integration coming soon!
+                    </p>
+                </div>
+                
+                <button 
+                    type="submit"
+                    :disabled="loading"
+                    class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition"
+                >
+                    <span x-show="!loading">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Deposit AiniCoin
+                    </span>
+                    <span x-show="loading">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Processing...
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Transfer Modal -->
+    <div x-show="showTransferModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+         @click.self="showTransferModal = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Send AiniCoin</h3>
+                <button @click="showTransferModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form @submit.prevent="transfer">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Recipient Phone Number</label>
+                    <input 
+                        type="tel" 
+                        x-model="transferPhone"
+                        placeholder="+1 305 555 1234"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                    >
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount (AC)</label>
+                    <input 
+                        type="number" 
+                        x-model="transferAmount"
+                        step="0.01"
+                        min="0.01"
+                        :max="balance"
+                        placeholder="10.00"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                    >
+                    <p class="text-xs text-gray-500 mt-2">
+                        Available balance: <strong x-text="balance.toFixed(2)"></strong> AC
+                    </p>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Note (Optional)</label>
+                    <input 
+                        type="text" 
+                        x-model="transferNote"
+                        placeholder="For coffee ☕"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                </div>
+                
+                <button 
+                    type="submit"
+                    :disabled="loading || transferAmount > balance"
+                    class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition"
+                >
+                    <span x-show="!loading">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send AiniCoin
+                    </span>
+                    <span x-show="loading">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Sending...
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Withdraw Modal -->
+    <div x-show="showWithdrawModal" 
+         x-transition
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+         @click.self="showWithdrawModal = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Withdraw</h3>
+                <button @click="showWithdrawModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="text-center py-8">
+                <i class="fas fa-clock text-5xl text-purple-600 mb-4"></i>
+                <h4 class="text-xl font-bold text-gray-800 mb-2">Coming Soon</h4>
+                <p class="text-gray-600">Blockchain withdrawals will be available after mainnet launch!</p>
+                <button @click="showWithdrawModal = false" class="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Got it
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function walletApp() {
+            return {
+                user: {},
+                balance: 0,
+                transactions: [],
+                loading: false,
+                
+                // Modals
+                showDepositModal: false,
+                showTransferModal: false,
+                showWithdrawModal: false,
+                
+                // Form data
+                depositAmount: '',
+                transferPhone: '',
+                transferAmount: '',
+                transferNote: '',
+                
+                apiUrl: window.location.origin + '/api',
+                
+                init() {
+                    // Load user from localStorage
+                    const userData = localStorage.getItem('ainiflow_user');
+                    if (userData) {
+                        this.user = JSON.parse(userData);
+                    } else {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
+                    this.loadBalance();
+                    this.loadTransactions();
+                },
+                
+                async loadBalance() {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${encodeURIComponent(this.user.phone)}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.balance = parseFloat(data.wallet_balance) || 0;
+                        }
+                    } catch (error) {
+                        console.error('Error loading balance:', error);
+                    }
+                },
+                
+                async loadTransactions() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/wallet/transactions/${encodeURIComponent(this.user.phone)}`);
+                        if (response.ok) {
+                            this.transactions = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading transactions:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                async deposit() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/wallet/deposit`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                phone: this.user.phone,
+                                amount: parseFloat(this.depositAmount)
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            alert(data.error || 'Deposit failed');
+                            return;
+                        }
+                        
+                        // Success!
+                        this.showDepositModal = false;
+                        this.depositAmount = '';
+                        this.loadBalance();
+                        this.loadTransactions();
+                        
+                        alert(`Successfully deposited ${this.depositAmount} AiniCoin!`);
+                    } catch (error) {
+                        console.error('Error depositing:', error);
+                        alert('Deposit failed. Please try again.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                async transfer() {
+                    if (this.transferAmount > this.balance) {
+                        alert('Insufficient balance!');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`${this.apiUrl}/wallet/transfer`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                from_phone: this.user.phone,
+                                to_phone: this.transferPhone,
+                                amount: parseFloat(this.transferAmount),
+                                description: this.transferNote || `Transfer from ${this.user.name}`
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            alert(data.error || 'Transfer failed');
+                            return;
+                        }
+                        
+                        // Success!
+                        this.showTransferModal = false;
+                        this.transferPhone = '';
+                        this.transferAmount = '';
+                        this.transferNote = '';
+                        this.loadBalance();
+                        this.loadTransactions();
+                        
+                        alert(`Successfully sent ${this.transferAmount} AiniCoin!`);
+                    } catch (error) {
+                        console.error('Error transferring:', error);
+                        alert('Transfer failed. Please try again.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+        }
+    </script>
+    
+</body>
+</html>
