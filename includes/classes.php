@@ -2,8 +2,8 @@
 // Database configuration
 class Database {
     private $host = 'localhost';
-    private $username = 'root';
-    private $password = '';
+    private $username = 'hoteluser';
+    private $password = 'hotelpass123';
     private $database = 'hotel_booking_system';
     private $connection;
 
@@ -130,9 +130,12 @@ class Room {
 
     public function getAllRooms() {
         $hotelId = $_SESSION['current_hotel_id'] ?? 1;
+        error_log("getAllRooms called with hotel_id: " . $hotelId);
         $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE hotel_id = ? ORDER BY room_number");
         $stmt->execute([$hotelId]);
-        return $stmt->fetchAll();
+        $result = $stmt->fetchAll();
+        error_log("getAllRooms returned " . count($result) . " rooms");
+        return $result;
     }
 
     public function getRoomById($id) {

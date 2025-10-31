@@ -462,14 +462,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="header-content">
             <div class="logo">🏨 Hotel Management System</div>
             <div class="nav-links">
-                <a href="manager_dashboard.php">Dashboard</a>
+                <a href="dashboard.php">Dashboard</a>
                 <a href="hotel_setup.php">Hotel Setup</a>
                 <a href="room_management.php">Room Management</a>
                 <a href="calendar_view.php">Calendar</a>
                 <a href="accounting_dashboard.php">💰 Accounting</a>
                 <a href="income_management.php">💰 Income</a>
                 <a href="expense_management.php">💸 Expenses</a>
-                <a href="dashboard.php">Guest View</a>
+                <a href="owner_account.php">My Properties</a>
                 <a href="logout.php">Logout</a>
             </div>
         </div>
@@ -985,11 +985,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div style="text-align: center; margin-top: 2rem;">
-            <a href="manager_dashboard.php" class="btn" style="margin-right: 1rem;">
-                📊 Go to Manager Dashboard
+            <a href="dashboard.php" class="btn" style="margin-right: 1rem;">
+                📊 Go to Dashboard
             </a>
-            <a href="dashboard.php" class="btn">
-                👁️ View Guest Experience
+            <a href="owner_account.php" class="btn">
+                🏢 My Properties
             </a>
         </div>
     </div>
