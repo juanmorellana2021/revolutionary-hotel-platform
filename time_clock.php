@@ -1,6 +1,26 @@
 <?php
 session_start();
+
+// Set timezone based on hotel settings BEFORE any database operations
+if (!isset($_SESSION['current_hotel_id'])) {
+    $_SESSION['current_hotel_id'] = 1; // Default to hotel 1
+}
+
 require_once 'includes/classes.php';
+
+// Get hotel timezone and set it
+$db = new Database();
+$conn = $db->getConnection();
+$timezone_stmt = $conn->prepare("SELECT timezone FROM hotel_info WHERE id = ? LIMIT 1");
+$timezone_stmt->execute([$_SESSION['current_hotel_id']]);
+$timezone_result = $timezone_stmt->fetch(PDO::FETCH_ASSOC);
+if ($timezone_result) {
+    $hotel_timezone = $timezone_result['timezone'] ?? 'America/Lima';
+    date_default_timezone_set($hotel_timezone);
+} else {
+    date_default_timezone_set('America/Lima'); // Default to Peru timezone
+}
+
 require_once 'includes/hotel_classes.php';
 require_once 'includes/employee_classes.php';
 
@@ -83,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Invalid security token. Please refresh the page and try again.';
         $messageType = 'error';
     } else if (isset($_POST['clock_in'])) {
+        // Log the attempt
+        error_log("Clock In Attempt - Employee ID: " . ($_POST['employee_id'] ?? 'MISSING') . " Notes: " . ($_POST['notes'] ?? ''));
+        
         // Check for duplicate submission using session tracking
         $submissionKey = 'last_clock_in_' . (int)$_POST['employee_id'];
         $currentTime = time();
@@ -90,9 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_SESSION[$submissionKey]) && ($currentTime - $_SESSION[$submissionKey]) < 5) {
             $message = 'Duplicate submission prevented. Please wait before trying again.';
             $messageType = 'warning';
+            error_log("Clock In - Duplicate prevention triggered");
         } else {
             $_SESSION[$submissionKey] = $currentTime;
-            $result = $timeClockManager->clockIn((int)$_POST['employee_id'], $_POST['notes'] ?? '');
+            $result = $timeClockManager->clockIn((int)$_POST['employee_id'], 'hotel', $_POST['notes'] ?? '');
+            error_log("Clock In Result - Success: " . ($result['success'] ? 'YES' : 'NO') . " Message: " . $result['message']);
             $message = $result['message'];
             $messageType = $result['success'] ? 'success' : 'error';
             
@@ -100,7 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                error_log("Clock In - Redirecting to: " . $redirectUrl);
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -124,7 +154,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -147,7 +181,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -170,7 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['success']) {
                 $_SESSION['flash_message'] = $message;
                 $_SESSION['flash_type'] = $messageType;
-                header('Location: ' . $_SERVER['PHP_SELF']);
+                $redirectUrl = $_SERVER['PHP_SELF'];
+                if (!empty($_POST['employee_id'])) {
+                    $redirectUrl .= '?employee_id=' . (int)$_POST['employee_id'];
+                }
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         }
@@ -856,7 +898,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-play-circle me-2"></i>Clock In Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                <form method="POST">
                                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>
@@ -887,7 +929,7 @@ $todayHours = array_sum(array_map(function($entry) {
                                 <i class="bi bi-stop-circle me-2"></i>Clock Out Employee
                             </div>
                             <div class="card-body">
-                                <form method="POST" onsubmit="return preventDoubleSubmit(this)">
+                                <form method="POST">
                                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                     <div class="mb-3">
                                         <label class="form-label">Select Employee</label>

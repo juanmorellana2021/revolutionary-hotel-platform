@@ -1,0 +1,19 @@
+[Unit]
+Description=AiniFlow Server (Social AINI - Server 4)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/aini-platform
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=3
+StandardOutput=append:/var/www/aini-platform/server.log
+StandardError=append:/var/www/aini-platform/error.log
+
+# Environment
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

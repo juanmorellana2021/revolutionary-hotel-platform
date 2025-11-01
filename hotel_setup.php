@@ -1,15 +1,20 @@
 <?php
 session_start();
-require_once 'includes/classes.php';
+require_once 'classes.php';
 require_once 'includes/hotel_classes.php';
 
-// Check if user is logged in and is a manager
-if (!isset($_SESSION['user_role'])) {
-    header('Location: index.php');
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: owner_login.php');
     exit;
 }
 
-if ($_SESSION['user_role'] !== 'manager' && $_SESSION['user_role'] !== 'admin') {
+// Allow owners, managers, and admins
+$allowed = ($_SESSION['user_type'] === 'owner') || 
+           ($_SESSION['user_role'] === 'manager') || 
+           ($_SESSION['user_role'] === 'admin');
+
+if (!$allowed) {
     header('Location: dashboard.php');
     exit;
 }
@@ -19,11 +24,22 @@ $hotel = $hotelInfo->getHotelInfo();
 $services = $hotelInfo->getServices();
 $amenities = $hotelInfo->getAmenities();
 
-// Get email configuration
+// Get email configuration for this hotel
 $database = new Database();
 $conn = $database->getConnection();
-$stmt = $conn->query("SELECT * FROM email_config ORDER BY id DESC LIMIT 1");
+$currentHotelId = $_SESSION['current_hotel_id'] ?? 1;
+$stmt = $conn->prepare("SELECT * FROM email_config WHERE hotel_id = ? LIMIT 1");
+$stmt->execute([$currentHotelId]);
 $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// If no config exists for this hotel, create default
+if (!$emailConfig) {
+    $stmt = $conn->prepare("INSERT INTO email_config (hotel_id, smtp_host, smtp_port, smtp_username, smtp_password, from_email, from_name, reply_to, is_enabled) VALUES (?, 'smtp.gmail.com', 587, '', '', '', ?, '', 0)");
+    $stmt->execute([$currentHotelId, $hotel['name'] ?? 'AiNi Hotel']);
+    $stmt = $conn->prepare("SELECT * FROM email_config WHERE hotel_id = ? LIMIT 1");
+    $stmt->execute([$currentHotelId]);
+    $emailConfig = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -446,24 +462,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="header-content">
             <div class="logo">🏨 Hotel Management System</div>
             <div class="nav-links">
-                <a href="manager_dashboard.php">Dashboard</a>
+                <a href="dashboard.php">Dashboard</a>
                 <a href="hotel_setup.php">Hotel Setup</a>
                 <a href="room_management.php">Room Management</a>
                 <a href="calendar_view.php">Calendar</a>
                 <a href="accounting_dashboard.php">💰 Accounting</a>
                 <a href="income_management.php">💰 Income</a>
                 <a href="expense_management.php">💸 Expenses</a>
-                <a href="dashboard.php">Guest View</a>
+                <a href="owner_account.php">My Properties</a>
                 <a href="logout.php">Logout</a>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <div class="welcome-banner">
-            <h1>🎉 Welcome to Hotel Setup!</h1>
-            <p>Configure your hotel information, services, and amenities to create the perfect guest experience</p>
-        </div>
+        <?php if (isset($_GET['new_property']) && $_GET['new_property'] == '1'): ?>
+            <div class="welcome-banner" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: center;">
+                <h1>🎉 Congratulations! Your Property is Registered!</h1>
+                <p style="font-size: 1.1rem; margin: 10px 0;">Welcome to AiNi Hotel Platform! Let's complete your property setup.</p>
+                <p style="opacity: 0.9;">✅ Account created | ✅ Property registered | 📋 Now complete your hotel details below</p>
+            </div>
+        <?php else: ?>
+            <div class="welcome-banner">
+                <h1>🎉 Welcome to Hotel Setup!</h1>
+                <p>Configure your hotel information, services, and amenities to create the perfect guest experience</p>
+            </div>
+        <?php endif; ?>
 
         <?php if (isset($message)): ?>
             <div class="message <?php echo $messageType; ?>">
@@ -538,6 +562,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="country">Country</label>
                             <input type="text" id="country" name="country" 
                                    value="<?php echo htmlspecialchars($hotel['country'] ?? ''); ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="timezone">🌍 Timezone</label>
+                            <select id="timezone" name="timezone" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%;">
+                                <optgroup label="Americas">
+                                    <option value="America/Lima" <?php echo ($hotel['timezone'] ?? 'America/Lima') == 'America/Lima' ? 'selected' : ''; ?>>Peru (Lima) - UTC-5</option>
+                                    <option value="America/New_York" <?php echo ($hotel['timezone'] ?? '') == 'America/New_York' ? 'selected' : ''; ?>>USA (New York) - UTC-5/-4</option>
+                                    <option value="America/Chicago" <?php echo ($hotel['timezone'] ?? '') == 'America/Chicago' ? 'selected' : ''; ?>>USA (Chicago) - UTC-6/-5</option>
+                                    <option value="America/Denver" <?php echo ($hotel['timezone'] ?? '') == 'America/Denver' ? 'selected' : ''; ?>>USA (Denver) - UTC-7/-6</option>
+                                    <option value="America/Los_Angeles" <?php echo ($hotel['timezone'] ?? '') == 'America/Los_Angeles' ? 'selected' : ''; ?>>USA (Los Angeles) - UTC-8/-7</option>
+                                    <option value="America/Mexico_City" <?php echo ($hotel['timezone'] ?? '') == 'America/Mexico_City' ? 'selected' : ''; ?>>Mexico (Mexico City) - UTC-6/-5</option>
+                                    <option value="America/Bogota" <?php echo ($hotel['timezone'] ?? '') == 'America/Bogota' ? 'selected' : ''; ?>>Colombia (Bogotá) - UTC-5</option>
+                                    <option value="America/Buenos_Aires" <?php echo ($hotel['timezone'] ?? '') == 'America/Buenos_Aires' ? 'selected' : ''; ?>>Argentina (Buenos Aires) - UTC-3</option>
+                                    <option value="America/Santiago" <?php echo ($hotel['timezone'] ?? '') == 'America/Santiago' ? 'selected' : ''; ?>>Chile (Santiago) - UTC-3/-4</option>
+                                    <option value="America/Caracas" <?php echo ($hotel['timezone'] ?? '') == 'America/Caracas' ? 'selected' : ''; ?>>Venezuela (Caracas) - UTC-4</option>
+                                </optgroup>
+                                <optgroup label="Europe">
+                                    <option value="Europe/London" <?php echo ($hotel['timezone'] ?? '') == 'Europe/London' ? 'selected' : ''; ?>>UK (London) - UTC+0/+1</option>
+                                    <option value="Europe/Paris" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Paris' ? 'selected' : ''; ?>>France (Paris) - UTC+1/+2</option>
+                                    <option value="Europe/Madrid" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Madrid' ? 'selected' : ''; ?>>Spain (Madrid) - UTC+1/+2</option>
+                                    <option value="Europe/Berlin" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Berlin' ? 'selected' : ''; ?>>Germany (Berlin) - UTC+1/+2</option>
+                                    <option value="Europe/Rome" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Rome' ? 'selected' : ''; ?>>Italy (Rome) - UTC+1/+2</option>
+                                    <option value="Europe/Moscow" <?php echo ($hotel['timezone'] ?? '') == 'Europe/Moscow' ? 'selected' : ''; ?>>Russia (Moscow) - UTC+3</option>
+                                </optgroup>
+                                <optgroup label="Asia">
+                                    <option value="Asia/Dubai" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Dubai' ? 'selected' : ''; ?>>UAE (Dubai) - UTC+4</option>
+                                    <option value="Asia/Bangkok" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Bangkok' ? 'selected' : ''; ?>>Thailand (Bangkok) - UTC+7</option>
+                                    <option value="Asia/Singapore" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Singapore' ? 'selected' : ''; ?>>Singapore - UTC+8</option>
+                                    <option value="Asia/Hong_Kong" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Hong_Kong' ? 'selected' : ''; ?>>Hong Kong - UTC+8</option>
+                                    <option value="Asia/Tokyo" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Tokyo' ? 'selected' : ''; ?>>Japan (Tokyo) - UTC+9</option>
+                                    <option value="Asia/Seoul" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Seoul' ? 'selected' : ''; ?>>South Korea (Seoul) - UTC+9</option>
+                                    <option value="Asia/Shanghai" <?php echo ($hotel['timezone'] ?? '') == 'Asia/Shanghai' ? 'selected' : ''; ?>>China (Shanghai) - UTC+8</option>
+                                </optgroup>
+                                <optgroup label="Oceania">
+                                    <option value="Australia/Sydney" <?php echo ($hotel['timezone'] ?? '') == 'Australia/Sydney' ? 'selected' : ''; ?>>Australia (Sydney) - UTC+10/+11</option>
+                                    <option value="Pacific/Auckland" <?php echo ($hotel['timezone'] ?? '') == 'Pacific/Auckland' ? 'selected' : ''; ?>>New Zealand (Auckland) - UTC+12/+13</option>
+                                </optgroup>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">Select your hotel's local timezone for accurate time tracking</small>
                         </div>
                     </div>
 
@@ -921,11 +985,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div style="text-align: center; margin-top: 2rem;">
-            <a href="manager_dashboard.php" class="btn" style="margin-right: 1rem;">
-                📊 Go to Manager Dashboard
+            <a href="dashboard.php" class="btn" style="margin-right: 1rem;">
+                📊 Go to Dashboard
             </a>
-            <a href="dashboard.php" class="btn">
-                👁️ View Guest Experience
+            <a href="owner_account.php" class="btn">
+                🏢 My Properties
             </a>
         </div>
     </div>

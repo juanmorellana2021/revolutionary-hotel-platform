@@ -13,6 +13,9 @@ class EmployeeManager {
      */
     public function addEmployee($data) {
         try {
+            // Convert empty email to NULL to avoid duplicate empty string conflicts
+            $email = !empty($data['email']) ? $data['email'] : null;
+            
             $stmt = $this->connection->prepare("
                 INSERT INTO employees (
                     employee_id, first_name, last_name, email, phone, position, department, 
@@ -26,7 +29,7 @@ class EmployeeManager {
                 $data['employee_id'],
                 $data['first_name'],
                 $data['last_name'],
-                $data['email'],
+                $email,
                 $data['phone'],
                 $data['position'],
                 $data['department'],
@@ -132,6 +135,9 @@ class EmployeeManager {
      */
     public function updateEmployee($employeeId, $data) {
         try {
+            // Convert empty email to NULL to avoid duplicate empty string conflicts
+            $email = !empty($data['email']) ? $data['email'] : null;
+            
             $stmt = $this->connection->prepare("
                 UPDATE employees SET 
                     first_name = ?, last_name = ?, email = ?, phone = ?, position = ?, 
@@ -145,7 +151,7 @@ class EmployeeManager {
             $stmt->execute([
                 $data['first_name'],
                 $data['last_name'],
-                $data['email'],
+                $email,
                 $data['phone'],
                 $data['position'],
                 $data['department'],
@@ -216,7 +222,7 @@ class TimeClockManager {
             // Check if employee is already clocked in
             $stmt = $this->connection->prepare("
                 SELECT id FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
             ");
             $stmt->execute([$employeeId]);
             
@@ -227,16 +233,22 @@ class TimeClockManager {
                 ];
             }
             
+            // Use PHP's current time (which respects timezone) instead of MySQL NOW()
+            $currentTime = date('Y-m-d H:i:s');
+            
             $stmt = $this->connection->prepare("
                 INSERT INTO time_clock (employee_id, clock_in, location, notes, status) 
-                VALUES (?, NOW(), ?, ?, 'active')
+                VALUES (?, ?, ?, ?, 'clocked_in')
             ");
             
-            $stmt->execute([$employeeId, $location, $notes]);
+            $stmt->execute([$employeeId, $currentTime, $location, $notes]);
+            
+            // Get the clock in time in 12-hour format
+            $clockInTime = date('g:i A'); // e.g., "4:46 PM"
             
             return [
                 'success' => true,
-                'message' => 'Successfully clocked in',
+                'message' => 'Successfully clocked in at ' . $clockInTime,
                 'clock_id' => $this->connection->lastInsertId()
             ];
             
@@ -257,7 +269,7 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 SELECT id, clock_in, total_break_minutes 
                 FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
                 ORDER BY clock_in DESC LIMIT 1
             ");
             $stmt->execute([$employeeId]);
@@ -272,7 +284,8 @@ class TimeClockManager {
             
             // Calculate total hours
             $clockIn = new DateTime($clockEntry['clock_in']);
-            $clockOut = new DateTime();
+            $currentTime = date('Y-m-d H:i:s'); // Use PHP timezone
+            $clockOut = new DateTime($currentTime);
             $interval = $clockIn->diff($clockOut);
             $totalMinutes = ($interval->h * 60) + $interval->i;
             $breakMinutes = $clockEntry['total_break_minutes'] ?? 0;
@@ -285,20 +298,23 @@ class TimeClockManager {
             
             $stmt = $this->connection->prepare("
                 UPDATE time_clock SET 
-                    clock_out = NOW(), 
+                    clock_out = ?, 
                     total_hours = ?, 
                     overtime_hours = ?,
                     notes = CONCAT(COALESCE(notes, ''), ?),
-                    status = 'completed'
+                    status = 'clocked_out'
                 WHERE id = ?
             ");
             
             $additionalNotes = $notes ? "\nClock out: " . $notes : '';
-            $stmt->execute([$totalHours, $overtimeHours, $additionalNotes, $clockEntry['id']]);
+            $stmt->execute([$currentTime, $totalHours, $overtimeHours, $additionalNotes, $clockEntry['id']]);
+            
+            // Get the clock out time in 12-hour format
+            $clockOutTime = date('g:i A'); // e.g., "5:30 PM"
             
             return [
                 'success' => true,
-                'message' => 'Successfully clocked out',
+                'message' => 'Successfully clocked out at ' . $clockOutTime . ' (' . number_format($totalHours, 2) . 'h worked)',
                 'total_hours' => $totalHours,
                 'overtime_hours' => $overtimeHours
             ];
@@ -317,8 +333,8 @@ class TimeClockManager {
     public function startBreak($employeeId) {
         try {
             $stmt = $this->connection->prepare("
-                UPDATE time_clock SET break_start = NOW() 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                UPDATE time_clock SET break_start = NOW(), status = 'on_break'
+                WHERE employee_id = ? AND clock_out IS NULL
                 AND break_start IS NULL
             ");
             
@@ -353,7 +369,7 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 SELECT break_start, total_break_minutes 
                 FROM time_clock 
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                WHERE employee_id = ? AND clock_out IS NULL
                 AND break_start IS NOT NULL AND break_end IS NULL
             ");
             $stmt->execute([$employeeId]);
@@ -376,8 +392,9 @@ class TimeClockManager {
             $stmt = $this->connection->prepare("
                 UPDATE time_clock SET 
                     break_end = NOW(), 
-                    total_break_minutes = ?
-                WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+                    total_break_minutes = ?,
+                    status = 'clocked_in'
+                WHERE employee_id = ? AND clock_out IS NULL
             ");
             
             $stmt->execute([$totalBreakMinutes, $employeeId]);
@@ -550,7 +567,7 @@ class TimeClockManager {
                     ELSE 'clocked_out'
                 END as current_status
             FROM time_clock 
-            WHERE employee_id = ? AND status = 'active' AND clock_out IS NULL
+            WHERE employee_id = ? AND clock_out IS NULL
             ORDER BY clock_in DESC LIMIT 1
         ");
         $stmt->execute([$employeeId]);
@@ -576,7 +593,6 @@ class TimeClockManager {
             FROM employees e
             JOIN time_clock tc ON e.id = tc.employee_id
             WHERE tc.clock_out IS NULL
-            AND DATE(tc.clock_in) = CURDATE()
             ORDER BY tc.clock_in ASC
         ";
         

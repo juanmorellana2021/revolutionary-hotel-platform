@@ -56,11 +56,36 @@ foreach ($connection_methods as $method) {
 if ($conn && !$conn->connect_error) {
     // Set charset
     $conn->set_charset("utf8");
+    
+    // Start session if not already started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Set timezone based on current hotel
+    $hotel_id = $_SESSION['current_hotel_id'] ?? 1; // Default to hotel 1
+    
+    $timezone_stmt = $conn->prepare("SELECT timezone FROM hotel_info WHERE id = ? LIMIT 1");
+    $timezone_stmt->bind_param("i", $hotel_id);
+    $timezone_stmt->execute();
+    $timezone_result = $timezone_stmt->get_result();
+    
+    if ($timezone_result && $timezone_row = $timezone_result->fetch_assoc()) {
+        $hotel_timezone = $timezone_row['timezone'] ?? 'America/Lima';
+        date_default_timezone_set($hotel_timezone);
+        // Also set MySQL timezone
+        $conn->query("SET time_zone = '" . date('P') . "'");
+    } else {
+        // Default to Peru timezone if no hotel info exists
+        date_default_timezone_set('America/Lima');
+        $conn->query("SET time_zone = '-05:00'");
+    }
+    
+    $timezone_stmt->close();
 } else {
     die("Database connection failed after all attempts: " . ($conn ? $conn->connect_error : $connection_error));
 }
 
 // Optimize connection settings
-$conn->set_charset("utf8");
 $conn->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
 ?>

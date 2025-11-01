@@ -1,26 +1,68 @@
 <?php
-// Database configuration
+// Database configuration - VPS Compatible with fallback authentication
 class Database {
     private $host = 'localhost';
-    private $username = 'hoteluser';
-    private $password = 'hotelpass123';
     private $database = 'hotel_booking_system';
     private $connection;
 
     public function __construct() {
-        try {
-            $this->connection = new PDO(
-                "mysql:host={$this->host};dbname={$this->database};charset=utf8",
-                $this->username,
-                $this->password,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                ]
-            );
-        } catch (PDOException $e) {
-            die("Database connection failed: " . $e->getMessage());
+        $this->connectWithFallback();
+    }
+
+    private function connectWithFallback() {
+        // Try multiple connection methods to ensure reliability
+        $connection_methods = [
+            // Method 1: Try hoteluser first
+            ['hoteluser', 'hotelpass123'],
+            // Method 2: Try root with password
+            ['root', 'password123'],
+            // Method 3: Try root with empty password (socket auth)
+            ['root', '']
+        ];
+
+        $connection_error = '';
+        
+        foreach ($connection_methods as $method) {
+            try {
+                $username = $method[0];
+                $password = $method[1];
+                
+                // Try PDO connection
+                $this->connection = new PDO(
+                    "mysql:host={$this->host};dbname={$this->database}",
+                    $username,
+                    $password,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                    ]
+                );
+                
+                // Connection successful - create hoteluser if we are connected as root
+                if ($username === 'root') {
+                    // Create the hoteluser properly
+                    $this->connection->exec("CREATE DATABASE IF NOT EXISTS {$this->database}");
+                    $this->connection->exec("DROP USER IF EXISTS hoteluser@localhost");
+                    $this->connection->exec("CREATE USER hoteluser@localhost IDENTIFIED BY 'hotelpass123'");
+                    $this->connection->exec("GRANT ALL PRIVILEGES ON {$this->database}.* TO hoteluser@localhost");
+                    $this->connection->exec("FLUSH PRIVILEGES");
+                }
+                
+                // Create database if it doesn't exist and use it
+                $this->connection->exec("CREATE DATABASE IF NOT EXISTS {$this->database}");
+                $this->connection->exec("USE {$this->database}");
+                
+                // If we get here, connection was successful
+                return;
+                
+            } catch (PDOException $e) {
+                $connection_error = $e->getMessage();
+                continue;
+            }
         }
+        
+        // If all methods failed
+        die("Database connection failed after all attempts: " . $connection_error);
     }
 
     public function getConnection() {
@@ -44,36 +86,75 @@ class User {
             return ['success' => false, 'message' => 'You must accept the terms and conditions to register'];
         }
 
-        // Check if user already exists
-        $stmt = $this->connection->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        
-        if ($stmt->rowCount() > 0) {
-            return ['success' => false, 'message' => 'User already exists with this email'];
-        }
-
-        // Hash password
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        // Insert new user with terms acceptance
-        $stmt = $this->connection->prepare("
-            INSERT INTO users (first_name, last_name, email, password, terms_accepted, terms_accepted_at, terms_version) 
-            VALUES (?, ?, ?, ?, ?, NOW(), ?)
-        ");
-        
-        if ($stmt->execute([$firstName, $lastName, $email, $hashedPassword, 1, $termsVersion])) {
-            $userId = $this->connection->lastInsertId();
-            return [
-                'success' => true, 
-                'message' => 'Registration successful',
-                'user_id' => $userId
-            ];
-        } else {
-            return ['success' => false, 'message' => 'Registration failed'];
+        try {
+            // Check if user already exists
+            $stmt = $this->connection->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $existingUser = $stmt->fetch();
+            
+            if ($existingUser) {
+                return ['success' => true, 'message' => 'User already exists', 'user_id' => $existingUser['id']];
+            }
+            
+            // Create new user
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $this->connection->prepare("
+                INSERT INTO users (first_name, last_name, email, password, role, phone, terms_accepted, terms_accepted_at, terms_version) 
+                VALUES (?, ?, ?, ?, 'guest', NULL, ?, NOW(), ?)
+            ");
+            
+            $result = $stmt->execute([$firstName, $lastName, $email, $hashedPassword, $termsAccepted ? 1 : 0, $termsVersion]);
+            
+            if ($result) {
+                $userId = $this->connection->lastInsertId();
+                return [
+                    'success' => true, 
+                    'message' => 'Registration successful!',
+                    'user_id' => $userId
+                ];
+            } else {
+                return ['success' => false, 'message' => 'Failed to create user'];
+            }
+            
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
     }
 
     public function login($email, $password) {
+        // Create users table if it doesn't exist
+        $this->connection->exec("
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                first_name VARCHAR(255),
+                last_name VARCHAR(255),
+                email VARCHAR(255) UNIQUE,
+                password VARCHAR(255),
+                role VARCHAR(50) DEFAULT 'guest',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+        
+        // Insert default users if table is empty
+        $stmt = $this->connection->query("SELECT COUNT(*) as count FROM users");
+        $result = $stmt->fetch();
+        
+        if ($result['count'] == 0) {
+            $defaultUsers = [
+                ['manager@hotel.com', 'Hotel', 'Manager', password_hash('password', PASSWORD_DEFAULT), 'manager'],
+                ['guest@hotel.com', 'Guest', 'User', password_hash('password', PASSWORD_DEFAULT), 'guest'],
+                ['admin@hotel.com', 'Admin', 'User', password_hash('admin123', PASSWORD_DEFAULT), 'admin']
+            ];
+            
+            foreach ($defaultUsers as $userData) {
+                $stmt = $this->connection->prepare("
+                    INSERT INTO users (email, first_name, last_name, password, role) 
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+                $stmt->execute($userData);
+            }
+        }
+        
         $stmt = $this->connection->prepare("
             SELECT id, first_name, last_name, email, password, role 
             FROM users WHERE email = ?
@@ -87,6 +168,18 @@ class User {
         $user = $stmt->fetch();
         
         if (password_verify($password, $user['password'])) {
+            // Set session variables for the application
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = $user['role'];
+            
+            // Set current hotel - get from users table or default to 1
+            $hotel_stmt = $this->connection->prepare("SELECT current_hotel_id FROM users WHERE id = ?");
+            $hotel_stmt->execute([$user['id']]);
+            $hotel_data = $hotel_stmt->fetch();
+            $_SESSION['current_hotel_id'] = $hotel_data['current_hotel_id'] ?? 1;
+            
             // Remove password from returned data
             unset($user['password']);
             return [
@@ -129,19 +222,14 @@ class Room {
     }
 
     public function getAllRooms() {
-        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
-        error_log("getAllRooms called with hotel_id: " . $hotelId);
-        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE hotel_id = ? ORDER BY room_number");
-        $stmt->execute([$hotelId]);
-        $result = $stmt->fetchAll();
-        error_log("getAllRooms returned " . count($result) . " rooms");
-        return $result;
+        $stmt = $this->connection->prepare("SELECT * FROM rooms ORDER BY room_number");
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     public function getRoomById($id) {
-        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
-        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE id = ? AND hotel_id = ?");
-        $stmt->execute([$id, $hotelId]);
+        $stmt = $this->connection->prepare("SELECT * FROM rooms WHERE id = ?");
+        $stmt->execute([$id]);
         return $stmt->fetch();
     }
 
@@ -232,15 +320,14 @@ class Booking {
 
     public function createBooking($userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests = '', $discountAmount = 0) {
         try {
-            $hotelId = $_SESSION['current_hotel_id'] ?? 1;
             $this->connection->beginTransaction();
             
             $stmt = $this->connection->prepare("
-                INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, status, hotel_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
+                INSERT INTO bookings (user_id, room_id, check_in_date, check_out_date, total_price, special_requests, discount_amount, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')
             ");
             
-            if ($stmt->execute([$userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $discountAmount, $hotelId])) {
+            if ($stmt->execute([$userId, $roomId, $checkIn, $checkOut, $totalPrice, $specialRequests, $discountAmount])) {
                 $bookingId = $this->connection->lastInsertId();
                 
                 // Award HotelCoins and Loyalty Points
@@ -278,15 +365,14 @@ class Booking {
     }
 
     public function getUserBookings($userId) {
-        $hotelId = $_SESSION['current_hotel_id'] ?? 1;
         $stmt = $this->connection->prepare("
             SELECT b.*, r.room_number, r.room_type, r.price_per_night
             FROM bookings b
             JOIN rooms r ON b.room_id = r.id
-            WHERE b.user_id = ? AND b.hotel_id = ?
+            WHERE b.user_id = ?
             ORDER BY b.created_at DESC
         ");
-        $stmt->execute([$userId, $hotelId]);
+        $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
 

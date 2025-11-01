@@ -11,46 +11,58 @@ class HotelInfo {
         $this->connection = $this->db->getConnection();
     }
 
-    public function getHotelInfo() {
-        $stmt = $this->connection->prepare("SELECT * FROM hotel_info ORDER BY id DESC LIMIT 1");
-        $stmt->execute();
+    public function getHotelInfo($hotelId = null) {
+        // If no hotel ID provided, use session's current hotel
+        if ($hotelId === null) {
+            $hotelId = $_SESSION['current_hotel_id'] ?? 1;
+        }
+        
+        $stmt = $this->connection->prepare("SELECT * FROM hotel_info WHERE id = ? LIMIT 1");
+        $stmt->execute([$hotelId]);
         return $stmt->fetch();
     }
 
     public function updateHotelInfo($data) {
+        // Get current hotel ID from session
+        $currentHotelId = $_SESSION['current_hotel_id'] ?? 1;
+        $userId = $_SESSION['user_id'] ?? null;
+        
         // Check if hotel info exists
-        $existing = $this->getHotelInfo();
+        $existing = $this->getHotelInfo($currentHotelId);
         
         if ($existing) {
-            // Update existing record
+            // Update existing record - but only for the current hotel
             $stmt = $this->connection->prepare("
                 UPDATE hotel_info SET 
                 hotel_name = ?, description = ?, address = ?, city = ?, state = ?, zip_code = ?, 
-                country = ?, phone = ?, email = ?, website = ?, check_in_time = ?, check_out_time = ?, 
+                country = ?, timezone = ?, phone = ?, email = ?, website = ?, check_in_time = ?, check_out_time = ?, 
                 total_rooms = ?, star_rating = ?
-                WHERE id = ?
+                WHERE id = ? AND id = ?
             ");
             $result = $stmt->execute([
                 $data['hotel_name'] ?? '', $data['hotel_description'] ?? '', $data['address'] ?? '', 
                 $data['city'] ?? '', $data['state'] ?? '', $data['zip_code'] ?? '', $data['country'] ?? '', 
+                $data['timezone'] ?? 'America/Lima',
                 $data['phone'] ?? '', $data['email'] ?? '', $data['website'] ?? '', 
                 $data['check_in_time'] ?? '15:00:00', $data['check_out_time'] ?? '11:00:00',
-                $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3, $existing['id']
+                $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3, $existing['id'], $currentHotelId
             ]);
         } else {
-            // Insert new record
+            // Insert new record with owner_id
             $stmt = $this->connection->prepare("
                 INSERT INTO hotel_info 
-                (hotel_name, description, address, city, state, zip_code, 
-                country, phone, email, website, check_in_time, check_out_time, total_rooms, star_rating)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, hotel_name, description, address, city, state, zip_code, 
+                country, timezone, phone, email, website, check_in_time, check_out_time, total_rooms, star_rating, owner_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $result = $stmt->execute([
+                $currentHotelId,
                 $data['hotel_name'] ?? '', $data['hotel_description'] ?? '', $data['address'] ?? '',
                 $data['city'] ?? '', $data['state'] ?? '', $data['zip_code'] ?? '', $data['country'] ?? '', 
+                $data['timezone'] ?? 'America/Lima',
                 $data['phone'] ?? '', $data['email'] ?? '', $data['website'] ?? '', 
                 $data['check_in_time'] ?? '15:00:00', $data['check_out_time'] ?? '11:00:00',
-                $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3
+                $data['total_rooms'] ?? 0, $data['hotel_rating'] ?? 3, $userId
             ]);
         }
 
