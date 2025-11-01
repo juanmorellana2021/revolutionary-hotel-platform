@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -448,12 +448,57 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
+        /* Map Toggle Button - Floating */
+        .map-toggle-btn {
+            position: fixed;
+            top: 140px;
+            left: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-toggle-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .map-toggle-btn:active {
+            transform: translateY(0) scale(1);
+        }
+        
+        /* Hide map transitions */
+        .split-view-container .w-1\/2:first-child {
+            transition: all 0.4s ease;
+        }
+        
+        .split-view-container .w-1\/2:last-child {
+            transition: all 0.4s ease;
+        }
+
         /* Map Container Styles */
         .map-container {
             margin-bottom: 3rem;
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
+        }
+        
+        .map-container.hidden {
+            display: none !important;
         }
 
         .map-wrapper {
@@ -534,6 +579,16 @@
         .hotel-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        /* Vertical layout for hotel cards when map is hidden */
+        .hotel-card-vertical .flex {
+            flex-direction: column !important;
+        }
+        
+        .hotel-card-vertical .hotel-image-container {
+            width: 100% !important;
+            height: 220px !important;
         }
 
         .hotel-image {
@@ -851,9 +906,199 @@
         /* AI Chat Styles */
         .ai-chat-bubble {
             position: fixed;
-            bottom: 6rem;
+            bottom: 2rem;
             left: 1.5rem;
             z-index: 50;
+        }
+        
+        /* Filter Button */
+        .filter-button {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            position: relative;
+            white-space: nowrap;
+        }
+        
+        .filter-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(245, 158, 11, 0.5);
+        }
+        
+        /* Filter Dropdown */
+        .filter-dropdown {
+            display: none;
+            position: absolute;
+            top: 4rem;
+            right: 0;
+            width: 320px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            z-index: 9999;
+            border: 2px solid #f59e0b;
+        }
+        
+        .filter-dropdown.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .filter-title {
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: #374151;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filter-range {
+            width: 100%;
+        }
+        
+        .filter-range-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        .filter-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        
+        .filter-checkbox:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+        
+        .filter-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        .filter-checkbox.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        }
+        
+        .filter-apply-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .filter-apply-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* AI Response Bubble - Comic-style but professional */
+        .ai-response-bubble {
+            position: fixed;
+            bottom: 6rem;
+            right: 2rem;
+            width: 400px;
+            max-width: calc(100vw - 4rem);
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            z-index: 100;
+            animation: slideInRight 0.3s ease;
+            border: 3px solid #667eea;
+        }
+        
+        .ai-response-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            right: -15px;
+            width: 0;
+            height: 0;
+            border-left: 15px solid #667eea;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+        }
+        
+        .ai-response-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            right: -12px;
+            width: 0;
+            height: 0;
+            border-left: 12px solid white;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+        
+        .ai-response-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 17px 17px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ai-response-text {
+            padding: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #374151;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
         
         .ai-chat-button {
@@ -878,7 +1123,7 @@
         .ai-chat-window {
             display: none;
             position: fixed;
-            bottom: 6rem;
+            bottom: 2rem;
             left: 1.5rem;
             width: 400px;
             max-width: calc(100vw - 3rem);
@@ -994,138 +1239,387 @@
             background: #667eea;
             color: white;
         }
+        
+        /* Hotel Image Carousel */
+        .hotel-image-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            overflow: hidden;
+        }
+        
+        .hotel-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .hotel-carousel-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+        }
+        
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .carousel-dot.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+        }
+        
+        /* Mobile Responsive Styles */
+        .mobile-menu-button {
+            display: none;
+        }
+        
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 45;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .mobile-menu.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .mobile-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: background 0.3s;
+        }
+        
+        .mobile-menu a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Mobile Layout Adjustments */
+        @media (max-width: 768px) {
+            .mobile-menu-button {
+                display: block;
+            }
+            
+            /* Hide desktop header icons on small mobile */
+            @media (max-width: 480px) {
+                header .flex.items-center.space-x-2 {
+                    display: none;
+                }
+            }
+            
+            /* Stack map and hotels vertically on mobile */
+            .split-view-container {
+                flex-direction: column !important;
+                top: 9rem !important; /* Adjusted for mobile header */
+            }
+            
+            .split-view-container > div {
+                width: 100% !important;
+                height: 50% !important;
+            }
+            
+            /* Adjust AI search bar for mobile */
+            .ai-search-mobile {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .ai-search-mobile button {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            /* Smaller hotel cards on mobile */
+            .hotel-image-container {
+                width: 120px !important;
+                height: 120px !important;
+            }
+            
+            .hotel-card {
+                margin-bottom: 0.5rem;
+            }
+            
+            .hotel-card h3 {
+                font-size: 1rem !important;
+            }
+            
+            .hotel-card p {
+                font-size: 0.75rem !important;
+            }
+            
+            /* AI response bubble adjustment for mobile */
+            .ai-response-bubble {
+                width: 90% !important;
+                right: 5% !important;
+                bottom: 4rem !important;
+                max-height: 60vh;
+            }
+            
+            /* Adjust filter button text */
+            .ai-search-mobile button span:last-child {
+                display: none;
+            }
+            
+            .ai-search-mobile button span:first-child {
+                margin-right: 0;
+            }
+        }
+        
+        /* Tablet adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hotel-image-container {
+                width: 150px !important;
+                height: 150px !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
     
-    <!-- Split Menu Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
-        <!-- Top Bar -->
-        <div class="border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <!-- Logo -->
-                    <div class="flex items-center">
-                        <span class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                            🪙 AiNi Travel
-                        </span>
-                    </div>
-                    
-                    <!-- Header Icons -->
-                    <div class="flex items-center space-x-3">
-                        <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-semibold transition">
-                            🌐 ES
-                        </button>
-                        <button class="relative px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition">
-                            🔔
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-                        </button>
-                        <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition">
-                            👤
-                        </button>
-                    </div>
+    <!-- Single Menu Bar -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-primary to-secondary shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-white">
+                        🪙 AiNi Travel
+                    </span>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Navigation Bar -->
-        <div class="bg-gradient-to-r from-primary to-secondary">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <nav class="flex items-center justify-center space-x-8 h-12">
+                
+                <!-- Mobile Hamburger Button -->
+                <button class="mobile-menu-button text-white text-3xl" onclick="toggleMobileMenu()">
+                    ☰
+                </button>
+                
+                <!-- Navigation Links (Center - Desktop) -->
+                <nav class="hidden md:flex items-center space-x-1">
                     <a href="#hotels" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🏨 Hotels
+                        � Hotels
                     </a>
-                    <span class="text-white/50">•</span>
                     <a href="#experiences" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
                         🎯 Experiences
                     </a>
-                    <span class="text-white/50">•</span>
                     <a href="travel_social.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        � Social
+                        🌍 Social
                     </a>
-                    <span class="text-white/50">•</span>
                     <a href="wallet.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
                         🪙 Coins
                     </a>
+                    <a href="#" onclick="openReservationsCart(event)" class="bg-cyan-400 text-white hover:bg-cyan-500 px-4 py-2 rounded-full transition font-medium relative shadow-lg">
+                        🛒 Cart
+                        <span id="cartCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </a>
                 </nav>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content - ONE SCREEN SPLIT VIEW -->
-    <main class="pt-28 h-screen flex flex-col">
-        
-        <!-- Search Bar (Compact at top) -->
-        <div class="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex items-center space-x-3">
-                    <div class="flex-1 relative">
-                        <input 
-                            type="text" 
-                            id="searchDestination" 
-                            placeholder="🔍 ¿A dónde quieres ir?" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
-                    </div>
-                    <input 
-                        type="date" 
-                        id="searchCheckin"
-                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                    <input 
-                        type="date" 
-                        id="searchCheckout"
-                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                    <select 
-                        id="searchGuests"
-                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                        <option>1 Guest</option>
-                        <option>2 Guests</option>
-                        <option>3 Guests</option>
-                        <option>4 Guests</option>
-                        <option>5+ Guests</option>
-                    </select>
-                    <button 
-                        onclick="searchHotels()" 
-                        class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:opacity-90 transition font-semibold"
-                    >
-                        Buscar
+                
+                <!-- Header Icons (Right) -->
+                <div class="flex items-center space-x-2">
+                    <button class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-sm font-semibold text-white transition">
+                        � ES
+                    </button>
+                    <button class="relative px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full transition text-white">
+                        🔔
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                    </button>
+                    <button class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full transition text-white">
+                        👤
                     </button>
                 </div>
             </div>
         </div>
+    </header>
+    
+    <!-- Mobile Menu (Hidden by default) -->
+    <div id="mobileMenu" class="mobile-menu">
+        <a href="#hotels">🏨 Hotels</a>
+        <a href="#experiences">🎯 Experiences</a>
+        <a href="travel_social.php">🌍 Social</a>
+        <a href="wallet.php">🪙 Coins</a>
+        <a href="#" onclick="openReservationsCart(event)" class="relative" style="background: #22d3ee; padding: 0.75rem; border-radius: 0.5rem; font-weight: 600;">
+            🛒 Cart
+            <span id="cartCountMobile" class="absolute top-0 right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+        </a>
+        <div class="border-t border-white/20 my-2 pt-2">
+            <a href="#" class="text-sm">🌐 ES</a>
+            <a href="#" class="text-sm">🔔 Notifications (3)</a>
+            <a href="#" class="text-sm">👤 Profile</a>
+        </div>
+    </div>
 
-        <!-- SPLIT SCREEN: Map Left / Hotels Right -->
-        <div class="flex-1 flex overflow-hidden">
+    <!-- Main Content - ONE SCREEN SPLIT VIEW -->
+    <main class="h-screen flex flex-col">
+        
+        <!-- AI Search Bar - FIXED POSITION -->
+        <div class="fixed top-16 left-0 right-0 z-40 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm border-b border-purple-200 px-4 py-2">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center gap-2 ai-search-mobile">
+                    <!-- AI Search Input -->
+                    <div class="flex-1 relative">
+                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-xl">
+                            🤖
+                        </div>
+                        <input 
+                            type="text" 
+                            id="aiSearchInput" 
+                            placeholder="💬 Pregunta: 'Hoteles en Miami...'" 
+                            class="w-full pl-12 pr-4 py-2.5 border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            onkeypress="if(event.key === 'Enter') performAISearch()"
+                        />
+                    </div>
+                    
+                    <!-- AI Search Button -->
+                    <button 
+                        onclick="performAISearch()" 
+                        class="px-6 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center gap-2"
+                    >
+                        <span>🔍</span>
+                        <span>Buscar con AI</span>
+                    </button>
+                    
+                    <!-- Filter Button -->
+                    <div style="position: relative;">
+                        <button 
+                            id="filterButton" 
+                            onclick="toggleFilters()" 
+                            class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:opacity-90 transition font-semibold flex items-center gap-2 shadow-lg"
+                        >
+                            🔽 Filtros
+                        </button>
+                        
+                        <!-- Filter Dropdown -->
+                        <div id="filterDropdown" class="filter-dropdown">
+                            <div class="filter-section">
+                                <div class="filter-title">💰 Rango de Precio</div>
+                                <input type="range" id="priceRange" class="filter-range" min="0" max="300" value="300" oninput="updatePriceRange(this.value)">
+                                <div class="filter-range-values">
+                                    <span>$0</span>
+                                    <span id="priceValue">$300</span>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <div class="filter-title">⭐ Calificación Mínima</div>
+                                <div class="filter-checkbox-group">
+                                    <label class="filter-checkbox">
+                                        <input type="radio" name="rating" value="0" checked onchange="applyFilters()">
+                                        <span>Todas</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="radio" name="rating" value="4" onchange="applyFilters()">
+                                        <span>4+ ⭐</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="radio" name="rating" value="4.5" onchange="applyFilters()">
+                                        <span>4.5+ ⭐</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <div class="filter-title">🏊 Servicios</div>
+                                <div class="filter-checkbox-group">
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" value="Piscina" onchange="applyFilters()">
+                                        <span>🏊 Piscina</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" value="WiFi" onchange="applyFilters()">
+                                        <span>📶 WiFi</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" value="Spa" onchange="applyFilters()">
+                                        <span>💆 Spa</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" value="Gimnasio" onchange="applyFilters()">
+                                        <span>🏋️ Gym</span>
+                                    </label>
+                                    <label class="filter-checkbox">
+                                        <input type="checkbox" value="Estacionamiento" onchange="applyFilters()">
+                                        <span>🅿️ Parking</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <div class="filter-title">🪙 AiNi Coins Mínimos</div>
+                                <input type="range" id="coinsRange" class="filter-range" min="0" max="50" value="0" oninput="updateCoinsRange(this.value)">
+                                <div class="filter-range-values">
+                                    <span>0 coins</span>
+                                    <span id="coinsValue">0 coins</span>
+                                </div>
+                            </div>
+                            
+                            <button class="filter-apply-btn" onclick="applyFilters(); toggleFilters();">
+                                Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPLIT SCREEN: Map Left / Hotels Right - FIXED CONTAINERS -->
+        <div class="split-view-container fixed top-32 left-0 right-0 bottom-12 flex overflow-hidden z-20" id="splitContainer">
+            
+            <!-- Map Toggle Button - Floating -->
+            <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapVisibility()">
+                <span id="mapToggleIcon">🗺️</span>
+                <span id="mapToggleText">Ocultar Mapa</span>
+            </button>
             
             <!-- LEFT: Interactive Map -->
-            <div class="w-1/2 bg-gray-100 relative">
+            <div class="w-1/2 bg-gray-100 relative overflow-hidden" id="mapPanel">
                 <div id="hotelMap" class="hotel-map"></div>
-                
-                <!-- Map Controls -->
-                <div class="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3">
-                    <div class="text-sm font-semibold text-gray-700 mb-2">📍 Filtros</div>
-                    <div class="space-y-2">
-                        <button onclick="filterByCategory('all')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn active-filter">
-                            ✨ Todos
-                        </button>
-                        <button onclick="filterByCategory('luxury')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
-                            ⭐ Lujo
-                        </button>
-                        <button onclick="filterByCategory('budget')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
-                            💰 Económico
-                        </button>
-                        <button onclick="filterByCategory('beach')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm filter-btn">
-                            🏖️ Playa
-                        </button>
-                    </div>
+            </div>
+            
+            <!-- AI Response Bubble (Comic-style but professional) -->
+            <div id="aiResponseBubble" class="ai-response-bubble" style="display: none;">
+                <div class="ai-response-header">
+                    <span class="font-bold">🤖 AiNi Assistant</span>
+                    <button onclick="closeAIResponse()" class="text-white hover:text-gray-200">✕</button>
+                </div>
+                <div id="aiResponseText" class="ai-response-text">
+                    <!-- AI response will appear here -->
                 </div>
             </div>
             
             <!-- RIGHT: Hotels List -->
-            <div class="w-1/2 bg-white">
+            <div class="w-1/2 bg-white" id="hotelsPanel">
                 <div class="hotel-list-scroll p-6">
                     
                     <!-- Header -->
@@ -1150,17 +1644,115 @@
         
     </main>
 
-    <!-- WhatsApp Floating Button -->
-    <a href="https://wa.me/1234567890" 
-       class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition z-50">
-        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-    </a>
-
     <!-- Booking Confirmation Modal -->
     <div id="bookingModal" class="modal-overlay" onclick="closeModalOnOutside(event)">
         <div class="booking-modal" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-primary to-secondary text-white p-6 rounded-t-20">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1">Confirma tu Reserva</h3>
+                        <p class="text-white/80 text-sm">Revisa los detalles antes de continuar</p>
+                    </div>
+                    <button onclick="closeBookingModal()" class="text-white/80 hover:text-white text-3xl leading-none">
+                        ×
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Hotel Info -->
+                <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                    <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-4xl" id="modalHotelEmoji">
+                        🏖️
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-xl text-gray-800" id="modalHotelName">Ocean View Resort</h4>
+                        <p class="text-gray-600 text-sm" id="modalHotelLocation">📍 Miami Beach, FL</p>
+                        <p class="text-yellow-500 text-sm mt-1" id="modalHotelRating">⭐ 4.8</p>
+                    </div>
+                </div>
+                
+                <!-- Booking Details -->
+                <div class="space-y-4 mb-6">
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            📅 Check-in
+                        </label>
+                        <input type="date" id="modalCheckin" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            📅 Check-out
+                        </label>
+                        <input type="date" id="modalCheckout" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                        <label class="text-gray-700 font-medium flex items-center gap-2">
+                            👥 Huéspedes
+                        </label>
+                        <select id="modalGuests" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="1">1 Huésped</option>
+                            <option value="2" selected>2 Huéspedes</option>
+                            <option value="3">3 Huéspedes</option>
+                            <option value="4">4 Huéspedes</option>
+                            <option value="5+">5+ Huéspedes</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Price Summary -->
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Precio por noche</span>
+                        <span class="font-semibold text-gray-800" id="modalPricePerNight">$180</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700" id="modalNightsLabel">× 2 noches</span>
+                        <span class="font-semibold text-gray-800" id="modalSubtotal">$360</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-gray-300">
+                        <span class="text-gray-700">🪙 Ganas AiNi Coins</span>
+                        <span class="font-bold text-yellow-600" id="modalAiniCoins">72</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-3 mt-3 border-t-2 border-gray-400">
+                        <span class="text-lg font-bold text-gray-800">Total</span>
+                        <span class="text-2xl font-bold text-primary" id="modalTotal">$360</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="closeBookingModal()" 
+                            class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                        ❌ Cancelar
+                    </button>
+                    <button onclick="confirmWhatsAppBooking()" 
+                            class="flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Continuar en WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer - FIXED BOTTOM -->
+    <footer class="footer fixed bottom-0 left-0 right-0 z-30" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.75rem 0;">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem; text-align: center;">
+            <p style="opacity: 0.9; font-size: 0.875rem; margin: 0;">🪙 AiNi Travel - Revolutionary hotel booking with AI-powered search © 2025</p>
+        </div>
+    </footer>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
             <!-- Modal Header -->
             <div class="bg-gradient-to-r from-primary to-secondary text-white p-6 rounded-t-20">
                 <div class="flex justify-between items-start">
@@ -1327,8 +1919,16 @@
                 <button class="filter-btn" onclick="filterHotels('beach')">🏖️ Playa</button>
             </div>
 
+            <!-- Map Toggle Button -->
+            <div style="text-align: center; margin: 2rem 0;">
+                <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapVisibility()">
+                    <span id="mapToggleIcon">�</span>
+                    <span id="mapToggleText">Ocultar Mapa - Ver Más Hoteles</span>
+                </button>
+            </div>
+
             <!-- View Toggle -->
-            <div class="view-toggle">
+            <div class="view-toggle" id="viewToggle">
                 <button class="view-btn active" onclick="toggleView('list')">
                     📋 Vista Lista
                 </button>
@@ -1481,14 +2081,14 @@
         </div>
     </a>
 
-    <!-- AI Chat Assistant -->
+    <!-- AI Chat Assistant - REMOVED: AI Search Box handles all interactions now -->
+    <!-- 
     <div class="ai-chat-bubble">
         <div id="aiChatButton" class="ai-chat-button" onclick="toggleAIChat()">
             🤖 Asistente AI
         </div>
         
         <div id="aiChatWindow" class="ai-chat-window">
-            <!-- Chat Header -->
             <div class="ai-chat-header">
                 <div>
                     <div class="font-bold text-lg">🤖 AiNi Assistant</div>
@@ -1499,7 +2099,6 @@
                 </button>
             </div>
             
-            <!-- Chat Messages -->
             <div id="aiChatMessages" class="ai-chat-messages">
                 <div class="ai-message">
                     ¡Hola! 👋 Soy tu asistente virtual de AiNi Travel. 
@@ -1513,7 +2112,6 @@
                 </div>
             </div>
             
-            <!-- Quick Suggestions -->
             <div class="ai-suggestions" id="aiSuggestions">
                 <button class="suggestion-btn" onclick="askAI('¿Qué hoteles recomiendas para familias?')">
                     👨‍👩‍👧 Para familias
@@ -1529,7 +2127,6 @@
                 </button>
             </div>
             
-            <!-- Chat Input -->
             <div class="ai-chat-input">
                 <input 
                     type="text" 
@@ -1546,6 +2143,7 @@
             </div>
         </div>
     </div>
+    -->
 
     <!-- Leaflet JavaScript -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1557,14 +2155,6 @@
         
         // Initialize on page load
         $(document).ready(function() {
-            // Set default dates
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            
-            $('#searchCheckin').val(today.toISOString().split('T')[0]);
-            $('#searchCheckout').val(tomorrow.toISOString().split('T')[0]);
-            
             // Initialize map
             initializeMap();
             
@@ -1582,7 +2172,34 @@
         }
 
         function loadHotels() {
-            // Sample hotels data with coordinates
+            // Load hotels from database via API
+            $.ajax({
+                url: 'api/get_hotels.php',
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.hotels) {
+                        allHotels = response.hotels;
+                        displayHotels(allHotels);
+                        updateMapMarkers(allHotels);
+                        console.log(`✅ Loaded ${response.count} hotels from database`);
+                    } else {
+                        console.error('❌ Failed to load hotels:', response.error);
+                        // Fallback to sample data if API fails
+                        loadSampleHotels();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('❌ AJAX Error loading hotels:', error);
+                    // Fallback to sample data if API fails
+                    loadSampleHotels();
+                }
+            });
+        }
+        
+        // Fallback function with sample data (in case DB is not available)
+        function loadSampleHotels() {
+            console.warn('⚠️ Using fallback sample data');
             allHotels = [
                 {
                     id: 1,
@@ -1595,7 +2212,13 @@
                     aini_coins: 36,
                     category: "luxury beach",
                     latitude: 25.7907,
-                    longitude: -80.1300
+                    longitude: -80.1300,
+                    images: [
+                        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80",
+                        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80",
+                        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80",
+                        "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"
+                    ]
                 },
                 {
                     id: 2,
@@ -1608,7 +2231,13 @@
                     aini_coins: 44,
                     category: "business luxury",
                     latitude: 40.7580,
-                    longitude: -73.9855
+                    longitude: -73.9855,
+                    images: [
+                        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80",
+                        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80",
+                        "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80",
+                        "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80"
+                    ]
                 },
                 {
                     id: 3,
@@ -1621,7 +2250,13 @@
                     aini_coins: 17,
                     category: "budget",
                     latitude: 30.2672,
-                    longitude: -97.7431
+                    longitude: -97.7431,
+                    images: [
+                        "https://images.unsplash.com/photo-1568495248636-6432b97bd949?w=800&q=80",
+                        "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80",
+                        "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800&q=80",
+                        "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80"
+                    ]
                 },
                 {
                     id: 4,
@@ -1634,7 +2269,13 @@
                     aini_coins: 39,
                     category: "family luxury",
                     latitude: 28.3852,
-                    longitude: -81.5639
+                    longitude: -81.5639,
+                    images: [
+                        "https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=800&q=80",
+                        "https://images.unsplash.com/photo-1584132915807-fd1f5fbc078f?w=800&q=80",
+                        "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=800&q=80",
+                        "https://images.unsplash.com/photo-1601918774946-25832a4be0d6?w=800&q=80"
+                    ]
                 },
                 {
                     id: 5,
@@ -1647,7 +2288,13 @@
                     aini_coins: 50,
                     category: "luxury beach",
                     latitude: 21.1619,
-                    longitude: -86.8515
+                    longitude: -86.8515,
+                    images: [
+                        "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80",
+                        "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80",
+                        "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&q=80",
+                        "https://images.unsplash.com/photo-1596436889106-be35e843f974?w=800&q=80"
+                    ]
                 },
                 {
                     id: 6,
@@ -1660,7 +2307,13 @@
                     aini_coins: 24,
                     category: "budget",
                     latitude: 9.9281,
-                    longitude: -84.0907
+                    longitude: -84.0907,
+                    images: [
+                        "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80",
+                        "https://images.unsplash.com/photo-1587061949409-02df41d5e562?w=800&q=80",
+                        "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80",
+                        "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=800&q=80"
+                    ]
                 }
             ];
             
@@ -1668,18 +2321,124 @@
             updateMapMarkers(allHotels);
         }
 
+        // Toggle Map Visibility - 3 states: both, hotels-only, map-only
+        let viewState = 'both'; // 'both', 'hotels-only', 'map-only'
+        
+        function toggleMapVisibility() {
+            const mapPanel = document.getElementById('mapPanel');
+            const hotelsPanel = document.getElementById('hotelsPanel');
+            const toggleBtn = document.getElementById('mapToggleBtn');
+            const toggleIcon = document.getElementById('mapToggleIcon');
+            const toggleText = document.getElementById('mapToggleText');
+            const hotelsList = document.getElementById('hotelsList');
+            
+            // Cycle through 3 states: both -> hotels-only -> map-only -> both
+            if (viewState === 'both') {
+                viewState = 'hotels-only';
+                
+                // Hide map panel completely
+                mapPanel.classList.remove('w-1/2');
+                mapPanel.classList.add('w-0');
+                mapPanel.style.opacity = '0';
+                
+                // Expand hotels panel to FULL WIDTH
+                hotelsPanel.classList.remove('w-1/2', 'w-0');
+                hotelsPanel.classList.add('w-full');
+                
+                // Change hotels to GRID layout (horizontal) - 3-4 columns
+                hotelsList.style.display = 'grid';
+                hotelsList.style.gridTemplateColumns = 'repeat(auto-fill, minmax(320px, 1fr))';
+                hotelsList.style.gap = '1.25rem';
+                
+                // Add vertical class to all hotel cards
+                document.querySelectorAll('.hotel-card').forEach(card => {
+                    card.classList.add('hotel-card-vertical');
+                });
+                
+                // Update button
+                toggleIcon.textContent = '🗺️';
+                toggleText.textContent = 'Solo Mapa';
+                
+                console.log('✅ HOTELS ONLY - Full width');
+                
+            } else if (viewState === 'hotels-only') {
+                viewState = 'map-only';
+                
+                // Hide hotels panel completely
+                hotelsPanel.classList.remove('w-1/2', 'w-full');
+                hotelsPanel.classList.add('w-0');
+                hotelsPanel.style.opacity = '0';
+                
+                // Expand map to FULL WIDTH
+                mapPanel.classList.remove('w-1/2', 'w-0');
+                mapPanel.classList.add('w-full');
+                mapPanel.style.opacity = '1';
+                
+                // Update button
+                toggleIcon.textContent = '📋';
+                toggleText.textContent = 'Ver Ambos';
+                
+                // Refresh map size
+                if (hotelMap) {
+                    setTimeout(() => hotelMap.invalidateSize(), 100);
+                }
+                
+                console.log('✅ MAP ONLY - Full width');
+                
+            } else {
+                viewState = 'both';
+                
+                // Show both panels (50/50)
+                mapPanel.classList.remove('w-0', 'w-full');
+                mapPanel.classList.add('w-1/2');
+                mapPanel.style.opacity = '1';
+                
+                hotelsPanel.classList.remove('w-0', 'w-full');
+                hotelsPanel.classList.add('w-1/2');
+                hotelsPanel.style.opacity = '1';
+                
+                // Reset hotels to VERTICAL layout
+                hotelsList.style.display = 'block';
+                
+                // Remove vertical class from all hotel cards
+                document.querySelectorAll('.hotel-card').forEach(card => {
+                    card.classList.remove('hotel-card-vertical');
+                });
+                
+                // Update button
+                toggleIcon.textContent = '🗺️';
+                toggleText.textContent = 'Solo Hoteles';
+                
+                // Refresh map size
+                if (hotelMap) {
+                    setTimeout(() => hotelMap.invalidateSize(), 100);
+                }
+                
+                console.log('✅ BOTH VISIBLE - Split view');
+            }
+        }
+
         function displayHotels(hotels) {
             $('#hotelCount').text(`${hotels.length} hoteles encontrados`);
             
-            const hotelsHTML = hotels.map(hotel => `
+            const hotelsHTML = hotels.map(hotel => {
+                const escapedName = hotel.name.replace(/'/g, "\\'");
+                return `
                 <div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer hotel-card" 
                      data-id="${hotel.id}" 
                      data-lat="${hotel.latitude}" 
                      data-lng="${hotel.longitude}">
                     <div class="flex">
-                        <!-- Hotel Image/Emoji -->
-                        <div class="w-32 h-32 bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-5xl">
-                            ${hotel.emoji}
+                        <!-- Hotel Image Carousel -->
+                        <div class="hotel-image-container" id="carousel-${hotel.id}">
+                            <img src="${hotel.images[0]}" alt="${hotel.name}" class="carousel-image active">
+                            <div class="hotel-carousel-dots">
+                                ${hotel.images.map((img, idx) => `
+                                    <div class="carousel-dot ${idx === 0 ? 'active' : ''}" 
+                                         data-hotel-id="${hotel.id}" 
+                                         data-index="${idx}"></div>
+                                `).join('')}
+                            </div>
                         </div>
                         
                         <!-- Hotel Info -->
@@ -1712,20 +2471,33 @@
                                 </div>
                             </div>
                             
-                            <!-- Book Button -->
-                            <button onclick="bookHotel(${hotel.id}, '${hotel.name}')" 
-                                    class="mt-3 w-full bg-gradient-to-r from-primary to-secondary text-white py-2 rounded-lg hover:opacity-90 transition font-semibold">
-                                📱 Reservar Ahora
-                            </button>
+                            <!-- Book Buttons -->
+                            <div class="flex gap-2 mt-3">
+                                <button onclick="viewHotelDetails(${hotel.id})" 
+                                        class="flex-1 bg-purple-100 text-purple-700 py-2 rounded-lg hover:bg-purple-200 transition font-semibold">
+                                    🏨 Ver Cuartos
+                                </button>
+                                <button onclick="bookHotel(${hotel.id}, '${escapedName}')" 
+                                        class="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-2 rounded-lg hover:opacity-90 transition font-semibold">
+                                    📱 Reservar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             $('#hotelsList').html(hotelsHTML);
             
+            // Initialize carousel auto-rotation
+            initCarousels();
+            
             // Add click handler to zoom map
-            $('.hotel-card').click(function() {
+            $('.hotel-card').click(function(e) {
+                // Don't zoom if clicking on carousel dots
+                if ($(e.target).hasClass('carousel-dot')) return;
+                
                 const lat = $(this).data('lat');
                 const lng = $(this).data('lng');
                 hotelMap.setView([lat, lng], 13);
@@ -1734,6 +2506,57 @@
                 $('.hotel-card').removeClass('ring-2 ring-primary');
                 $(this).addClass('ring-2 ring-primary');
             });
+            
+            // Carousel dot click handlers
+            $('.carousel-dot').click(function(e) {
+                e.stopPropagation();
+                const hotelId = $(this).data('hotel-id');
+                const index = $(this).data('index');
+                showCarouselImage(hotelId, index);
+            });
+        }
+        
+        // Carousel functionality
+        let carouselIntervals = {};
+        
+        function initCarousels() {
+            // Clear existing intervals
+            Object.values(carouselIntervals).forEach(interval => clearInterval(interval));
+            carouselIntervals = {};
+            
+            // Start auto-rotation for each hotel
+            allHotels.forEach(hotel => {
+                let currentIndex = 0;
+                carouselIntervals[hotel.id] = setInterval(() => {
+                    currentIndex = (currentIndex + 1) % hotel.images.length;
+                    showCarouselImage(hotel.id, currentIndex);
+                }, 3000); // Change image every 3 seconds
+            });
+        }
+        
+        function showCarouselImage(hotelId, index) {
+            const hotel = allHotels.find(h => h.id === hotelId);
+            if (!hotel) return;
+            
+            const container = $(`#carousel-${hotelId}`);
+            const img = container.find('img');
+            
+            // Update image
+            img.attr('src', hotel.images[index]);
+            
+            // Update dots
+            container.find('.carousel-dot').removeClass('active');
+            container.find(`.carousel-dot[data-index="${index}"]`).addClass('active');
+            
+            // Reset auto-rotation timer
+            if (carouselIntervals[hotelId]) {
+                clearInterval(carouselIntervals[hotelId]);
+                let currentIndex = index;
+                carouselIntervals[hotelId] = setInterval(() => {
+                    currentIndex = (currentIndex + 1) % hotel.images.length;
+                    showCarouselImage(hotelId, currentIndex);
+                }, 3000);
+            }
         }
 
         function updateMapMarkers(hotels) {
@@ -1768,19 +2591,197 @@
             }
         }
 
-        function filterByCategory(category) {
-            // Update active button
-            $('.filter-btn').removeClass('active-filter bg-primary text-white');
-            event.target.classList.add('active-filter', 'bg-primary', 'text-white');
+        // function filterByCategory(category) {
+        //     // DEPRECATED - Using main filter dropdown now
+        //     $('.filter-btn').removeClass('active-filter bg-primary text-white');
+        //     event.target.classList.add('active-filter', 'bg-primary', 'text-white');
+        //     
+        //     let filtered = allHotels;
+        //     if (category !== 'all') {
+        //         filtered = allHotels.filter(h => h.category.includes(category));
+        //     }
+        //     
+        //     displayHotels(filtered);
+        //     updateMapMarkers(filtered);
+        // }
+
+        // ==========================================
+        // AI SEARCH FUNCTIONS
+        // ==========================================
+        
+        function setAISearch(query) {
+            $('#aiSearchInput').val(query);
+            performAISearch();
+        }
+        
+        async function performAISearch() {
+            const query = $('#aiSearchInput').val().trim();
             
-            let filtered = allHotels;
-            if (category !== 'all') {
-                filtered = allHotels.filter(h => h.category.includes(category));
+            if (!query) {
+                showAIResponse('Por favor escribe qué tipo de hotel buscas 😊', 'warning');
+                return;
             }
             
-            displayHotels(filtered);
-            updateMapMarkers(filtered);
+            // Clear input for next message
+            $('#aiSearchInput').val('');
+            
+            // Show AI thinking
+            showAIResponse('🤔 Vicky está analizando tu búsqueda...', 'loading');
+            
+            // Show loading in list
+            $('#hotelsList').html(`
+                <div class="text-center py-12">
+                    <div class="text-5xl mb-4 animate-bounce">🤖</div>
+                    <p class="text-xl font-semibold text-purple-600">Vicky buscando hoteles...</p>
+                    <p class="text-gray-500 mt-2">"${query}"</p>
+                </div>
+            `);
+            
+            try {
+                console.log('AI Search: Calling TRAINED intelligent search...');
+                
+                // Step 1: Call trained AI system
+                const trainedResponse = await fetch('ai_trained_search.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!trainedResponse.ok) {
+                    throw new Error('Trained AI failed');
+                }
+                
+                const trainedResult = await trainedResponse.json();
+                
+                console.log('Trained AI Response:', trainedResult);
+                
+                // Show AI response
+                if (trainedResult.response) {
+                    const emoji = trainedResult.method === 'training_direct' ? '🎓' : '🤖';
+                    const confidence = trainedResult.confidence ? ` (${trainedResult.confidence}% match)` : '';
+                    showAIResponse(`${emoji} ${trainedResult.response}${confidence}`, 'info');
+                }
+                
+                // Check if it's a conversational query (not a search)
+                const isGreeting = /^(hola|hi|hey|buenos dias|buenas tardes|buenas noches)/i.test(query);
+                const isPersonalInfo = /me llamo|soy|mi nombre/i.test(query);
+                
+                if (isGreeting || isPersonalInfo || trainedResult.category === 'general') {
+                    // Show all hotels for conversational queries
+                    displayHotels(allHotels);
+                    updateMapMarkers(allHotels);
+                    return;
+                }
+                
+                // Step 2: Use AI to extract search parameters and search database
+                const searchResponse = await fetch('ai_extract_search.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: query })
+                });
+                
+                console.log('AI Search: Response status:', searchResponse.status);
+                
+                if (!searchResponse.ok) {
+                    throw new Error(`HTTP error! status: ${searchResponse.status}`);
+                }
+                
+                const searchData = await searchResponse.json();
+                console.log('AI Search: Database results:', searchData);
+                
+                if (searchData.success && searchData.hotels && searchData.hotels.length > 0) {
+                    // Convert database results to display format
+                    const dbHotels = searchData.hotels.map(h => ({
+                        id: h.id,
+                        name: h.name,
+                        location: h.location,
+                        emoji: h.emoji || '🏨',
+                        rating: parseFloat(h.rating),
+                        price: parseFloat(h.price),
+                        features: h.features || [],
+                        ainiCoins: h.aini_coins || 0,
+                        category: h.category || 'standard',
+                        lat: parseFloat(h.latitude),
+                        lng: parseFloat(h.longitude),
+                        images: h.images || []
+                    }));
+                    
+                    // Show success message
+                    const hotelsText = dbHotels.slice(0, 3).map(h => `✨ ${h.name} ($${h.price})`).join('<br>');
+                    showAIResponse(`Encontré ${dbHotels.length} hoteles para ti:<br><br>${hotelsText}`, 'success');
+                    
+                    // Display hotels
+                    displayHotels(dbHotels);
+                    updateMapMarkers(dbHotels);
+                    
+                } else {
+                    // No results from database
+                    showAIResponse('No encontré hoteles con esos criterios. Te muestro todas las opciones disponibles.', 'info');
+                    displayHotels(allHotels);
+                    updateMapMarkers(allHotels);
+                }
+                
+            } catch (error) {
+                console.error('AI Search Error:', error);
+                
+                // Show error message
+                showAIResponse('Hmm, tuve un problema. Hice una búsqueda básica. 😊', 'error');
+                
+                // Fallback to simple keyword search
+                const filtered = allHotels.filter(h => 
+                    h.name.toLowerCase().includes(query.toLowerCase()) || 
+                    h.location.toLowerCase().includes(query.toLowerCase()) ||
+                    h.features.some(f => f.toLowerCase().includes(query.toLowerCase()))
+                );
+                
+                if (filtered.length > 0) {
+                    displayHotels(filtered);
+                    updateMapMarkers(filtered);
+                } else {
+                    displayHotels(allHotels);
+                    updateMapMarkers(allHotels);
+                }
+            }
         }
+        
+        function showAIResponse(message, type = 'info') {
+            const bubble = $('#aiResponseBubble');
+            const textDiv = $('#aiResponseText');
+            
+            // Add emoji based on type
+            let emoji = '🤖';
+            if (type === 'success') emoji = '✅';
+            if (type === 'warning') emoji = '⚠️';
+            if (type === 'error') emoji = '❌';
+            if (type === 'loading') emoji = '⏳';
+            
+            textDiv.html(`<p>${emoji} ${message}</p>`);
+            bubble.fadeIn(300);
+            
+            // No auto-close - user must close manually
+        }
+        
+        function closeAIResponse() {
+            $('#aiResponseBubble').fadeOut(300);
+        }
+        
+        // Mobile Menu Toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('active');
+        }
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('mobileMenu');
+            const button = document.querySelector('.mobile-menu-button');
+            
+            if (menu && button && !menu.contains(event.target) && !button.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
 
         function searchHotels() {
             const destination = $('#searchDestination').val().toLowerCase();
@@ -1844,6 +2845,11 @@
             // Show modal
             $('#bookingModal').addClass('active');
             $('body').css('overflow', 'hidden'); // Prevent scrolling
+        }
+        
+        // View hotel details page with rooms
+        function viewHotelDetails(hotelId) {
+            window.location.href = `hotel_details.php?id=${hotelId}`;
         }
         
         function updateModalPrices() {
@@ -1933,6 +2939,71 @@
         });
         
         // ==========================================
+        // FILTER FUNCTIONS
+        // ==========================================
+        
+        let currentFilters = {
+            maxPrice: 300,
+            minRating: 0,
+            amenities: [],
+            minCoins: 0
+        };
+        
+        function toggleFilters() {
+            $('#filterDropdown').toggleClass('active');
+        }
+        
+        function updatePriceRange(value) {
+            $('#priceValue').text('$' + value);
+            currentFilters.maxPrice = parseInt(value);
+        }
+        
+        function updateCoinsRange(value) {
+            $('#coinsValue').text(value + ' coins');
+            currentFilters.minCoins = parseInt(value);
+        }
+        
+        function applyFilters() {
+            // Get rating filter
+            currentFilters.minRating = parseFloat($('input[name="rating"]:checked').val());
+            
+            // Get amenities filter
+            currentFilters.amenities = [];
+            $('input[type="checkbox"]:checked').each(function() {
+                currentFilters.amenities.push($(this).val());
+            });
+            
+            // Filter hotels
+            let filteredHotels = allHotels.filter(hotel => {
+                // Price filter
+                if (hotel.price > currentFilters.maxPrice) return false;
+                
+                // Rating filter
+                if (hotel.rating < currentFilters.minRating) return false;
+                
+                // Coins filter
+                if (hotel.aini_coins < currentFilters.minCoins) return false;
+                
+                // Amenities filter
+                if (currentFilters.amenities.length > 0) {
+                    const hasAllAmenities = currentFilters.amenities.every(amenity => 
+                        hotel.features.includes(amenity)
+                    );
+                    if (!hasAllAmenities) return false;
+                }
+                
+                return true;
+            });
+            
+            // Display filtered hotels
+            displayHotels(filteredHotels);
+            updateMapMarkers(filteredHotels);
+            
+            // Show count
+            console.log(`Showing ${filteredHotels.length} of ${allHotels.length} hotels`);
+        }
+        
+        // ==========================================
         // AI CHAT FUNCTIONS
         // ==========================================
         
@@ -2003,16 +3074,15 @@
             showAITyping();
             
             try {
-                // Call AI API
-                const response = await fetch('http://72.60.1.16:11434/api/generate', {
+                // Call AI API through proxy
+                const response = await fetch('ai_search_proxy.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         model: 'qwen2.5:1.5b', // Fast and smart model
-                        prompt: buildAIPrompt(question),
-                        stream: false
+                        prompt: buildAIPrompt(question)
                     })
                 });
                 
@@ -2126,6 +3196,147 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
             
             // Open booking modal with selected hotel
             bookHotel(hotelId, '');
+        }
+
+        // Shopping Cart / Reservations functionality
+        let reservationsCart = [];
+
+        function openReservationsCart(event) {
+            if (event) event.preventDefault();
+            
+            // Create modal if it doesn't exist
+            if (!document.getElementById('cartModal')) {
+                createCartModal();
+            }
+            
+            updateCartDisplay();
+            document.getElementById('cartModal').style.display = 'flex';
+        }
+
+        function createCartModal() {
+            const modalHTML = `
+                <div id="cartModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+                    <div style="background: white; border-radius: 20px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+                        <button onclick="closeCart()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; cursor: pointer; color: #666;">×</button>
+                        
+                        <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; color: #667eea;">
+                            🛒 My Reservations
+                        </h2>
+                        
+                        <div id="cartItems"></div>
+                        
+                        <div id="cartEmpty" style="text-align: center; padding: 3rem; color: #999;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+                            <p style="font-size: 1.2rem;">No reservations yet</p>
+                            <p style="margin-top: 0.5rem;">Add hotels to your cart to get started!</p>
+                        </div>
+                        
+                        <div id="cartSummary" style="display: none; border-top: 2px solid #eee; padding-top: 1.5rem; margin-top: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: bold; margin-bottom: 1.5rem;">
+                                <span>Total:</span>
+                                <span id="cartTotal" style="color: #667eea;">$0</span>
+                            </div>
+                            <button onclick="proceedToCheckout()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
+                                💳 Proceed to Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeCart() {
+            document.getElementById('cartModal').style.display = 'none';
+        }
+
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cartItems');
+            const cartEmpty = document.getElementById('cartEmpty');
+            const cartSummary = document.getElementById('cartSummary');
+            const cartCount = document.getElementById('cartCount');
+            const cartCountMobile = document.getElementById('cartCountMobile');
+            
+            if (reservationsCart.length === 0) {
+                cartItems.innerHTML = '';
+                cartEmpty.style.display = 'block';
+                cartSummary.style.display = 'none';
+                cartCount.classList.add('hidden');
+                cartCountMobile.classList.add('hidden');
+            } else {
+                cartEmpty.style.display = 'none';
+                cartSummary.style.display = 'block';
+                cartCount.classList.remove('hidden');
+                cartCountMobile.classList.remove('hidden');
+                cartCount.textContent = reservationsCart.length;
+                cartCountMobile.textContent = reservationsCart.length;
+                
+                let total = 0;
+                cartItems.innerHTML = reservationsCart.map((item, index) => {
+                    total += item.totalPrice;
+                    return `
+                        <div style="border: 1px solid #e0e0e0; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; background: #f9f9f9;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div style="flex: 1;">
+                                    <h3 style="font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
+                                        ${item.hotelEmoji} ${item.hotelName}
+                                    </h3>
+                                    <p style="color: #666; margin-bottom: 0.25rem;">📅 ${item.checkIn} → ${item.checkOut}</p>
+                                    <p style="color: #666; margin-bottom: 0.25rem;">👥 ${item.guests} guest(s) · ${item.nights} night(s)</p>
+                                    <p style="font-weight: bold; color: #667eea; font-size: 1.1rem; margin-top: 0.5rem;">$${item.totalPrice}</p>
+                                </div>
+                                <button onclick="removeFromCart(${index})" style="background: #ff4444; color: white; border: none; border-radius: 5px; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem;">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('cartTotal').textContent = '$' + total.toFixed(2);
+            }
+        }
+
+        function addToCart(hotelId, hotelName, hotelEmoji, checkIn, checkOut, guests, pricePerNight) {
+            const checkInDate = new Date(checkIn);
+            const checkOutDate = new Date(checkOut);
+            const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+            const totalPrice = nights * pricePerNight;
+            
+            reservationsCart.push({
+                hotelId,
+                hotelName,
+                hotelEmoji,
+                checkIn,
+                checkOut,
+                guests,
+                nights,
+                pricePerNight,
+                totalPrice
+            });
+            
+            updateCartDisplay();
+            
+            // Show success message
+            alert('✅ Reservation added to cart!');
+        }
+
+        function removeFromCart(index) {
+            reservationsCart.splice(index, 1);
+            updateCartDisplay();
+        }
+
+        function proceedToCheckout() {
+            if (reservationsCart.length === 0) {
+                alert('Your cart is empty!');
+                return;
+            }
+            
+            // For now, show a message. Later we'll integrate with payment API
+            alert('🚀 Proceeding to payment...\n\nThis will integrate with Adyen payment gateway soon!');
+            
+            // TODO: Integrate with payment_api
+            // window.location.href = '/payment_api/checkout.php';
         }
     </script>
 </body>
