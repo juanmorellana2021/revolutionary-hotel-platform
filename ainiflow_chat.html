@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - AiniFlow</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Chat bubbles */
+        .message-sent {
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+        }
+        
+        .message-received {
+            background: #F3F4F6;
+            color: #1F2937;
+            border-radius: 18px 18px 18px 4px;
+        }
+        
+        /* Scrollbar styling */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 3px;
+        }
+        
+        /* Typing animation */
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+            background: #9CA3AF;
+            border-radius: 50%;
+            display: inline-block;
+            height: 8px;
+            width: 8px;
+            margin: 0 2px;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+        
+        /* Message input focus */
+        .message-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        /* Online status pulse */
+        @keyframes pulse-green {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .online-pulse {
+            animation: pulse-green 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100" x-data="chatApp()">
+    
+    <!-- Top Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 flex-1 min-w-0">
+                    <a href="#" @click.prevent="goBack()" class="text-gray-600 hover:text-purple-600">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </a>
+                    
+                    <!-- Contact/Room Info -->
+                    <template x-if="chatType === 'direct'">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-semibold">
+                                    <span x-text="contact.name ? contact.name.charAt(0).toUpperCase() : 'U'"></span>
+                                </div>
+                                <div x-show="contact.is_online" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-pulse"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h1 class="font-semibold text-gray-800 truncate" x-text="contact.name || 'User'"></h1>
+                                <p class="text-xs text-gray-500" x-text="contact.is_online ? 'Online' : 'Offline'"></p>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <template x-if="chatType === 'room'">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h1 class="font-semibold text-gray-800 truncate" x-text="room.name || 'Chatroom'"></h1>
+                                <p class="text-xs text-gray-500"><span x-text="room.member_count || 0"></span> members</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button x-show="chatType === 'direct'" @click="startCall('voice')" class="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 hover:bg-purple-200">
+                        <i class="fas fa-phone text-sm"></i>
+                    </button>
+                    <button x-show="chatType === 'direct'" @click="startCall('video')" class="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 hover:bg-purple-200">
+                        <i class="fas fa-video text-sm"></i>
+                    </button>
+                    <button @click="showInfo = true" class="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 hover:bg-purple-200">
+                        <i class="fas fa-info-circle text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Messages Container -->
+    <div class="messages-container h-[calc(100vh-140px)] overflow-y-auto px-4 py-4 space-y-4" 
+         x-ref="messagesContainer"
+         @scroll="handleScroll()">
+        
+        <!-- Loading State -->
+        <div x-show="loading" class="flex justify-center py-8">
+            <i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i>
+        </div>
+        
+        <!-- Date Separator -->
+        <template x-for="(group, date) in groupedMessages" :key="date">
+            <div>
+                <!-- Date Header -->
+                <div class="flex justify-center mb-4">
+                    <span class="px-3 py-1 bg-white rounded-full text-xs text-gray-600 shadow-sm" x-text="formatDate(date)"></span>
+                </div>
+                
+                <!-- Messages for this date -->
+                <template x-for="message in group" :key="message.id">
+                    <div class="flex" :class="message.from_phone === user.phone ? 'justify-end' : 'justify-start'">
+                        <div class="flex items-end space-x-2 max-w-[75%]" :class="message.from_phone === user.phone ? 'flex-row-reverse space-x-reverse' : ''">
+                            
+                            <!-- Avatar (for received messages in groups) -->
+                            <template x-if="chatType === 'room' && message.from_phone !== user.phone">
+                                <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                                    <span x-text="message.sender_name ? message.sender_name.charAt(0).toUpperCase() : 'U'"></span>
+                                </div>
+                            </template>
+                            
+                            <!-- Message Bubble -->
+                            <div>
+                                <!-- Sender name (for group chats) -->
+                                <template x-if="chatType === 'room' && message.from_phone !== user.phone">
+                                    <p class="text-xs text-gray-600 mb-1 px-1" x-text="message.sender_name"></p>
+                                </template>
+                                
+                                <div class="px-4 py-2" :class="message.from_phone === user.phone ? 'message-sent' : 'message-received'">
+                                    <p class="text-sm leading-relaxed" x-text="message.content"></p>
+                                    <div class="flex items-center justify-end space-x-1 mt-1">
+                                        <span class="text-xs opacity-70" x-text="formatTime(message.sent_at)"></span>
+                                        <template x-if="message.from_phone === user.phone">
+                                            <i class="fas fa-check text-xs opacity-70" :class="message.is_read ? 'fa-check-double text-blue-400' : ''"></i>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+        
+        <!-- Typing Indicator -->
+        <div x-show="isTyping" class="flex justify-start">
+            <div class="flex items-end space-x-2">
+                <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+                    <span x-text="contact.name ? contact.name.charAt(0).toUpperCase() : 'U'"></span>
+                </div>
+                <div class="px-4 py-3 bg-gray-200 rounded-18px rounded-bl-sm">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div x-show="!loading && messages.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+            <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-semibold text-gray-600 mb-2">No messages yet</h3>
+            <p class="text-sm text-gray-500">Send the first message to start the conversation!</p>
+        </div>
+    </div>
+    
+    <!-- Message Input -->
+    <div class="bg-white border-t border-gray-200 px-4 py-3 fixed bottom-0 left-0 right-0">
+        <form @submit.prevent="sendMessage()" class="flex items-center space-x-2">
+            <!-- Attachment Button -->
+            <button type="button" @click="showAttachmentMenu = !showAttachmentMenu" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200">
+                <i class="fas fa-plus text-lg"></i>
+            </button>
+            
+            <!-- Text Input -->
+            <input 
+                type="text" 
+                x-model="messageInput"
+                @input="handleTyping()"
+                @keydown.enter.prevent="sendMessage()"
+                placeholder="Type a message..."
+                class="message-input flex-1 px-4 py-3 bg-gray-100 rounded-full border-2 border-transparent transition"
+                autocomplete="off"
+            >
+            
+            <!-- Send Button -->
+            <button 
+                type="submit"
+                :disabled="!messageInput.trim()"
+                class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            >
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+        
+        <!-- Attachment Menu -->
+        <div x-show="showAttachmentMenu" 
+             x-transition
+             @click.away="showAttachmentMenu = false"
+             class="absolute bottom-16 left-4 bg-white rounded-lg shadow-lg border border-gray-200 p-2 space-y-1">
+            <button class="w-full flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 rounded-lg text-left">
+                <i class="fas fa-image text-purple-600"></i>
+                <span class="text-sm">Photo</span>
+            </button>
+            <button class="w-full flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 rounded-lg text-left">
+                <i class="fas fa-video text-red-600"></i>
+                <span class="text-sm">Video</span>
+            </button>
+            <button class="w-full flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 rounded-lg text-left">
+                <i class="fas fa-file text-blue-600"></i>
+                <span class="text-sm">Document</span>
+            </button>
+            <button class="w-full flex items-center space-x-3 px-4 py-2 hover:bg-gray-100 rounded-lg text-left">
+                <i class="fas fa-map-marker-alt text-green-600"></i>
+                <span class="text-sm">Location</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Info Modal -->
+    <div x-show="showInfo" 
+         x-transition
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+         @click.self="showInfo = false">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">
+                    <span x-show="chatType === 'direct'">Contact Info</span>
+                    <span x-show="chatType === 'room'">Group Info</span>
+                </h3>
+                <button @click="showInfo = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Direct Chat Info -->
+            <template x-if="chatType === 'direct'">
+                <div class="text-center">
+                    <div class="w-24 h-24 rounded-full bg-purple-600 flex items-center justify-center text-white text-4xl font-bold mx-auto mb-4">
+                        <span x-text="contact.name ? contact.name.charAt(0).toUpperCase() : 'U'"></span>
+                    </div>
+                    <h4 class="text-xl font-semibold text-gray-800 mb-1" x-text="contact.name"></h4>
+                    <p class="text-sm text-gray-600 mb-4" x-text="contact.phone"></p>
+                    <p x-show="contact.bio" class="text-sm text-gray-700 mb-6" x-text="contact.bio"></p>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            <i class="fas fa-user mr-2"></i>
+                            View Profile
+                        </button>
+                        <button class="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                            <i class="fas fa-ban mr-2"></i>
+                            Block Contact
+                        </button>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- Room Info -->
+            <template x-if="chatType === 'room'">
+                <div>
+                    <div class="text-center mb-6">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-4xl mx-auto mb-4">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-800 mb-1" x-text="room.name"></h4>
+                        <p class="text-sm text-gray-600" x-text="room.description"></p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            <i class="fas fa-users mr-2"></i>
+                            View Members
+                        </button>
+                        <button class="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            Leave Group
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+    
+    <script>
+        function chatApp() {
+            return {
+                user: {},
+                contact: {},
+                room: {},
+                chatType: 'direct', // 'direct' or 'room'
+                messages: [],
+                groupedMessages: {},
+                messageInput: '',
+                loading: true,
+                isTyping: false,
+                showInfo: false,
+                showAttachmentMenu: false,
+                socket: null,
+                typingTimeout: null,
+                
+                apiUrl: window.location.origin + '/api',
+                
+                init() {
+                    // Load user from localStorage
+                    const userData = localStorage.getItem('ainiflow_user');
+                    if (userData) {
+                        this.user = JSON.parse(userData);
+                    } else {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
+                    // Determine chat type from URL or localStorage
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomId = urlParams.get('room');
+                    const contactPhone = urlParams.get('contact');
+                    
+                    if (roomId) {
+                        this.chatType = 'room';
+                        this.loadRoom(roomId);
+                    } else if (contactPhone) {
+                        this.chatType = 'direct';
+                        this.loadContact(contactPhone);
+                    } else {
+                        // Check localStorage for selected contact/room
+                        const savedContact = localStorage.getItem('ainiflow_chat_contact');
+                        const savedRoom = localStorage.getItem('ainiflow_chat_room');
+                        
+                        if (savedContact) {
+                            this.chatType = 'direct';
+                            this.contact = JSON.parse(savedContact);
+                            this.loadMessages();
+                        } else if (savedRoom) {
+                            this.chatType = 'room';
+                            this.room = JSON.parse(savedRoom);
+                            this.loadMessages();
+                        } else {
+                            // No chat selected, go back to dashboard
+                            window.location.href = '/dashboard.html';
+                            return;
+                        }
+                    }
+                    
+                    // Initialize WebSocket
+                    this.initSocket();
+                    
+                    // Auto-scroll to bottom on load
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                    });
+                },
+                
+                async loadContact(phone) {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/users/${encodeURIComponent(phone)}`);
+                        if (response.ok) {
+                            this.contact = await response.json();
+                            this.loadMessages();
+                        }
+                    } catch (error) {
+                        console.error('Error loading contact:', error);
+                    }
+                },
+                
+                async loadRoom(roomId) {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/chatrooms/${roomId}`);
+                        if (response.ok) {
+                            this.room = await response.json();
+                            this.loadMessages();
+                        }
+                    } catch (error) {
+                        console.error('Error loading room:', error);
+                    }
+                },
+                
+                async loadMessages() {
+                    this.loading = true;
+                    try {
+                        let response;
+                        
+                        if (this.chatType === 'direct') {
+                            response = await fetch(`${this.apiUrl}/messages/conversation/${encodeURIComponent(this.user.phone)}/${encodeURIComponent(this.contact.phone)}`);
+                        } else {
+                            response = await fetch(`${this.apiUrl}/chatrooms/${this.room.id}/messages`);
+                        }
+                        
+                        if (response.ok) {
+                            this.messages = await response.json();
+                            this.groupMessagesByDate();
+                            
+                            this.$nextTick(() => {
+                                this.scrollToBottom();
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading messages:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                groupMessagesByDate() {
+                    const grouped = {};
+                    
+                    this.messages.forEach(message => {
+                        const date = new Date(message.sent_at).toDateString();
+                        if (!grouped[date]) {
+                            grouped[date] = [];
+                        }
+                        grouped[date].push(message);
+                    });
+                    
+                    this.groupedMessages = grouped;
+                },
+                
+                initSocket() {
+                    this.socket = io(window.location.origin);
+                    
+                    // Authenticate
+                    this.socket.emit('authenticate', this.user.phone);
+                    
+                    // Join room if in group chat
+                    if (this.chatType === 'room') {
+                        this.socket.emit('join_room', this.room.id);
+                    }
+                    
+                    // Listen for new messages
+                    this.socket.on('new_message', (message) => {
+                        if (this.chatType === 'direct' && 
+                            (message.from_phone === this.contact.phone || message.to_phone === this.contact.phone)) {
+                            this.addMessage(message);
+                        }
+                    });
+                    
+                    this.socket.on('new_room_message', (message) => {
+                        if (this.chatType === 'room' && message.room_id === this.room.id) {
+                            this.addMessage(message);
+                        }
+                    });
+                    
+                    // Listen for typing indicator
+                    this.socket.on('user_typing', (data) => {
+                        if (data.from_phone === this.contact.phone) {
+                            this.isTyping = true;
+                            setTimeout(() => {
+                                this.isTyping = false;
+                            }, 3000);
+                        }
+                    });
+                    
+                    // Message sent confirmation
+                    this.socket.on('message_sent', (message) => {
+                        // Update local message with server data
+                        const index = this.messages.findIndex(m => m.id === message.id);
+                        if (index === -1) {
+                            this.addMessage(message);
+                        }
+                    });
+                },
+                
+                sendMessage() {
+                    if (!this.messageInput.trim()) return;
+                    
+                    const messageData = {
+                        content: this.messageInput.trim(),
+                        message_type: 'text'
+                    };
+                    
+                    if (this.chatType === 'direct') {
+                        messageData.to_phone = this.contact.phone;
+                        this.socket.emit('send_message', messageData);
+                    } else {
+                        messageData.room_id = this.room.id;
+                        this.socket.emit('send_room_message', messageData);
+                    }
+                    
+                    // Optimistic UI update
+                    const optimisticMessage = {
+                        id: Date.now(),
+                        from_phone: this.user.phone,
+                        to_phone: this.chatType === 'direct' ? this.contact.phone : null,
+                        room_id: this.chatType === 'room' ? this.room.id : null,
+                        content: messageData.content,
+                        message_type: 'text',
+                        sent_at: new Date().toISOString(),
+                        is_read: false,
+                        sender_name: this.user.name
+                    };
+                    
+                    this.addMessage(optimisticMessage);
+                    
+                    // Clear input
+                    this.messageInput = '';
+                },
+                
+                addMessage(message) {
+                    // Check if message already exists
+                    if (this.messages.some(m => m.id === message.id)) return;
+                    
+                    this.messages.push(message);
+                    this.groupMessagesByDate();
+                    
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                    });
+                },
+                
+                handleTyping() {
+                    if (this.chatType === 'direct') {
+                        this.socket.emit('typing', { to_phone: this.contact.phone });
+                    }
+                },
+                
+                scrollToBottom() {
+                    const container = this.$refs.messagesContainer;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                },
+                
+                handleScroll() {
+                    // Load more messages when scrolling to top (pagination)
+                    const container = this.$refs.messagesContainer;
+                    if (container.scrollTop === 0 && !this.loading) {
+                        // Load older messages
+                        console.log('Load more messages...');
+                    }
+                },
+                
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    const today = new Date();
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    
+                    if (date.toDateString() === today.toDateString()) {
+                        return 'Today';
+                    } else if (date.toDateString() === yesterday.toDateString()) {
+                        return 'Yesterday';
+                    } else {
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                },
+                
+                formatTime(dateString) {
+                    const date = new Date(dateString);
+                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                },
+                
+                startCall(type) {
+                    alert(`${type === 'voice' ? 'Voice' : 'Video'} call to ${this.contact.name} - Coming soon!`);
+                },
+                
+                goBack() {
+                    // Clear saved chat
+                    localStorage.removeItem('ainiflow_chat_contact');
+                    localStorage.removeItem('ainiflow_chat_room');
+                    
+                    // Go to previous page or dashboard
+                    if (document.referrer && document.referrer.includes(window.location.origin)) {
+                        window.history.back();
+                    } else {
+                        window.location.href = '/dashboard.html';
+                    }
+                }
+            }
+        }
+    </script>
+    
+</body>
+</html>
