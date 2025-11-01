@@ -149,6 +149,180 @@
       "answer": "En Perú, mayo-septiembre es temporada seca (mejor clima). ¿A dónde viajas?",
       "category": "general",
       "keywords": ["época", "temporada", "season", "when", "cuándo"]
+    },
+    {
+      "question": "¿Qué es Samay Wasi?",
+      "answer": "Samay Wasi es nuestro hotel boutique en Cusco, ideal para explorar Perú.",
+      "category": "hotel_info",
+      "keywords": ["samay wasi", "hotel", "cusco", "qué es", "información"]
+    },
+    {
+      "question": "¿Dónde está Samay Wasi?",
+      "answer": "Samay Wasi está ubicado en Cusco, cerca del centro histórico.",
+      "category": "hotel_info",
+      "keywords": ["samay wasi", "ubicación", "dónde", "location", "cusco"]
+    },
+    {
+      "question": "¿Cuánto cuesta Samay Wasi?",
+      "answer": "Samay Wasi desde $50/noche. ¿Quieres ver disponibilidad?",
+      "category": "hotel_info",
+      "keywords": ["samay wasi", "precio", "costo", "cuánto"]
+    },
+    {
+      "question": "¿Samay Wasi tiene desayuno?",
+      "answer": "Sí, Samay Wasi incluye desayuno buffet andino.",
+      "category": "hotel_info",
+      "keywords": ["samay wasi", "desayuno", "breakfast", "comida"]
+    },
+    {
+      "question": "¿Cómo llego al hotel desde el aeropuerto?",
+      "answer": "Ofrecemos traslado aeropuerto-hotel. ¿Necesitas reservar transporte?",
+      "category": "services",
+      "keywords": ["aeropuerto", "traslado", "transporte", "llegar", "cómo"]
+    },
+    {
+      "question": "¿Qué incluye la reserva?",
+      "answer": "Incluye habitación, desayuno, wifi y acceso a áreas comunes.",
+      "category": "booking",
+      "keywords": ["incluye", "reserva", "incluido", "qué incluye"]
+    },
+    {
+      "question": "¿Puedo pagar con tarjeta?",
+      "answer": "Sí, aceptamos tarjetas Visa, Mastercard y efectivo.",
+      "category": "payment",
+      "keywords": ["pagar", "tarjeta", "payment", "visa", "mastercard"]
+    },
+    {
+      "question": "¿Tienen tour a Machu Picchu desde el hotel?",
+      "answer": "Sí, organizamos tours a Machu Picchu. ¿Full day o 2 días?",
+      "category": "tours",
+      "keywords": ["machu picchu", "tour", "hotel", "desde"]
+    },
+    {
+      "question": "¿El hotel está cerca de Plaza de Armas?",
+      "answer": "Sí, estamos a 10 minutos caminando de Plaza de Armas.",
+      "category": "location",
+      "keywords": ["plaza de armas", "cerca", "centro", "cusco"]
+    },
+    {
+      "question": "¿Qué idiomas hablan en el hotel?",
+      "answer": "Hablamos español, inglés y quechua básico.",
+      "category": "services",
+      "keywords": ["idioma", "language", "hablan", "inglés", "english"]
+    },
+    {
+      "question": "¿Tienen servicio de lavandería?",
+      "answer": "Sí, ofrecemos servicio de lavandería con cargo adicional.",
+      "category": "services",
+      "keywords": ["lavandería", "laundry", "lavar", "ropa"]
+    },
+    {
+      "question": "¿A qué hora es el check-in?",
+      "answer": "Check-in: 2pm. Check-out: 11am. ¿Llegas antes?",
+      "category": "booking",
+      "keywords": ["check-in", "checkout", "hora", "llegada"]
+    },
+    {
+      "question": "¿Tienen estacionamiento?",
+      "answer": "Sí, tenemos estacionamiento gratuito para huéspedes.",
+      "category": "amenities",
+      "keywords": ["estacionamiento", "parking", "carro", "auto"]
+    },
+    {
+      "question": "¿El hotel tiene calefacción?",
+      "answer": "Sí, todas las habitaciones tienen calefacción.",
+      "category": "amenities",
+      "keywords": ["calefacción", "heating", "frío", "temperatura"]
+    },
+    {
+      "question": "¿Organizan tours de un día?",
+      "answer": "Sí, ofrecemos city tour, Valle Sagrado, Machu Picchu y más.",
+      "category": "tours",
+      "keywords": ["tour", "un día", "day tour", "excursión"]
+    },
+    {
+      "question": "¿Cómo hago una reserva?",
+      "answer": "Puedes reservar aquí en la web o WhatsApp +51 984 123 456.",
+      "category": "booking",
+      "keywords": ["reservar", "reserva", "booking", "cómo"]
+    },
+    {
+      "question": "¿Cuál es la política de cancelación?",
+      "answer": "Cancelación gratis hasta 48 horas antes. Después 50% cargo.",
+      "category": "booking",
+      "keywords": ["cancelación", "cancelar", "política", "cancellation"]
+    },
+    {
+      "question": "¿Necesito pagar adelantado?",
+      "answer": "Pedimos 30% adelanto para confirmar. El resto al check-in.",
+      "category": "payment",
+      "keywords": ["adelanto", "pago", "adelantado", "deposit"]
+    },
+    {
+      "question": "¿Qué tours recomiendan?",
+      "answer": "Recomendamos Machu Picchu, Valle Sagrado y Montaña 7 Colores.",
+      "category": "tours",
+      "keywords": ["recomendar", "recomendación", "mejor tour", "qué tour"]
+    },
+    {
+      "question": "¿Tienen habitación triple?",
+      "answer": "Sí, tenemos habitaciones triples y familiares. ¿Para cuántas personas?",
+      "category": "room_type",
+      "keywords": ["triple", "3 personas", "habitación triple"]
+    },
+    {
+      "question": "¿El wifi funciona bien?",
+      "answer": "Sí, tenemos wifi gratis de alta velocidad en todo el hotel.",
+      "category": "amenities",
+      "keywords": ["wifi", "internet", "funciona", "velocidad"]
+    },
+    {
+      "question": "¿Tienen agua caliente?",
+      "answer": "Sí, agua caliente 24 horas en todas las habitaciones.",
+      "category": "amenities",
+      "keywords": ["agua caliente", "ducha", "baño", "hot water"]
+    },
+    {
+      "question": "¿El hotel es seguro?",
+      "answer": "Sí, tenemos seguridad 24/7 y cajas de seguridad.",
+      "category": "services",
+      "keywords": ["seguro", "seguridad", "safety", "secure"]
+    },
+    {
+      "question": "¿Qué hay cerca del hotel?",
+      "answer": "Cerca hay restaurantes, museos, mercados y Plaza de Armas.",
+      "category": "location",
+      "keywords": ["cerca", "alrededor", "nearby", "qué hay"]
+    },
+    {
+      "question": "¿Sirven comida peruana?",
+      "answer": "Sí, el desayuno incluye opciones peruanas y continentales.",
+      "category": "amenities",
+      "keywords": ["comida peruana", "desayuno", "food", "peruvian"]
+    },
+    {
+      "question": "¿Tienen terraza o área común?",
+      "answer": "Sí, tenemos terraza con vista y sala común.",
+      "category": "amenities",
+      "keywords": ["terraza", "área común", "common area", "terrace"]
+    },
+    {
+      "question": "¿Qué necesito para reservar?",
+      "answer": "Solo nombre, fechas, número de personas y email.",
+      "category": "booking",
+      "keywords": ["necesito", "documentos", "requisitos", "para reservar"]
+    },
+    {
+      "question": "¿Tienen descuento por estadía larga?",
+      "answer": "Sí, 10% descuento para estadías de 5+ noches.",
+      "category": "promotions",
+      "keywords": ["descuento", "estadía larga", "long stay", "promoción"]
+    },
+    {
+      "question": "¿Puedo dejar mi equipaje después del checkout?",
+      "answer": "Sí, guardamos equipaje gratis el día del checkout.",
+      "category": "services",
+      "keywords": ["equipaje", "maletas", "luggage", "guardar"]
     }
   ],
   "system_prompt": "Eres Vicky, una agente de viajes experta en Perú. MÁXIMO 15 PALABRAS por respuesta. SOLO hablas de hoteles, tours, retiros y viajes. Eres amable, concisa y profesional. Si no sabes algo, deriva al equipo de soporte.",

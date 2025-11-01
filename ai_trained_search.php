@@ -125,24 +125,55 @@ function callTrainedAI($userQuery, $trainingData) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
     
-    if (curl_errno($ch)) {
+    if ($curlErrno) {
+        error_log("AI Training - CURL Error #{$curlErrno}: {$curlError}");
         curl_close($ch);
+        
+        // If AI fails, use training match if available
+        if ($trainingMatch && $trainingMatch['confidence'] > 30) {
+            return [
+                'response' => $trainingMatch['answer'],
+                'method' => 'training_fallback',
+                'confidence' => $trainingMatch['confidence'],
+                'category' => $trainingMatch['category'],
+                'note' => 'AI offline, using training data'
+            ];
+        }
+        
         return [
-            'error' => 'AI connection failed',
-            'method' => 'ai_error'
+            'error' => 'AI connection failed: ' . $curlError,
+            'method' => 'ai_error',
+            'errno' => $curlErrno
         ];
     }
     
     curl_close($ch);
     
     if ($httpCode !== 200) {
+        error_log("AI Training - HTTP Error: {$httpCode}");
+        
+        // Fallback to training match
+        if ($trainingMatch && $trainingMatch['confidence'] > 30) {
+            return [
+                'response' => $trainingMatch['answer'],
+                'method' => 'training_fallback',
+                'confidence' => $trainingMatch['confidence'],
+                'category' => $trainingMatch['category'],
+                'note' => 'AI error, using training data'
+            ];
+        }
+        
         return [
-            'error' => 'AI error',
-            'method' => 'ai_error'
+            'error' => 'AI HTTP error: ' . $httpCode,
+            'method' => 'ai_error',
+            'http_code' => $httpCode
         ];
     }
     
@@ -158,15 +189,30 @@ function callTrainedAI($userQuery, $trainingData) {
 
 // Main execution
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    error_log("AI Training - Raw input: " . $rawInput);
+    
+    $input = json_decode($rawInput, true);
+    error_log("AI Training - Decoded input: " . print_r($input, true));
+    
     $userQuery = $input['query'] ?? '';
     
+    // Enhanced logging
+    error_log("AI Training - POST Request - Query: " . $userQuery);
+    
     if (empty($userQuery)) {
-        echo json_encode(['error' => 'No query provided']);
+        error_log("AI Training - ERROR: Empty query - Raw: {$rawInput}");
+        echo json_encode([
+            'error' => 'No query provided',
+            'raw_input' => $rawInput,
+            'decoded' => $input
+        ]);
         exit;
     }
     
+    error_log("AI Training - Processing query: {$userQuery}");
     $result = callTrainedAI($userQuery, $trainingData);
+    error_log("AI Training - Result method: " . ($result['method'] ?? 'unknown'));
     
     // Log for analytics
     $logEntry = [

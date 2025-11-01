@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test AI Training System</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-box { border: 2px solid #333; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #d4edda; border-color: #28a745; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+        .info { background: #d1ecf1; border-color: #17a2b8; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 AI Training System Diagnostics</h1>
+    
+    <div class="test-box info">
+        <h3>Server Info</h3>
+        <p><strong>Production:</strong> http://108.175.12.152/manage/</p>
+        <p><strong>AI Server:</strong> http://72.60.1.16:11434</p>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 1: AI Training Data File</h3>
+        <button onclick="testTrainingData()">Test Training Data JSON</button>
+        <div id="test1"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 2: AI Trained Search (Direct Match)</h3>
+        <input type="text" id="query1" value="hotel con piscina" style="width: 300px; padding: 5px;">
+        <button onclick="testTrainedSearch()">Test Trained Search</button>
+        <div id="test2"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 3: AI Search Proxy (Ollama)</h3>
+        <input type="text" id="query2" value="hola" style="width: 300px; padding: 5px;">
+        <button onclick="testAIProxy()">Test AI Proxy</button>
+        <div id="test3"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 4: Full AI Flow (Training + Fallback)</h3>
+        <input type="text" id="query3" value="tour machu picchu" style="width: 300px; padding: 5px;">
+        <button onclick="testFullFlow()">Test Full Flow</button>
+        <div id="test4"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://108.175.12.152/manage/';
+        
+        function log(divId, message, type = 'info') {
+            const div = document.getElementById(divId);
+            const color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue';
+            div.innerHTML += `<p style="color: ${color};">${message}</p>`;
+        }
+
+        function logJSON(divId, data) {
+            const div = document.getElementById(divId);
+            div.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        async function testTrainingData() {
+            const divId = 'test1';
+            document.getElementById(divId).innerHTML = '';
+            
+            try {
+                log(divId, '📥 Loading ai_training_data.json...');
+                
+                const response = await fetch(BASE_URL + 'ai_training_data.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                log(divId, `✅ SUCCESS: Loaded ${data.training_dataset.length} training examples`, 'success');
+                log(divId, `Categories: ${new Set(data.training_dataset.map(d => d.category)).size}`);
+                logJSON(divId, data.training_dataset[0]);
+                
+            } catch (error) {
+                log(divId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTrainedSearch() {
+            const divId = 'test2';
+            document.getElementById(divId).innerHTML = '';
+            const query = document.getElementById('query1').value;
+            
+            try {
+                log(divId, `🔍 Searching: "${query}"`);
+                
+                const response = await fetch(BASE_URL + 'ai_trained_search.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    log(divId, `❌ ERROR: ${result.error}`, 'error');
+                } else {
+                    log(divId, `✅ SUCCESS: ${result.method}`, 'success');
+                    log(divId, `Response: ${result.response}`);
+                    log(divId, `Confidence: ${result.confidence}%`);
+                    log(divId, `Category: ${result.category}`);
+                    logJSON(divId, result);
+                }
+                
+            } catch (error) {
+                log(divId, `❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function testAIProxy() {
+            const divId = 'test3';
+            document.getElementById(divId).innerHTML = '';
+            const query = document.getElementById('query2').value;
+            
+            try {
+                log(divId, `🤖 Calling AI with: "${query}"`);
+                
+                const prompt = `Eres Vicky, agente de viajes. MÁXIMO 15 PALABRAS. Usuario: ${query}`;
+                
+                const response = await fetch(BASE_URL + 'ai_search_proxy.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'qwen2.5:1.5b',
+                        prompt: prompt,
+                        stream: false
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    log(divId, `❌ ERROR: ${result.error}`, 'error');
+                } else {
+                    log(divId, `✅ SUCCESS: AI responded`, 'success');
+                    log(divId, `Response: ${result.response}`);
+                    logJSON(divId, result);
+                }
+                
+            } catch (error) {
+                log(divId, `❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        async function testFullFlow() {
+            const divId = 'test4';
+            document.getElementById(divId).innerHTML = '';
+            const query = document.getElementById('query3').value;
+            
+            try {
+                log(divId, `🎯 Testing full AI flow: "${query}"`);
+                log(divId, 'Step 1: Check training data...');
+                
+                const response = await fetch(BASE_URL + 'ai_trained_search.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    log(divId, `❌ ERROR: ${result.error}`, 'error');
+                } else {
+                    if (result.method === 'training_direct') {
+                        log(divId, `✅ Used TRAINING DATA (${result.confidence}% match)`, 'success');
+                    } else if (result.method === 'ai_enhanced') {
+                        log(divId, `✅ Used AI ENHANCED (with examples)`, 'success');
+                    } else {
+                        log(divId, `⚠️ Fallback method: ${result.method}`, 'info');
+                    }
+                    
+                    log(divId, `💬 Vicky says: "${result.response}"`);
+                    log(divId, `📊 Category: ${result.category}`);
+                    logJSON(divId, result);
+                }
+                
+            } catch (error) {
+                log(divId, `❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Auto-run first test on load
+        window.addEventListener('load', () => {
+            console.log('🧪 AI Training System Diagnostics Ready');
+            testTrainingData();
+        });
+    </script>
+</body>
+</html>
