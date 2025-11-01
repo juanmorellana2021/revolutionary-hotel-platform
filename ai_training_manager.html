@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vicky AI Training Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-purple-600 mb-2">🎓 Vicky AI Training Manager</h1>
+            <p class="text-gray-600">Entrena a Vicky con preguntas y respuestas sobre turismo</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                <div class="text-3xl font-bold text-blue-600" id="totalQuestions">0</div>
+                <div class="text-sm text-blue-800">Preguntas Entrenadas</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                <div class="text-3xl font-bold text-green-600" id="totalCategories">0</div>
+                <div class="text-sm text-green-800">Categorías</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                <div class="text-3xl font-bold text-purple-600" id="lastUpdate">-</div>
+                <div class="text-sm text-purple-800">Última Actualización</div>
+            </div>
+        </div>
+
+        <!-- Add New Training -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">➕ Agregar Nueva Pregunta/Respuesta</h2>
+            
+            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Pregunta del Usuario</label>
+                    <textarea 
+                        id="newQuestion" 
+                        class="w-full border rounded-lg p-3 h-24"
+                        placeholder="Ej: ¿Tienen hotel con vista al mar?"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Respuesta de Vicky (máx 15 palabras)</label>
+                    <textarea 
+                        id="newAnswer" 
+                        class="w-full border rounded-lg p-3 h-24"
+                        placeholder="Ej: Buscaré hoteles con vista al mar."></textarea>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Categoría</label>
+                    <select id="newCategory" class="w-full border rounded-lg p-3">
+                        <option value="amenities">Amenidades</option>
+                        <option value="price">Precio</option>
+                        <option value="destination">Destino</option>
+                        <option value="tours">Tours</option>
+                        <option value="retreat">Retiros</option>
+                        <option value="room_type">Tipo de Habitación</option>
+                        <option value="location">Ubicación</option>
+                        <option value="packages">Paquetes</option>
+                        <option value="special">Especial</option>
+                        <option value="rating">Calificación</option>
+                        <option value="services">Servicios</option>
+                        <option value="booking">Reservaciones</option>
+                        <option value="promotions">Promociones</option>
+                        <option value="activities">Actividades</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Keywords (separadas por coma)</label>
+                    <input 
+                        type="text" 
+                        id="newKeywords" 
+                        class="w-full border rounded-lg p-3"
+                        placeholder="Ej: vista, mar, ocean, beach">
+                </div>
+            </div>
+
+            <button 
+                onclick="addTrainingData()" 
+                class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700">
+                💾 Guardar Nueva Pregunta
+            </button>
+        </div>
+
+        <!-- Training Data List -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold mb-4">📚 Datos de Entrenamiento</h2>
+            <div id="trainingList" class="space-y-3">
+                <!-- Will be populated by JS -->
+            </div>
+        </div>
+
+        <!-- Test AI -->
+        <div class="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg shadow-lg p-6 mt-6">
+            <h2 class="text-2xl font-bold mb-4">🧪 Probar Vicky</h2>
+            <div class="flex gap-4">
+                <input 
+                    type="text" 
+                    id="testQuery" 
+                    class="flex-1 border rounded-lg p-3"
+                    placeholder="Escribe una pregunta para probar...">
+                <button 
+                    onclick="testAI()" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
+                    Probar
+                </button>
+            </div>
+            <div id="testResult" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script>
+        let trainingData = { training_dataset: [] };
+
+        // Load training data
+        async function loadTrainingData() {
+            try {
+                const response = await fetch('ai_training_data.json');
+                trainingData = await response.json();
+                updateStats();
+                displayTrainingList();
+            } catch (error) {
+                console.error('Error loading training data:', error);
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalQuestions').textContent = trainingData.training_dataset.length;
+            const categories = new Set(trainingData.training_dataset.map(item => item.category));
+            document.getElementById('totalCategories').textContent = categories.size;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString();
+        }
+
+        // Display training list
+        function displayTrainingList() {
+            const list = document.getElementById('trainingList');
+            list.innerHTML = trainingData.training_dataset.map((item, index) => `
+                <div class="border rounded-lg p-4 hover:bg-gray-50">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex gap-2 mb-2">
+                                <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">${item.category}</span>
+                                <span class="text-gray-400 text-xs">ID: ${index}</span>
+                            </div>
+                            <div class="mb-1">
+                                <strong>Q:</strong> ${item.question}
+                            </div>
+                            <div class="text-blue-600 mb-2">
+                                <strong>A:</strong> ${item.answer}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Keywords: ${item.keywords.join(', ')}
+                            </div>
+                        </div>
+                        <button onclick="deleteTraining(${index})" class="text-red-500 hover:text-red-700 ml-4">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Add training data
+        async function addTrainingData() {
+            const question = document.getElementById('newQuestion').value.trim();
+            const answer = document.getElementById('newAnswer').value.trim();
+            const category = document.getElementById('newCategory').value;
+            const keywords = document.getElementById('newKeywords').value.split(',').map(k => k.trim()).filter(k => k);
+
+            if (!question || !answer || keywords.length === 0) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+
+            const newItem = {
+                question,
+                answer,
+                category,
+                keywords
+            };
+
+            trainingData.training_dataset.push(newItem);
+
+            // Save to server
+            try {
+                const response = await fetch('save_training_data.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trainingData)
+                });
+
+                if (response.ok) {
+                    alert('✅ Pregunta guardada exitosamente');
+                    document.getElementById('newQuestion').value = '';
+                    document.getElementById('newAnswer').value = '';
+                    document.getElementById('newKeywords').value = '';
+                    updateStats();
+                    displayTrainingList();
+                } else {
+                    alert('Error al guardar');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Delete training
+        async function deleteTraining(index) {
+            if (!confirm('¿Eliminar esta pregunta?')) return;
+
+            trainingData.training_dataset.splice(index, 1);
+
+            try {
+                const response = await fetch('save_training_data.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trainingData)
+                });
+
+                if (response.ok) {
+                    updateStats();
+                    displayTrainingList();
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Test AI
+        async function testAI() {
+            const query = document.getElementById('testQuery').value.trim();
+            if (!query) return;
+
+            document.getElementById('testResult').innerHTML = '<div class="text-center py-4">🤖 Vicky pensando...</div>';
+
+            try {
+                const response = await fetch('ai_trained_search.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+
+                document.getElementById('testResult').innerHTML = `
+                    <div class="bg-white rounded-lg p-4 border-2 border-green-200">
+                        <div class="flex gap-2 mb-2">
+                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">${result.method || 'unknown'}</span>
+                            ${result.confidence ? `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${result.confidence}% match</span>` : ''}
+                            ${result.category ? `<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">${result.category}</span>` : ''}
+                        </div>
+                        <div class="text-lg font-semibold text-blue-600">
+                            ${result.response || result.error || 'No response'}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = `
+                    <div class="bg-red-100 text-red-800 rounded-lg p-4">
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize
+        loadTrainingData();
+    </script>
+</body>
+</html>

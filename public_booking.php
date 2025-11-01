@@ -2638,21 +2638,38 @@
             `);
             
             try {
-                console.log('AI Search: Calling intelligent search...');
+                console.log('AI Search: Calling TRAINED intelligent search...');
                 
-                // Step 1: Check if it's just a greeting or conversation
+                // Step 1: Call trained AI system
+                const trainedResponse = await fetch('ai_trained_search.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!trainedResponse.ok) {
+                    throw new Error('Trained AI failed');
+                }
+                
+                const trainedResult = await trainedResponse.json();
+                
+                console.log('Trained AI Response:', trainedResult);
+                
+                // Show AI response
+                if (trainedResult.response) {
+                    const emoji = trainedResult.method === 'training_direct' ? '🎓' : '🤖';
+                    const confidence = trainedResult.confidence ? ` (${trainedResult.confidence}% match)` : '';
+                    showAIResponse(`${emoji} ${trainedResult.response}${confidence}`, 'info');
+                }
+                
+                // Check if it's a conversational query (not a search)
                 const isGreeting = /^(hola|hi|hey|buenos dias|buenas tardes|buenas noches)/i.test(query);
                 const isPersonalInfo = /me llamo|soy|mi nombre/i.test(query);
                 
-                if (isGreeting) {
-                    showAIResponse('¡Hola! Soy Vicky. ¿Qué hotel buscas?', 'info');
-                    displayHotels(allHotels);
-                    updateMapMarkers(allHotels);
-                    return;
-                }
-                
-                if (isPersonalInfo) {
-                    showAIResponse('¡Encantada! ¿Qué destino prefieres?', 'info');
+                if (isGreeting || isPersonalInfo || trainedResult.category === 'general') {
+                    // Show all hotels for conversational queries
                     displayHotels(allHotels);
                     updateMapMarkers(allHotels);
                     return;
