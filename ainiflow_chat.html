@@ -190,9 +190,11 @@
                             
                             <!-- Message Bubble -->
                             <div>
-                                <!-- Sender name (for group chats) -->
-                                <template x-if="chatType === 'room' && message.from_phone !== user.phone">
-                                    <p class="text-xs text-gray-600 mb-1 px-1" x-text="message.sender_name"></p>
+                                <!-- Sender name (ALWAYS show in group chats) -->
+                                <template x-if="chatType === 'room'">
+                                    <p class="text-xs mb-1 px-1" 
+                                       :class="message.from_phone === user.phone ? 'text-purple-200 text-right' : 'text-gray-600'"
+                                       x-text="message.from_phone === user.phone ? 'You' : (message.sender_name || 'User')"></p>
                                 </template>
                                 
                                 <div class="px-4 py-2" :class="message.from_phone === user.phone ? 'message-sent' : 'message-received'">
