@@ -45,8 +45,8 @@ function findTrainingMatch($userQuery, $trainingData) {
         }
     }
     
-    // Return match if score is above threshold
-    if ($highestScore > 15) {
+    // Return match if score is above threshold (lowered from 15 to 10 for better coverage)
+    if ($highestScore > 10) {
         return [
             'answer' => $bestMatch['answer'],
             'category' => $bestMatch['category'],
@@ -93,8 +93,9 @@ function callTrainedAI($userQuery, $trainingData) {
     // First try to find direct match in training data
     $trainingMatch = findTrainingMatch($userQuery, $trainingData);
     
-    if ($trainingMatch && $trainingMatch['confidence'] > 70) {
-        // High confidence match, use training answer directly
+    // Use training data for ANY match above 30% (much faster than AI)
+    if ($trainingMatch && $trainingMatch['confidence'] > 30) {
+        // Use training answer directly - FAST response
         return [
             'response' => $trainingMatch['answer'],
             'method' => 'training_direct',
@@ -136,19 +137,19 @@ function callTrainedAI($userQuery, $trainingData) {
         error_log("AI Training - CURL Error #{$curlErrno}: {$curlError}");
         curl_close($ch);
         
-        // If AI fails, use training match if available
-        if ($trainingMatch && $trainingMatch['confidence'] > 30) {
+        // If AI fails, ALWAYS use training match if available (even low confidence)
+        if ($trainingMatch) {
             return [
                 'response' => $trainingMatch['answer'],
                 'method' => 'training_fallback',
                 'confidence' => $trainingMatch['confidence'],
                 'category' => $trainingMatch['category'],
-                'note' => 'AI offline, using training data'
+                'note' => 'AI offline, usando datos de entrenamiento'
             ];
         }
         
         return [
-            'error' => 'AI connection failed: ' . $curlError,
+            'error' => 'Lo siento, no pude procesar tu consulta. Intenta de nuevo.',
             'method' => 'ai_error',
             'errno' => $curlErrno
         ];
@@ -159,19 +160,19 @@ function callTrainedAI($userQuery, $trainingData) {
     if ($httpCode !== 200) {
         error_log("AI Training - HTTP Error: {$httpCode}");
         
-        // Fallback to training match
-        if ($trainingMatch && $trainingMatch['confidence'] > 30) {
+        // Fallback to training match (even low confidence is better than nothing)
+        if ($trainingMatch) {
             return [
                 'response' => $trainingMatch['answer'],
                 'method' => 'training_fallback',
                 'confidence' => $trainingMatch['confidence'],
                 'category' => $trainingMatch['category'],
-                'note' => 'AI error, using training data'
+                'note' => 'AI error, usando datos de entrenamiento'
             ];
         }
         
         return [
-            'error' => 'AI HTTP error: ' . $httpCode,
+            'error' => 'Lo siento, no pude procesar tu consulta. Intenta de nuevo.',
             'method' => 'ai_error',
             'http_code' => $httpCode
         ];
