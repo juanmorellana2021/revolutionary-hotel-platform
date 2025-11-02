@@ -413,6 +413,30 @@ chatroomRouter.get('/public', async (req, res) => {
     }
 });
 
+// Get single chatroom by ID
+chatroomRouter.get('/:roomId', async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        const result = await pool.query(
+            `SELECT c.*, COUNT(rm.id) as member_count
+             FROM chatrooms c
+             LEFT JOIN room_members rm ON c.id = rm.room_id
+             WHERE c.id = $1
+             GROUP BY c.id`,
+            [roomId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Chatroom not found' });
+        }
+        
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error fetching chatroom:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Get chatroom messages
 chatroomRouter.get('/:roomId/messages', async (req, res) => {
     try {
@@ -697,11 +721,24 @@ io.on('connection', (socket) => {
         
         // Save message to database
         const result = await pool.query(
-            'INSERT INTO messages (from_phone, room_id, content, message_type) VALUES ($1, $2, $3, $4) RETURNING *',
+            `INSERT INTO messages (from_phone, room_id, content, message_type) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING *`,
             [socket.phone, room_id, content, message_type || 'text']
         );
         
         const message = result.rows[0];
+        
+        // Get sender info
+        const userResult = await pool.query(
+            'SELECT name, profile_photo FROM users WHERE phone = $1',
+            [socket.phone]
+        );
+        
+        if (userResult.rows.length > 0) {
+            message.sender_name = userResult.rows[0].name;
+            message.sender_photo = userResult.rows[0].profile_photo;
+        }
         
         // Broadcast to all room members
         io.to(`room_${room_id}`).emit('new_room_message', message);
