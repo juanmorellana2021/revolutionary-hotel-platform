@@ -75,6 +75,27 @@ $rooms = $roomObj->getAllRooms();
             padding: 2rem 0;
             z-index: 100;
             border-right: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        /* Sidebar Collapsed State */
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .sidebar.collapsed .logo h2 span,
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .logo h2 {
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
         }
         
         .logo {
@@ -89,6 +110,11 @@ $rooms = $roomObj->getAllRooms();
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .logo h2 span {
+            transition: all 0.3s ease;
         }
         
         .logo h2 i {
@@ -116,6 +142,11 @@ $rooms = $roomObj->getAllRooms();
             font-weight: 500;
         }
         
+        .nav-link span {
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
         .nav-link:hover, .nav-link.active {
             background: rgba(99, 102, 241, 0.1);
             color: #6366f1;
@@ -132,6 +163,12 @@ $rooms = $roomObj->getAllRooms();
             height: 100vh;
             overflow-y: auto;
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* Main Content when Sidebar Collapsed */
+        .main-content.expanded {
+            margin-left: 80px;
         }
         
         .top-bar {
@@ -216,6 +253,33 @@ $rooms = $roomObj->getAllRooms();
         }
         
         .theme-toggle i {
+            color: #6366f1;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 1rem;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .sidebar-toggle i {
             color: #6366f1;
             font-size: 1.1rem;
             transition: all 0.3s;
@@ -702,9 +766,9 @@ $rooms = $roomObj->getAllRooms();
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="logo">
-            <h2><i class="fas fa-hotel"></i> <?php echo htmlspecialchars(substr($hotel['hotel_name'] ?? 'Hotel', 0, 15)); ?></h2>
+            <h2><i class="fas fa-hotel"></i> <span><?php echo htmlspecialchars(substr($hotel['hotel_name'] ?? 'Hotel', 0, 15)); ?></span></h2>
         </div>
         
         <ul class="nav-menu">
@@ -760,7 +824,7 @@ $rooms = $roomObj->getAllRooms();
     </div>
     
     <!-- Main Content -->
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
         <!-- Top Bar -->
         <div class="top-bar">
             <div class="search-box">
@@ -769,6 +833,10 @@ $rooms = $roomObj->getAllRooms();
             </div>
             
             <div style="display: flex; align-items: center;">
+                <div class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <i class="fas fa-bars" id="sidebar-icon"></i>
+                </div>
+                
                 <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Theme">
                     <i class="fas fa-sun" id="theme-icon"></i>
                 </div>
@@ -973,6 +1041,27 @@ $rooms = $roomObj->getAllRooms();
     </div>
     
     <script>
+        // Sidebar Toggle Functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarIcon = document.getElementById('sidebar-icon');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // Update icon
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarIcon.classList.remove('fa-bars');
+                sidebarIcon.classList.add('fa-times');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                sidebarIcon.classList.remove('fa-times');
+                sidebarIcon.classList.add('fa-bars');
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
+        }
+        
         // Theme Toggle Functionality
         function toggleTheme() {
             const body = document.body;
@@ -1001,6 +1090,19 @@ $rooms = $roomObj->getAllRooms();
                 document.body.classList.add('light-theme');
                 themeIcon.classList.remove('fa-sun');
                 themeIcon.classList.add('fa-moon');
+            }
+            
+            // Load saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarIcon = document.getElementById('sidebar-icon');
+            
+            if (sidebarCollapsed === 'true') {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                sidebarIcon.classList.remove('fa-bars');
+                sidebarIcon.classList.add('fa-times');
             }
         });
     </script>
