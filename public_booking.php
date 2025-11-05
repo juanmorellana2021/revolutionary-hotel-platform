@@ -2647,21 +2647,38 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ query: query })
+                }).catch(err => {
+                    console.error('Fetch error:', err);
+                    throw new Error('Network error: ' + err.message);
                 });
                 
+                console.log('Trained AI Response status:', trainedResponse.status);
+                
                 if (!trainedResponse.ok) {
-                    throw new Error('Trained AI failed');
+                    const errorText = await trainedResponse.text();
+                    console.error('Trained AI error response:', errorText);
+                    throw new Error('Trained AI failed: ' + trainedResponse.status);
                 }
                 
                 const trainedResult = await trainedResponse.json();
                 
                 console.log('Trained AI Response:', trainedResult);
                 
-                // Show AI response
-                if (trainedResult.response) {
-                    const emoji = trainedResult.method === 'training_direct' ? '🎓' : '🤖';
-                    const confidence = trainedResult.confidence ? ` (${trainedResult.confidence}% match)` : '';
-                    showAIResponse(`${emoji} ${trainedResult.response}${confidence}`, 'info');
+                // Check for errors in response
+                if (trainedResult.error) {
+                    console.warn('AI returned error:', trainedResult.error);
+                    // Use fallback if available
+                    if (trainedResult.note) {
+                        showAIResponse(`⚠️ ${trainedResult.note}: ${trainedResult.response || trainedResult.error}`, 'warning');
+                    } else {
+                        showAIResponse(`❌ ${trainedResult.error}`, 'error');
+                    }
+                } else if (trainedResult.response) {
+                    const emoji = trainedResult.method === 'training_direct' ? '🎓' : 
+                                 trainedResult.method === 'training_fallback' ? '📚' : '🤖';
+                    const confidence = trainedResult.confidence ? ` (${Math.round(trainedResult.confidence)}% match)` : '';
+                    const note = trainedResult.note ? ` - ${trainedResult.note}` : '';
+                    showAIResponse(`${emoji} ${trainedResult.response}${confidence}${note}`, 'info');
                 }
                 
                 // Check if it's a conversational query (not a search)

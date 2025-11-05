@@ -38,45 +38,6 @@ $stmt->execute([$currentHotelId]);
 $userBookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $rooms = $roomObj->getAllRooms();
-
-// Get room photos efficiently (single query)
-$roomPhotos = [];
-$photoStmt = $conn->prepare("SELECT room_id, photo_path, is_primary FROM room_photos WHERE is_primary = 1 ORDER BY room_id");
-$photoStmt->execute();
-while ($photo = $photoStmt->fetch(PDO::FETCH_ASSOC)) {
-    $roomPhotos[$photo['room_id']] = $photo['photo_path'];
-}
-
-// Calculate availability based on current bookings
-$today = date('Y-m-d');
-$occupiedRoomIds = [];
-$availableCount = 0;
-$occupiedCount = 0;
-
-// Get currently occupied rooms (check_in_date <= today AND check_out_date > today)
-$occupiedStmt = $conn->prepare("
-    SELECT DISTINCT room_id
-    FROM bookings
-    WHERE hotel_id = ?
-    AND check_in_date <= ?
-    AND check_out_date > ?
-    AND status IN ('confirmed', 'checked_in')
-");
-$occupiedStmt->execute([$currentHotelId, $today, $today]);
-while ($row = $occupiedStmt->fetch(PDO::FETCH_ASSOC)) {
-    $occupiedRoomIds[] = $row['room_id'];
-}
-
-// Update room availability status
-foreach ($rooms as &$room) {
-    $room['is_available'] = !in_array($room['id'], $occupiedRoomIds);
-    if ($room['is_available']) {
-        $availableCount++;
-    } else {
-        $occupiedCount++;
-    }
-}
-unset($room);
 ?>
 
 <!DOCTYPE html>
@@ -86,7 +47,6 @@ unset($room);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($hotel['hotel_name'] ?? 'Dashboard'); ?> - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
@@ -115,6 +75,27 @@ unset($room);
             padding: 2rem 0;
             z-index: 100;
             border-right: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        /* Sidebar Collapsed State */
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .sidebar.collapsed .logo h2 span,
+        .sidebar.collapsed .nav-link span {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed .logo h2 {
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
         }
         
         .logo {
@@ -129,6 +110,11 @@ unset($room);
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .logo h2 span {
+            transition: all 0.3s ease;
         }
         
         .logo h2 i {
@@ -156,6 +142,11 @@ unset($room);
             font-weight: 500;
         }
         
+        .nav-link span {
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
         .nav-link:hover, .nav-link.active {
             background: rgba(99, 102, 241, 0.1);
             color: #6366f1;
@@ -172,6 +163,12 @@ unset($room);
             height: 100vh;
             overflow-y: auto;
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* Main Content when Sidebar Collapsed */
+        .main-content.expanded {
+            margin-left: 80px;
         }
         
         .top-bar {
@@ -226,7 +223,7 @@ unset($room);
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -256,6 +253,33 @@ unset($room);
         }
         
         .theme-toggle i {
+            color: #6366f1;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 1rem;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .sidebar-toggle i {
             color: #6366f1;
             font-size: 1.1rem;
             transition: all 0.3s;
@@ -298,17 +322,11 @@ unset($room);
         }
         
         body.light-theme .search-box input {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            color: #0f172a !important;
+            color: #0f172a;
         }
         
         body.light-theme .search-box input::placeholder {
             color: #64748b;
-        }
-        
-        body.light-theme .search-box i {
-            color: #64748b !important;
         }
         
         body.light-theme .user-info {
@@ -349,43 +367,6 @@ unset($room);
         
         body.light-theme .theme-toggle {
             background: rgba(99, 102, 241, 0.1);
-        }
-        
-        /* Tailwind Light Mode Overrides */
-        body.light-theme .bg-gray-800 {
-            background-color: #f8fafc !important;
-        }
-        
-        body.light-theme .bg-gray-900 {
-            background-color: #ffffff !important;
-        }
-        
-        body.light-theme .bg-[#BCCEFB] {
-            background-color: #e2e8f0 !important;
-        }
-        
-        body.light-theme .text-white {
-            color: #0f172a !important;
-        }
-        
-        body.light-theme .text-gray-400 {
-            color: #64748b !important;
-        }
-        
-        body.light-theme .text-gray-300 {
-            color: #475569 !important;
-        }
-        
-        body.light-theme .border-gray-700 {
-            border-color: #cbd5e1 !important;
-        }
-        
-        body.light-theme .border-gray-600 {
-            border-color: #94a3b8 !important;
-        }
-        
-        body.light-theme .hover\:border-indigo-500:hover {
-            border-color: #6366f1 !important;
         }
         
         /* Dashboard Content */
@@ -451,7 +432,7 @@ unset($room);
         }
         
         .stat-icon.purple {
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
         }
         
@@ -503,7 +484,7 @@ unset($room);
         }
         
         .btn-add {
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
             padding: 0.625rem 1.25rem;
             border-radius: 8px;
@@ -562,7 +543,7 @@ unset($room);
         }
         
         .action-icon.purple {
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
         }
         
@@ -634,7 +615,7 @@ unset($room);
         
         .room-image {
             height: 120px;
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -701,7 +682,7 @@ unset($room);
         .btn-book {
             width: 100%;
             padding: 0.625rem;
-            background: #6b7280;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -785,9 +766,9 @@ unset($room);
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="logo">
-            <h2><i class="fas fa-hotel"></i> <?php echo htmlspecialchars(substr($hotel['hotel_name'] ?? 'Hotel', 0, 15)); ?></h2>
+            <h2><i class="fas fa-hotel"></i> <span><?php echo htmlspecialchars(substr($hotel['hotel_name'] ?? 'Hotel', 0, 15)); ?></span></h2>
         </div>
         
         <ul class="nav-menu">
@@ -798,9 +779,15 @@ unset($room);
                 </a>
             </li>
             <li class="nav-item">
-                <a href="room_management.php" class="nav-link active">
+                <a href="room_management_modern.php" class="nav-link active">
                     <i class="fas fa-bed"></i>
                     <span>Rooms</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="room_management_modern.php?view=photos" class="nav-link">
+                    <i class="fas fa-camera"></i>
+                    <span>Photos</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -813,12 +800,6 @@ unset($room);
                 <a href="accounting_dashboard.php" class="nav-link">
                     <i class="fas fa-dollar-sign"></i>
                     <span>Accounting</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="employee_management.php" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -843,7 +824,7 @@ unset($room);
     </div>
     
     <!-- Main Content -->
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
         <!-- Top Bar -->
         <div class="top-bar">
             <div class="search-box">
@@ -852,6 +833,10 @@ unset($room);
             </div>
             
             <div style="display: flex; align-items: center;">
+                <div class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <i class="fas fa-bars" id="sidebar-icon"></i>
+                </div>
+                
                 <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Theme">
                     <i class="fas fa-sun" id="theme-icon"></i>
                 </div>
@@ -873,204 +858,208 @@ unset($room);
         </div>
         
         <!-- Dashboard Content -->
-        <div class="dashboard-content" style="height: calc(100vh - 100px); overflow-y: auto; padding: 1.5rem;">
-            <!-- Room Management Header -->
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h1 class="text-3xl font-bold text-white mb-2">🏨 Room Management</h1>
-                    <p class="text-gray-400">Manage your hotel rooms and availability</p>
-                </div>
-                <button onclick="openAddRoomModal()" class="bg-[#BCCEFB] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#A8BFEA] hover:shadow-lg transition">
-                    <i class="fas fa-plus mr-2"></i> Add New Room
-                </button>
+        <div class="dashboard-content">
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <h1>Welcome back, <?php echo htmlspecialchars(explode(' ', $user['name'] ?? 'User')[0]); ?>! 👋</h1>
+                <p>Here's what's happening with your hotel today</p>
             </div>
             
-            <!-- Compact Stats - Tailwind -->
-            <div class="grid grid-cols-4 gap-4 mb-6">
-                <div class="bg-gray-800 bg-opacity-50 rounded-xl p-4 border border-gray-700">
-                    <div class="flex items-center justify-between">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
                         <div>
-                            <p class="text-gray-400 text-sm">Total Rooms</p>
-                            <p class="text-2xl font-bold text-white mt-1"><?php echo count($rooms); ?></p>
+                            <div class="stat-label">Total Rooms</div>
+                            <div class="stat-value"><?php echo count($rooms); ?></div>
                         </div>
-                        <div class="bg-purple-500 bg-opacity-20 p-3 rounded-lg">
-                            <i class="fas fa-bed text-purple-400 text-xl"></i>
+                        <div class="stat-icon purple">
+                            <i class="fas fa-bed"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-gray-800 bg-opacity-50 rounded-xl p-4 border border-gray-700">
-                    <div class="flex items-center justify-between">
+                <div class="stat-card">
+                    <div class="stat-header">
                         <div>
-                            <p class="text-gray-400 text-sm">Available</p>
-                            <p class="text-2xl font-bold text-green-400 mt-1">
-                                <?php echo $availableCount; ?>
-                            </p>
+                            <div class="stat-label">Total Bookings</div>
+                            <div class="stat-value"><?php echo count($userBookings); ?></div>
                         </div>
-                        <div class="bg-green-500 bg-opacity-20 p-3 rounded-lg">
-                            <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                        <div class="stat-icon blue">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-gray-800 bg-opacity-50 rounded-xl p-4 border border-gray-700">
-                    <div class="flex items-center justify-between">
+                <div class="stat-card">
+                    <div class="stat-header">
                         <div>
-                            <p class="text-gray-400 text-sm">Occupied</p>
-                            <p class="text-2xl font-bold text-orange-400 mt-1">
-                                <?php echo $occupiedCount; ?>
-                            </p>
-                        </div>
-                        <div class="bg-orange-500 bg-opacity-20 p-3 rounded-lg">
-                            <i class="fas fa-user text-orange-400 text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-gray-800 bg-opacity-50 rounded-xl p-4 border border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-400 text-sm">Avg Price</p>
-                            <p class="text-2xl font-bold text-blue-400 mt-1">
-                                $<?php
-                                $totalPrice = array_reduce($rooms, function($sum, $r) { 
-                                    return $sum + ($r['price'] ?? 0); 
-                                }, 0);
-                                echo number_format(count($rooms) > 0 ? $totalPrice / count($rooms) : 0, 0);
+                            <div class="stat-label">Confirmed</div>
+                            <div class="stat-value">
+                                <?php 
+                                $confirmed = array_filter($userBookings, function($b) { 
+                                    return $b['status'] === 'confirmed'; 
+                                });
+                                echo count($confirmed);
                                 ?>
-                            </p>
-                        </div>
-                        <div class="bg-blue-500 bg-opacity-20 p-3 rounded-lg">
-                            <i class="fas fa-dollar-sign text-blue-400 text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rooms Grid - App-like -->
-            <div class="bg-gray-800 bg-opacity-30 rounded-xl p-6 border border-gray-700">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-white">All Rooms</h2>
-                    <div class="flex gap-2">
-                        <button class="px-4 py-2 bg-[#BCCEFB] text-white rounded-lg text-sm hover:bg-[#BCCEFB] transition">
-                            <i class="fas fa-filter mr-2"></i> Filter
-                        </button>
-                        <button class="px-4 py-2 bg-[#BCCEFB] text-white rounded-lg text-sm hover:bg-[#BCCEFB] transition">
-                            <i class="fas fa-search mr-2"></i> Search
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Compact Room Grid - 4 columns, smaller cards -->
-                <div class="grid grid-cols-4 gap-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
-                    <?php if (empty($rooms)): ?>
-                        <div class="col-span-4 text-center py-12">
-                            <i class="fas fa-bed text-gray-600 text-5xl mb-4"></i>
-                            <p class="text-gray-400">No rooms added yet</p>
-                            <button onclick="openAddRoomModal()" class="mt-4 bg-[#BCCEFB] text-white px-6 py-2 rounded-lg hover:bg-[#A8BFEA] transition">Add Your First Room</button>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach($rooms as $room): ?>
-                            <div class="bg-gray-900 bg-opacity-50 rounded-lg overflow-hidden border border-gray-700 hover:border-indigo-500 transition cursor-pointer group">
-                                <!-- Room Photo -->
-                                <div class="h-24 bg-gray-800 relative overflow-hidden">
-                                    <?php if (isset($roomPhotos[$room['id']])): ?>
-                                        <img src="<?php echo htmlspecialchars($roomPhotos[$room['id']]); ?>" 
-                                             alt="Room <?php echo htmlspecialchars($room['room_number']); ?>" 
-                                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
-                                    <?php else: ?>
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <i class="fas fa-bed text-gray-700 text-3xl"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                    <span class="absolute top-2 right-2 <?php echo ($room['is_available'] ?? false) ? 'bg-green-500' : 'bg-red-500'; ?> bg-opacity-90 text-white px-2 py-0.5 rounded text-xs font-bold">
-                                        <?php echo ($room['is_available'] ?? false) ? '✓' : '✗'; ?>
-                                    </span>
-                                </div>
-                                <!-- Room Info -->
-                                <div class="p-3">
-                                    <div class="mb-2">
-                                        <h3 class="text-white font-bold">Room <?php echo htmlspecialchars($room['room_number']); ?></h3>
-                                        <p class="text-gray-400 text-xs"><?php echo htmlspecialchars($room['room_type']); ?></p>
-                                    </div>
-                                    <div class="space-y-1 text-xs mb-3">
-                                        <div class="flex items-center text-gray-300">
-                                            <i class="fas fa-users w-4 text-indigo-400 mr-1"></i>
-                                            <span><?php echo $room['max_occupancy'] ?? 2; ?> guests</span>
-                                        </div>
-                                        <div class="flex items-center">
-                                            <i class="fas fa-dollar-sign w-4 text-green-400 mr-1"></i>
-                                            <span class="font-bold text-green-400">$<?php echo number_format($room['price'] ?? 0, 0); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-1">
-                                        <button onclick="editRoom(<?php echo $room['id']; ?>)" class="flex-1 bg-[#BCCEFB] text-gray-800 py-1.5 rounded text-xs hover:bg-[#A8BFEA] transition" title="Edit Room">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="managePhotos(<?php echo $room['id']; ?>)" class="flex-1 bg-indigo-600 text-white py-1.5 rounded text-xs hover:bg-indigo-700 transition" title="Manage Photos">
-                                            <i class="fas fa-camera"></i>
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        </div>
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">Revenue</div>
+                            <div class="stat-value">
+                                $<?php 
+                                $total = array_reduce($userBookings, function($sum, $b) { 
+                                    return $sum + ($b['total_price'] ?? 0); 
+                                }, 0);
+                                echo number_format($total, 0);
+                                ?>
+                            </div>
+                        </div>
+                        <div class="stat-icon orange">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Add Room Modal -->
-    <div id="addRoomModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
-        <div class="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-white">Add New Room</h2>
-                <button onclick="closeAddRoomModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            
+            <!-- Quick Actions Section -->
+            <div class="rooms-section">
+                <div class="section-header">
+                    <h2 class="section-title">Quick Actions</h2>
+                </div>
+                
+                <div class="quick-actions-grid">
+                    <a href="calendar_view.php" class="action-card">
+                        <div class="action-icon purple">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>View Calendar</h3>
+                            <p>Check availability & bookings</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="room_management.php" class="action-card">
+                        <div class="action-icon blue">
+                            <i class="fas fa-bed"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Manage Rooms</h3>
+                            <p>Add, edit, or view rooms</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="accounting_dashboard.php" class="action-card">
+                        <div class="action-icon green">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Accounting</h3>
+                            <p>View income & expenses</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="hotel_setup.php" class="action-card">
+                        <div class="action-icon orange">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Hotel Settings</h3>
+                            <p>Configure your property</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="employee_management.php" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); color: white;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Employees</h3>
+                            <p>Manage staff & schedules</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="owner_account.php" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); color: white;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>My Properties</h3>
+                            <p>View all your hotels</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="whatsapp_setup_wizard.php" class="action-card">
+                        <div class="action-icon" style="background: #25D366; color: white;">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>WhatsApp AI</h3>
+                            <p>Setup AI chatbot & bookings</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="banking_setup.php" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white;">
+                            <i class="fas fa-university"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Banking & Payments</h3>
+                            <p>Setup payment accounts</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                    
+                    <a href="social_media_setup.php" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                            <i class="fas fa-share-alt"></i>
+                        </div>
+                        <div class="action-content">
+                            <h3>Social Media</h3>
+                            <p>Connect social profiles</p>
+                        </div>
+                        <i class="fas fa-arrow-right action-arrow"></i>
+                    </a>
+                </div>
             </div>
-            <form method="POST" class="space-y-4">
-                <input type="hidden" name="add_room" value="1">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-gray-300 text-sm block mb-1">Room Number</label>
-                        <input type="text" name="room_number" required class="w-full bg-[#BCCEFB] text-white px-3 py-2 rounded border border-gray-600 focus:border-gray-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="text-gray-300 text-sm block mb-1">Room Type</label>
-                        <select name="room_type" class="w-full bg-[#BCCEFB] text-white px-3 py-2 rounded border border-gray-600 focus:border-gray-500 outline-none">
-                            <option>Single</option>
-                            <option>Double</option>
-                            <option>Suite</option>
-                            <option>Deluxe</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-gray-300 text-sm block mb-1">Price per Night</label>
-                        <input type="number" name="price" step="0.01" required class="w-full bg-[#BCCEFB] text-white px-3 py-2 rounded border border-gray-600 focus:border-gray-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="text-gray-300 text-sm block mb-1">Max Occupancy</label>
-                        <input type="number" name="max_occupancy" required class="w-full bg-[#BCCEFB] text-white px-3 py-2 rounded border border-gray-600 focus:border-gray-500 outline-none">
-                    </div>
-                </div>
-                <div class="flex gap-3 mt-6">
-                    <button type="submit" class="flex-1 bg-[#BCCEFB] text-gray-800 py-3 rounded-lg font-semibold hover:bg-[#A8BFEA] transition">
-                        <i class="fas fa-plus mr-2"></i> Add Room
-                    </button>
-                    <button type="button" onclick="closeAddRoomModal()" class="flex-1 bg-[#BCCEFB] text-gray-800 py-3 rounded-lg font-semibold hover:bg-[#BCCEFB] transition">
-                        Cancel
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
     
     <script>
-        function openAddRoomModal() {
-            document.getElementById('addRoomModal').classList.remove('hidden');
-        }
-        
-        function closeAddRoomModal() {
-            document.getElementById('addRoomModal').classList.add('hidden');
+        // Sidebar Toggle Functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarIcon = document.getElementById('sidebar-icon');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // Update icon
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarIcon.classList.remove('fa-bars');
+                sidebarIcon.classList.add('fa-times');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                sidebarIcon.classList.remove('fa-times');
+                sidebarIcon.classList.add('fa-bars');
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
         }
         
         // Theme Toggle Functionality
@@ -1102,17 +1091,20 @@ unset($room);
                 themeIcon.classList.remove('fa-sun');
                 themeIcon.classList.add('fa-moon');
             }
+            
+            // Load saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarIcon = document.getElementById('sidebar-icon');
+            
+            if (sidebarCollapsed === 'true') {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                sidebarIcon.classList.remove('fa-bars');
+                sidebarIcon.classList.add('fa-times');
+            }
         });
-        
-        // Edit Room Function
-        function editRoom(roomId) {
-            window.location.href = 'room_edit.php?id=' + roomId;
-        }
-        
-        // Manage Photos Function
-        function managePhotos(roomId) {
-            window.location.href = 'photo_upload.php?room_id=' + roomId;
-        }
     </script>
 </body>
 </html>
