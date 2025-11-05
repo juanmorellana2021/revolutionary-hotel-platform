@@ -1,0 +1,80 @@
+    <a href="{{ data.footer.contact_whatsapp }}" class="absolute z-30 10 md:top-36 md:left-56 bg-white rounded-full p-3 hidden md:flex items-center space-x-2 ">
+      <div  class=" border-0 w-14 h-14 rounded-full drop-shadow-lg bg-wsp text-white  items-center justify-center flex">
+        <i class="fa-brands fa-whatsapp fa-3x"></i>
+      </div>
+
+      <h1 class="text-gray text-2xl font-bold">{{ data.footer.contact_phone }}</h1>       
+    </a>
+
+
+    <nav class=" md:absolute fixed top-0 z-50 lg:px-24 w-full   ">
+
+      <!-- nav mobile -->
+      <div class="lg:hidden flex items-center justify-between bg-primary p-3 ">
+        
+        <div class="md:w-96 ">
+          <a href="/" class="w-full flex items-center space-x-2 ">  
+            <img src="{{ url_for('static', filename=data.logo) }}" alt="Samay Wasi Pisac" class="h-14 "> 
+            <h1 class=" text-lg text-white ">{{ data.page_title }} </h1>    
+          </a>
+             
+        </div>
+
+        <div class="hidden md:flex w-full items-center text-white space-x-4 px-4 justify-end ">
+
+          {% for item in data.menu_mob %}
+          <li class="list-none">
+            <a class="p-2 hover:border-b-4 hover:border-ctaLight " href="{{ item.link }}">
+              <span>{{ item.text }} </span>
+            </a>
+          </li>
+          {% endfor %}
+
+        </div>
+
+        <button id="mobile-btn" class="md:hidden block mobile-menu focus:outline-none ">
+          <span class="mobile-menu-top bg-neutral"></span>
+          <span class="mobile-menu-middle bg-neutral"></span>
+          <span class="mobile-menu-bottom bg-neutral"></span>
+        </button>
+
+      </div>
+
+      <!-- nav desktop -->
+      <div class="hidden lg:flex rounded-b-lg relative sticky top-0 z-50  justify-between items-center space-x-4 px-2 md:p-1 w-full mx-auto md:px-32 text-lg bg-primary bg-opacity-90 h-16 text-white  ">
+
+        <div class="hidden md:flex absolute flex-col top-0 w-fit p-4 rounded-b  bg-primaryDark ">
+          <div class="flex flex-col items-center ">
+            <a href="/" class="">  <img src="{{ url_for('static', filename=data.logo) }}" alt="Samay Wasi Pisac" class="h-14 "> </a>
+            <h1 class="text-xl">{{ data.page_title }}</h1>       
+          </div>
+
+        </div>
+
+        <div class="hidden md:flex w-full items-center space-x-8 px-8 justify-end text-lg ">
+
+          {% for item in data.menu_desk %}
+          <li class="list-none">
+            <a class="p-2 hover:border-b-4 hover:border-ctaLight " href="{{ item.link }}">
+              <span>{{ item.text }} </span>
+            </a>
+          </li>
+          {% endfor %}
+
+        </div>
+
+      </div>
+
+
+    </nav>
+
+    <!-- mobile menu -->
+    <div class="md:hidden">
+      <div id="mobile-menu" class="hidden fixed top-20 z-50 bg-ctaLight flex-col items-center text-lg left-0 right-0 tracking-wider ">
+
+        {% for item in data.menu_mob %}
+          <a href="{{ item.link }}" class="menu w-full text-center py-3 border-b ">{{ item.text }} </a>
+        {% endfor %}
+
+      </div>
+    </div>

@@ -1,0 +1,168 @@
+================================================================================
+EMAIL TO: support@hotelrunner.com
+SUBJECT: Partnership Inquiry - Direct Contracting & PMS Integration
+================================================================================
+
+Dear HotelRunner Partnership Team,
+
+I am writing to inquire about partnership opportunities with HotelRunner for 
+AiniTravel, a hospitality technology platform serving the Peru and Latin 
+American markets.
+
+ABOUT AINITRAVEL:
+
+AiniTravel operates a dual business model combining property management 
+technology with travel distribution:
+
+1. PMS Platform (pms.ainitravel.com)
+   - Cloud-based property management system
+   - Currently serving 10+ independent hotel properties
+   - Projected growth to 50+ properties within 12 months
+   - Target segment: Small to medium independent hotels (5-30 rooms)
+
+2. Online Travel Agency (ainitravel.com)
+   - Direct-to-consumer hotel booking platform
+   - Focus on Peru and Latin American destinations
+   - Current volume: 300+ monthly bookings
+   - Projected volume: 1,000+ monthly bookings with expanded distribution
+
+PARTNERSHIP OBJECTIVES:
+
+We are interested in partnering with HotelRunner through your Direct 
+Contracting for Travel Companies program, with the following objectives:
+
+Primary Requirements:
+• Wholesale rate agreements with hotel partners
+• White-label booking engine integration for ainitravel.com
+• API access for custom PMS integration
+• Channel manager connectivity (Booking.com, Expedia, Despegar, Airbnb, etc.)
+• Ruby payment infrastructure for transaction processing
+• Multi-currency support (USD, PEN, EUR)
+
+Technical Integration Needs:
+• RESTful API documentation and developer access
+• Webhook capabilities for real-time booking synchronization
+• Sandbox/test environment for development
+• Technical support during integration phase
+
+BUSINESS TERMS DISCUSSION:
+
+We would like to discuss:
+1. Pricing structure for managing multiple properties
+2. Commission models for direct bookings vs. channel bookings
+3. White-label and co-branding options
+4. Service level agreements and API uptime guarantees
+5. Peru-specific features (PayU integration, Despegar connectivity, PEN currency)
+6. Volume discounts and partnership incentives
+
+PLATFORM DETAILS:
+
+Technology Stack:
+- Backend: PHP/MySQL
+- Frontend: JavaScript, modern responsive design
+- Infrastructure: Cloud VPS (dedicated servers)
+- Current integrations: Payment gateways, WhatsApp Business API
+
+Market Position:
+- Geographic focus: Peru, expanding to Ecuador, Colombia, Bolivia
+- Competitive advantage: Local market knowledge, Spanish/English bilingual support
+- Growth strategy: Partner with independent hotels underserved by major platforms
+
+NEXT STEPS:
+
+We would appreciate the opportunity to schedule a video call or phone 
+consultation to discuss:
+• How Direct Contracting and PMS Integration programs can work together
+• Technical requirements and integration timeline
+• Pricing and partnership terms
+• Success stories from similar partners in Latin America
+
+I am available for a call at your earliest convenience. Please let me know 
+your preferred time, or feel free to reach out via:
+
+Email: [Your Email]
+WhatsApp: [Your Phone Number]
+Website: ainitravel.com
+PMS Platform: pms.ainitravel.com
+
+Thank you for considering this partnership opportunity. We believe HotelRunner's 
+technology infrastructure combined with our local market expertise can create 
+significant value for independent hotels in Peru and Latin America.
+
+I look forward to hearing from you soon.
+
+Best regards,
+
+[Your Full Name]
+Founder & CEO
+AiniTravel
+[Your Email]
+[Your Phone Number]
+
+---
+
+P.S. We have reviewed HotelRunner's partnerships with major hotel chains 
+(Hilton, Radisson, Accor) and your recognition as Booking.com Premier Partner 
+2025. We are particularly impressed with your Groups & Chains solution and Ruby 
+payment infrastructure, which align perfectly with our growth strategy.
+
+================================================================================
+ALTERNATIVE: SHORTER VERSION (if you prefer concise)
+================================================================================
+
+Dear HotelRunner Team,
+
+I'm reaching out regarding partnership opportunities for AiniTravel, a hotel 
+technology platform operating in Peru.
+
+We operate:
+• PMS software managing 10+ hotels (pms.ainitravel.com)
+• OTA selling hotel rooms (ainitravel.com)
+
+We're interested in your Direct Contracting for Travel Companies program to:
+1. Obtain wholesale rates from partner hotels
+2. Integrate your channel manager into our PMS
+3. Use white-label booking engine for our OTA
+4. Access API for custom integration
+5. Leverage Ruby payment system
+
+Current metrics:
+- 10+ hotel properties (scaling to 50+)
+- 300+ monthly bookings
+- Peru & Latin America focus
+
+Could we schedule a call to discuss combining Direct Contracting with PMS 
+Integration? We're particularly interested in API access, white-label options, 
+and Peru-specific features (PayU, Despegar integration).
+
+Available for call at your convenience.
+
+Best regards,
+[Your Name]
+AiniTravel
+[Email] | [Phone]
+pms.ainitravel.com
+
+================================================================================
+WHATSAPP MESSAGE (if contacting via +1 925 276 0396)
+================================================================================
+
+Hi HotelRunner Team,
+
+I'm [Your Name] from AiniTravel, a hotel PMS + OTA platform in Peru managing 
+10+ properties.
+
+I'm interested in your Direct Contracting program. We operate both:
+• PMS for hotels (pms.ainitravel.com)
+• OTA for travelers (ainitravel.com)
+
+Need: wholesale rates, API integration, white-label booking engine.
+
+Can we schedule a call to discuss partnership?
+
+Email: [Your Email]
+Website: ainitravel.com
+
+Thanks!
+
+================================================================================

@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniTravel - Investor Presentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <script>
+        // Check if NDA was accepted
+        if (localStorage.getItem('nda_accepted') !== 'true') {
+            window.location.href = 'investor-access.html';
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            text-align: center;
+            color: white;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        h1 {
+            font-size: 5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        h3 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.5rem;
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto 30px;
+            opacity: 0.95;
+        }
+
+        .highlight {
+            color: #ffd700;
+            font-weight: 700;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 40px auto;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-button {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        .slide-counter {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .cta-button {
+            background: #ffd700;
+            color: #764ba2;
+            padding: 20px 50px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            margin-top: 30px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .comparison-table {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 1000px;
+            margin: 30px auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        th {
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        td {
+            font-size: 1.1rem;
+        }
+
+        .checkmark {
+            color: #4ade80;
+            font-size: 1.5rem;
+        }
+
+        .xmark {
+            color: #ef4444;
+            font-size: 1.5rem;
+        }
+
+        ul {
+            list-style: none;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        li {
+            font-size: 1.3rem;
+            margin: 15px 0;
+            padding-left: 40px;
+            position: relative;
+        }
+
+        li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #ffd700;
+            font-weight: 900;
+            font-size: 1.5rem;
+        }
+
+        .logo {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .revenue-chart {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            max-width: 900px;
+            margin: 40px auto;
+            height: 300px;
+        }
+
+        .bar {
+            background: linear-gradient(to top, #ffd700, #fff);
+            width: 150px;
+            border-radius: 10px 10px 0 0;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+
+        .bar:hover {
+            transform: scale(1.05);
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: #ffd700;
+        }
+
+        /* Print styles for PDF export */
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                overflow: visible !important;
+            }
+            
+            .presentation {
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .slide {
+                page-break-after: always;
+                page-break-inside: avoid;
+                display: flex !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                min-height: 100vh;
+                height: 100vh;
+                width: 100%;
+                position: relative;
+                overflow: visible;
+            }
+
+            .slide:last-child {
+                page-break-after: avoid;
+            }
+
+            .navigation {
+                display: none !important;
+            }
+
+            .logo {
+                display: none !important;
+            }
+
+            .print-loading {
+                display: none !important;
+            }
+
+            @page {
+                size: landscape;
+                margin: 0;
+            }
+        }
+
+        /* Loading indicator for print */
+        .print-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            z-index: 10000;
+        }
+
+        .print-loading.active {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="logo">🚀 AiniTravel</div>
+
+    <div class="presentation">
+        <!-- Slide 1: Cover -->
+        <div class="slide active">
+            <h1>AiniTravel</h1>
+            <p style="font-size: 2.5rem; font-weight: 300;">The Future of Hotel Technology</p>
+            <p style="font-size: 1.8rem; margin-top: 20px;">Investor Presentation | November 2025</p>
+            <p style="font-size: 1.2rem; margin-top: 40px; opacity: 0.8;">Press → to continue</p>
+        </div>
+
+        <!-- Slide 2: The Problem -->
+        <div class="slide">
+            <h2>The Problem</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">700K</div>
+                    <div class="stat-label">Hotels Worldwide</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">85%</div>
+                    <div class="stat-label">Use Outdated Systems</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">15-25%</div>
+                    <div class="stat-label">Pay in OTA Commissions</div>
+                </div>
+            </div>
+            <p style="font-size: 2rem; margin-top: 40px;">
+                Independent hotels are <span class="highlight">trapped</span> between expensive legacy software and predatory OTA commissions
+            </p>
+        </div>
+
+        <!-- Slide 3: Our Solution -->
+        <div class="slide">
+            <h2>Our Solution</h2>
+            <h3 style="margin-bottom: 40px;">Three Products. One Platform. Total Control.</h3>
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 style="font-size: 2rem; margin-bottom: 15px;">🏨 PMS</h3>
+                    <p style="font-size: 1.1rem;">pms.ainitravel.com</p>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Complete hotel management</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 2rem; margin-bottom: 15px;">🌐 OTA</h3>
+                    <p style="font-size: 1.1rem;">ainitravel.com</p>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Direct booking platform</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 2rem; margin-bottom: 15px;">👥 Social</h3>
+                    <p style="font-size: 1.1rem;">AiniFlow</p>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Travel social network</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: HotelRunner Partnership -->
+        <div class="slide">
+            <h2>🎯 Game-Changing Partnership</h2>
+            <div class="stat-card" style="max-width: 800px; margin: 40px auto;">
+                <h3 style="font-size: 2.5rem; color: #ffd700; margin-bottom: 20px;">HotelRunner</h3>
+                <p style="font-size: 1.5rem; margin-bottom: 30px;">Premier Partner 2025</p>
+                <div class="stats" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-number">150+</div>
+                        <div class="stat-label">OTA Connections</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">5,000+</div>
+                        <div class="stat-label">Hotels Day 1</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">€19</div>
+                        <div class="stat-label">Per Property/Month</div>
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 1.3rem; margin-top: 30px;">
+                Instant access to thousands of hotels. <span class="highlight">No waiting for signups.</span>
+            </p>
+        </div>
+
+        <!-- Slide 5: Competitive Advantage -->
+        <div class="slide">
+            <h2>Why We Win</h2>
+            <div class="comparison-table">
+                <table>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Booking.com</th>
+                        <th>Cloudbeds</th>
+                        <th class="highlight">AiniTravel</th>
+                    </tr>
+                    <tr>
+                        <td>PMS Included</td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>OTA Platform</td>
+                        <td><span class="checkmark">✓</span></td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Social Network</td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>AI Integration</td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Crypto Rewards</td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="xmark">✗</span></td>
+                        <td><span class="checkmark">✓</span></td>
+                    </tr>
+                </table>
+            </div>
+            <p style="font-size: 1.5rem; margin-top: 20px;">
+                We're the <span class="highlight">ONLY</span> platform with all 5 features
+            </p>
+        </div>
+
+        <!-- Slide 6: Market Opportunity -->
+        <div class="slide">
+            <h2>📊 Market Opportunity</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">$570B</div>
+                    <div class="stat-label">Global Hotel Industry</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">$180B</div>
+                    <div class="stat-label">Online Bookings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">$7.8B</div>
+                    <div class="stat-label">Hospitality Tech</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">8.2%</div>
+                    <div class="stat-label">Annual Growth (CAGR)</div>
+                </div>
+            </div>
+            <p style="font-size: 1.5rem; margin-top: 40px;">
+                1.5 billion hotel reservations made annually worldwide
+            </p>
+        </div>
+
+        <!-- Slide 7: Revenue Model -->
+        <div class="slide">
+            <h2>💰 Revenue Streams</h2>
+            <ul style="max-width: 900px;">
+                <li><strong>PMS Subscriptions:</strong> $99/month per hotel</li>
+                <li><strong>Channel Manager:</strong> 1% commission on OTA bookings</li>
+                <li><strong>Direct Bookings:</strong> 10-15% markup via HotelRunner inventory</li>
+                <li><strong>AiNi Coin Transactions:</strong> 2% transaction fee</li>
+                <li><strong>Partner Ecosystem:</strong> Revenue share with restaurants, tours, etc.</li>
+            </ul>
+            <p style="font-size: 1.8rem; margin-top: 50px; color: #ffd700;">
+                5 Revenue Streams = Diversified, Scalable Business
+            </p>
+        </div>
+
+        <!-- Slide 7b: Revenue Breakdown by Source -->
+        <div class="slide">
+            <h2>💵 Revenue Breakdown by Source</h2>
+            <p style="font-size:1.5rem; max-width:900px; margin: 0 auto 30px;">Year 3 projected revenue: $1B from 5 streams</p>
+            
+            <div class="revenue-chart">
+                <div class="bar" style="height: 280px; background: linear-gradient(to top, #ffd700, #fff);">
+                    <div class="bar-value" style="color:#ffd700;">$400M</div>
+                    <div class="bar-label">PMS (40%)</div>
+                </div>
+                <div class="bar" style="height: 245px; background: linear-gradient(to top, #60a5fa, #fff);">
+                    <div class="bar-value" style="color:#60a5fa;">$350M</div>
+                    <div class="bar-label">Bookings (35%)</div>
+                </div>
+                <div class="bar" style="height: 150px; background: linear-gradient(to top, #4ade80, #fff);">
+                    <div class="bar-value" style="color:#4ade80;">$150M</div>
+                    <div class="bar-label">Channel (15%)</div>
+                </div>
+                <div class="bar" style="height: 98px; background: linear-gradient(to top, #f97316, #fff);">
+                    <div class="bar-value" style="color:#f97316;">$70M</div>
+                    <div class="bar-label">AiNi Coin (7%)</div>
+                </div>
+                <div class="bar" style="height: 42px; background: linear-gradient(to top, #a855f7, #fff);">
+                    <div class="bar-value" style="color:#a855f7;">$30M</div>
+                    <div class="bar-label">Partners (3%)</div>
+                </div>
+            </div>
+
+            <div class="stats" style="margin-top: 120px;">
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>PMS:</strong> 25,000 hotels × $99/mo</p>
+                </div>
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>Bookings:</strong> 10-15% markup on inventory</p>
+                </div>
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>Diversification:</strong> No stream > 40%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7c: Key Financial Metrics -->
+        <div class="slide">
+            <h2>📊 Key Financial Metrics</h2>
+            <p style="font-size:1.3rem; max-width:900px; margin: 0 auto 30px;">Industry-leading unit economics and growth efficiency</p>
+
+            <div class="stats" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">Gross Margin</h3>
+                    <div class="stat-number" style="color:#4ade80;">75%</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Year 3 (vs. 65% industry avg)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">CAC Payback</h3>
+                    <div class="stat-number" style="color:#60a5fa;">4 mo</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Year 3 (vs. 12-18 mo industry)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">Net Revenue Retention</h3>
+                    <div class="stat-number" style="color:#ffd700;">120%</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Expansion revenue from upsells</p>
+                </div>
+            </div>
+
+            <div class="stats" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">Monthly Churn Rate</h3>
+                    <div class="stat-number" style="color:#a855f7;">3.5%</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Best-in-class for SMB SaaS</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">Magic Number</h3>
+                    <div class="stat-number" style="color:#f97316;">1.2</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Efficient growth (>1.0 is excellent)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.3rem; margin-bottom:15px;">Rule of 40</h3>
+                    <div class="stat-number" style="color:#ec4899;">65%</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Growth + Profit Margin (Year 3)</p>
+                </div>
+            </div>
+
+            <p style="font-size:1rem; margin-top:20px; color:rgba(255,255,255,0.9);">
+                <strong>Benchmarks:</strong> Magic Number >0.75 is good, >1.0 is excellent | Rule of 40: >40% indicates healthy balance
+            </p>
+        </div>
+
+        <!-- Slide 7d: Cash Flow & Profitability -->
+        <div class="slide">
+            <h2>💸 Cash Flow & Path to Profitability</h2>
+            <p style="font-size:1.5rem; max-width:900px; margin: 0 auto 30px;">Breakeven by Month 16, strong margins by Year 3</p>
+
+            <div class="revenue-chart" style="margin-top: 50px;">
+                <div style="display: flex; flex-direction: column; align-items: center; width: 150px;">
+                    <div style="height: 40px; width: 120px; background: linear-gradient(to bottom, #ef4444, #fca5a5); border-radius: 10px 10px 0 0; position: relative; margin-top: 200px;">
+                        <div style="position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%); color: #ef4444; font-weight: 900; font-size: 1.3rem;">-$15M</div>
+                    </div>
+                    <div class="bar-label" style="margin-top: 45px;">Year 1</div>
+                    <p style="font-size: 0.9rem; margin-top: 5px; color: rgba(255,255,255,0.8);">Invest in growth</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; width: 150px;">
+                    <div style="height: 80px; width: 120px; background: linear-gradient(to top, #fbbf24, #fff); border-radius: 10px 10px 0 0; position: relative; margin-top: 160px;">
+                        <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); color: #fbbf24; font-weight: 900; font-size: 1.3rem;">$10M</div>
+                    </div>
+                    <div class="bar-label">Year 2</div>
+                    <p style="font-size: 0.9rem; margin-top: 5px; color: rgba(255,255,255,0.8);">Breakeven M16</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; width: 150px;">
+                    <div style="height: 240px; width: 120px; background: linear-gradient(to top, #4ade80, #fff); border-radius: 10px 10px 0 0; position: relative;">
+                        <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); color: #4ade80; font-weight: 900; font-size: 1.3rem;">$250M</div>
+                    </div>
+                    <div class="bar-label">Year 3</div>
+                    <p style="font-size: 0.9rem; margin-top: 5px; color: rgba(255,255,255,0.8);">25% margin</p>
+                </div>
+            </div>
+
+            <div class="stats" style="margin-top: 80px;">
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>Burn Multiple:</strong> 0.9x (excellent)</p>
+                </div>
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>Peak Burn:</strong> $1.8M/month</p>
+                </div>
+                <div class="stat-card">
+                    <p style="font-size:1rem;"><strong>Runway:</strong> 24+ months with $35M</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Financial Projections -->
+        <div class="slide">
+            <h2>📈 Financial Projections</h2>
+            <div class="revenue-chart">
+                <div class="bar" style="height: 80px;">
+                    <div class="bar-value">$50M</div>
+                    <div class="bar-label">Year 1</div>
+                </div>
+                <div class="bar" style="height: 180px;">
+                    <div class="bar-value">$200M</div>
+                    <div class="bar-label">Year 2</div>
+                </div>
+                <div class="bar" style="height: 300px;">
+                    <div class="bar-value">$1B</div>
+                    <div class="bar-label">Year 3</div>
+                </div>
+            </div>
+            <div class="stats" style="margin-top: 100px;">
+                <div class="stat-card">
+                    <div class="stat-number">5,000+</div>
+                    <div class="stat-label">Hotels (Year 1)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">10,000+</div>
+                    <div class="stat-label">Hotels (Year 2)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">25,000+</div>
+                    <div class="stat-label">Hotels (Year 3)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8b: Revenue Growth Projection -->
+        <div class="slide">
+            <h2>� Revenue Growth Trajectory</h2>
+            <p style="font-size:1.5rem; max-width:900px; margin: 0 auto 30px;">Aggressive but achievable growth fueled by HotelRunner partnership</p>
+            <div style="max-width:700px; margin: 30px auto;">
+                <canvas id="revenueChart" width="700" height="450"></canvas>
+            </div>
+            <div class="stats" style="margin-top: 40px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ffd700;">5,000</div>
+                    <div class="stat-label">Hotels → $50M ARR</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ffbf00;">10,000</div>
+                    <div class="stat-label">Hotels → $200M ARR</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ff9900;">25,000</div>
+                    <div class="stat-label">Hotels → $1B ARR</div>
+                </div>
+            </div>
+            <p style="font-size:1.1rem; margin-top:30px; color:rgba(255,255,255,0.9);">
+                <strong>Key driver:</strong> $99/month PMS + 10-15% booking commission + 2% crypto transaction fees
+            </p>
+        </div>
+
+        <!-- Slide 8c: Unit Economics (CAC vs LTV) -->
+        <div class="slide">
+            <h2>💵 Unit Economics: CAC vs LTV</h2>
+            <p style="font-size:1.5rem; max-width:900px; margin: 0 auto 30px;">Improving acquisition efficiency with scale</p>
+            <div style="max-width:700px; margin: 30px auto;">
+                <canvas id="cacLtvChart" width="700" height="450"></canvas>
+            </div>
+            <div class="stats" style="margin-top: 40px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ef4444;">$120 → $60</div>
+                    <div class="stat-label">CAC (Customer Acquisition Cost)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#4ade80;">$1,500 → $5,000</div>
+                    <div class="stat-label">LTV (Lifetime Value)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ffd700;">12.5:1 → 83:1</div>
+                    <div class="stat-label">LTV:CAC Ratio</div>
+                </div>
+            </div>
+            <p style="font-size:1.1rem; margin-top:30px; color:rgba(255,255,255,0.9);">
+                <strong>Payback period:</strong> 8 months (Year 1) → 4 months (Year 3). Industry benchmark: 12-18 months.
+            </p>
+        </div>
+
+        <!-- Slide 8d: Market Share Growth -->
+        <div class="slide">
+            <h2>🎯 Market Share & Positioning</h2>
+            <p style="font-size:1.5rem; max-width:900px; margin: 0 auto 30px;">Capturing the independent hotel segment</p>
+            <div style="max-width:600px; margin: 30px auto;">
+                <canvas id="marketShareChart" width="600" height="500"></canvas>
+            </div>
+            <div class="stats" style="margin-top: 40px;">
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#ffd700;">3.5%</div>
+                    <div class="stat-label">AiniTravel Target Share</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#60a5fa;">16.5%</div>
+                    <div class="stat-label">Major Competitors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color:#cbd5e1;">80%</div>
+                    <div class="stat-label">Untapped Market</div>
+                </div>
+            </div>
+            <p style="font-size:1.1rem; margin-top:30px; color:rgba(255,255,255,0.9);">
+                <strong>Strategy:</strong> Focus on 10-50 room independent hotels (65% of global market, underserved by enterprise solutions)
+            </p>
+        </div>
+
+        <!-- Slide 9: Valuation -->
+        <div class="slide">
+            <h2>💎 Valuation</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 20px;">Conservative</h3>
+                    <div class="stat-number">$2B</div>
+                    <div class="stat-label">Year 3 (12x revenue)</div>
+                </div>
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 20px;">Realistic</h3>
+                    <div class="stat-number">$5B</div>
+                    <div class="stat-label">Year 3 (15x revenue)</div>
+                </div>
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 20px;">Optimistic</h3>
+                    <div class="stat-number">$15B</div>
+                    <div class="stat-label">Year 3 (20x revenue)</div>
+                </div>
+            </div>
+            <p style="font-size: 1.5rem; margin-top: 50px;">
+                Comparable: Cloudbeds ($1.2B at 15x) | Booking.com ($120B at 7x)
+            </p>
+        </div>
+
+        <!-- Slide 10: Traction -->
+        <div class="slide">
+            <h2>🚀 Current Traction</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">✓</div>
+                    <div class="stat-label">PMS Platform LIVE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">✓</div>
+                    <div class="stat-label">OTA Platform LIVE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">✓</div>
+                    <div class="stat-label">HotelRunner Partnership</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">🚧</div>
+                    <div class="stat-label">AiniFlow (Dev)</div>
+                </div>
+            </div>
+            <ul style="margin-top: 50px;">
+                <li>Functional PMS managing real hotels</li>
+                <li>Direct booking platform operational</li>
+                <li>AI search integration working</li>
+                <li>Strategic partnership secured (HotelRunner)</li>
+                <li>Payment infrastructure ready</li>
+            </ul>
+        </div>
+
+        <!-- Slide 11: Investment Ask -->
+        <div class="slide">
+            <h2>💼 Investment Opportunity</h2>
+            <div class="stat-card" style="max-width: 700px; margin: 40px auto; padding: 60px;">
+                <h3 style="font-size: 2.5rem; margin-bottom: 30px;">Series A</h3>
+                <div class="stat-number" style="font-size: 4rem; margin-bottom: 20px;">$35M</div>
+                <div class="stat-label" style="font-size: 1.5rem; margin-bottom: 40px;">@ $300M Pre-Money Valuation</div>
+                <hr style="border: 1px solid rgba(255,255,255,0.3); margin: 30px 0;">
+                <p style="font-size: 1.3rem; margin-top: 30px;">
+                    <strong>Use of Funds:</strong><br>
+                    • HotelRunner Integration (30%)<br>
+                    • Team Expansion (25%)<br>
+                    • Marketing & Growth (25%)<br>
+                    • AiniFlow Development (20%)
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 12: Team -->
+        <div class="slide">
+            <h2>👥 Team</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 style="font-size: 1.8rem; margin-bottom: 15px;">Juan Morellana</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>Founder & CEO</strong></p>
+                    <p style="font-size: 0.9rem;">Hotel owner & developer</p>
+                    <p style="font-size: 0.9rem;">10+ years hospitality</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 1.8rem; margin-bottom: 15px;">Technical Team</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>Full-Stack Development</strong></p>
+                    <p style="font-size: 0.9rem;">PHP, Node.js, PostgreSQL</p>
+                    <p style="font-size: 0.9rem;">AI/ML integration</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 1.8rem; margin-bottom: 15px;">Advisory Board</h3>
+                    <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>Industry Experts</strong></p>
+                    <p style="font-size: 0.9rem;">Hospitality executives</p>
+                    <p style="font-size: 0.9rem;">FinTech advisors</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Vision -->
+        <div class="slide">
+            <h2>🌟 The Vision</h2>
+            <p style="font-size: 2rem; line-height: 1.6; max-width: 1000px;">
+                "To become the <span class="highlight">operating system</span> for independent hotels worldwide, 
+                combining software, distribution, and community into one seamless platform."
+            </p>
+            <div class="stats" style="margin-top: 60px;">
+                <div class="stat-card">
+                    <h3 style="font-size: 1.5rem;">Phase 1</h3>
+                    <p>Peru & Latin America</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 1.5rem;">Phase 2</h3>
+                    <p>Global Expansion</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size: 1.5rem;">Phase 3</h3>
+                    <p>Travel Super-App</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Risks & Mitigations -->
+        <div class="slide">
+            <h2>⚠️ Investment Risks & Mitigations</h2>
+            <div class="stats" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-number">35%</div>
+                    <div class="stat-label">Market Adoption Risk</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Impact: $10-15M revenue delay<br>✓ HotelRunner partnership mitigates</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">40%</div>
+                    <div class="stat-label">Execution Risk</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Impact: 6-month product delay<br>✓ Phased rollouts + experienced team</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">20%</div>
+                    <div class="stat-label">Regulatory Risk</div>
+                    <p style="font-size:0.9rem; margin-top:10px;">Impact: Market entry barriers<br>✓ PCI-compliant + legal counsel</p>
+                </div>
+            </div>
+            <ul style="max-width:900px; margin: 20px auto; text-align:left; font-size:1.1rem;">
+                <li><strong>Competition:</strong> 70% probability — Differentiated 5-in-1 bundle (2-3 year lead)</li>
+                <li><strong>Partner dependency:</strong> 30% probability — Multi-channel strategy by Month 12</li>
+                <li><strong>Capital runway:</strong> 35% probability — 18-month cushion + bridge financing ready</li>
+            </ul>
+            <p style="font-size:1rem; max-width:900px; margin: 20px auto; color: rgba(255,255,255,0.8);"><strong>Worst-case scenario:</strong> All risks materialize → Still achieve $20M Year 1 revenue with 12+ months runway</p>
+        </div>
+
+        <!-- Slide 15: Exit Strategy & Liquidity -->
+        <div class="slide">
+            <h2>💰 Exit Strategy & Investor Liquidity</h2>
+            <p style="font-size:1.3rem; max-width:900px; margin: 0 auto 30px;">Multiple paths to liquidity within 4-7 years</p>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 style="font-size:1.8rem; margin-bottom:15px;">🚀 IPO</h3>
+                    <div class="stat-number" style="font-size:2rem;">Year 5-7</div>
+                    <p style="font-size:0.95rem; margin-top:15px;">Target: NASDAQ listing at $3-5B valuation<br>Expected return: 10-15x</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.8rem; margin-bottom:15px;">🤝 Acquisition</h3>
+                    <div class="stat-number" style="font-size:2rem;">Year 4-6</div>
+                    <p style="font-size:0.95rem; margin-top:15px;">Strategic buyers: Booking.com, Expedia, Cloudbeds<br>Expected return: 8-12x</p>
+                </div>
+                <div class="stat-card">
+                    <h3 style="font-size:1.8rem; margin-bottom:15px;">💵 Secondary Sale</h3>
+                    <div class="stat-number" style="font-size:2rem;">Year 3+</div>
+                    <p style="font-size:0.95rem; margin-top:15px;">Partial liquidity via secondary market<br>Minimum: 5-7x return</p>
+                </div>
+            </div>
+
+            <div style="margin-top:40px; max-width:900px; margin-left:auto; margin-right:auto;">
+                <h3 style="font-size:1.5rem; margin-bottom:20px;">Early Exit Options</h3>
+                <ul style="max-width:800px; margin: 0 auto; text-align:left; font-size:1.1rem;">
+                    <li><strong>Year 2 Buyback:</strong> Company option to repurchase shares at 3x investment (if revenue > $100M)</li>
+                    <li><strong>Drag-along rights:</strong> Majority investor vote triggers acquisition at fair market value</li>
+                    <li><strong>Tag-along rights:</strong> All investors can participate in any sale of founder shares</li>
+                    <li><strong>Dividend policy:</strong> 20% of net profit distributed annually starting Year 4 (if profitable)</li>
+                </ul>
+            </div>
+
+            <p style="font-size:1rem; max-width:900px; margin: 30px auto; color: rgba(255,255,255,0.9);">
+                <strong>Comparable exits:</strong> Cloudbeds ($1.2B Series C), SiteMinder (IPO $1.4B), TravelPerk ($1.4B Series D)
+            </p>
+        </div>
+
+        <!-- Slide 16: Call to Action -->
+        <div class="slide">
+            <h1 style="font-size: 4rem;">Let's Build the Future Together</h1>
+            <p style="font-size: 1.8rem; margin: 40px 0;">
+                Join us in revolutionizing the hospitality industry
+            </p>
+            <a href="mailto:juan.ceo@ainitravel.com" class="cta-button">
+                📧 juan.ceo@ainitravel.com
+            </a>
+            <div class="stats" style="margin-top: 60px; max-width: 600px;">
+                <div class="stat-card">
+                    <p><strong>Website:</strong> ainitravel.com</p>
+                </div>
+                <div class="stat-card">
+                    <p><strong>PMS Demo:</strong> pms.ainitravel.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="print-loading" id="printLoading">
+        ⏳ Preparing PDF... Please wait
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" onclick="previousSlide()">← Previous</button>
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">14</span>
+        </div>
+        <button class="nav-button" onclick="nextSlide()">Next →</button>
+        <button class="nav-button" onclick="preparePrint()" style="background: #10b981; margin-left: 20px;">📥 Download PDF</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        // Prepare PDF by showing all slides for chart rendering
+        function preparePrint() {
+            const loading = document.getElementById('printLoading');
+            loading.classList.add('active');
+            
+            // Show all slides temporarily for charts to render
+            const allSlides = document.querySelectorAll('.slide');
+            const currentActive = document.querySelector('.slide.active');
+            
+            allSlides.forEach(slide => slide.classList.add('active'));
+            
+            // Wait for charts to render then print
+            setTimeout(() => {
+                loading.classList.remove('active');
+                window.print();
+                
+                // Restore original state after print dialog
+                setTimeout(() => {
+                    allSlides.forEach(slide => slide.classList.remove('active'));
+                    if (currentActive) currentActive.classList.add('active');
+                }, 500);
+            }, 1500); // 1.5 second delay for charts to render
+        }
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Touch navigation for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) {
+                nextSlide();
+            } else if (touchEndX - touchStartX > 50) {
+                previousSlide();
+            }
+        });
+    </script>
+    <script>
+        // Initialize charts when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Revenue Projection (in $M)
+            const revCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Year 1', 'Year 2', 'Year 3'],
+                    datasets: [{
+                        label: 'Revenue ($M)',
+                        data: [50, 200, 1000],
+                        backgroundColor: ['#ffd700', '#ffbf00', '#ff9900'],
+                        borderColor: ['#fff', '#fff', '#fff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            display: true,
+                            labels: { 
+                                color: '#fff',
+                                font: { size: 16, weight: 'bold' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => 'Revenue: $' + ctx.parsed.y + 'M'
+                            },
+                            titleFont: { size: 16 },
+                            bodyFont: { size: 14 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#fff',
+                                font: { size: 14, weight: 'bold' },
+                                callback: function(value) { return '$' + value + 'M'; }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.2)' }
+                        },
+                        x: {
+                            ticks: { 
+                                color: '#fff',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // CAC vs LTV (per hotel, $)
+            const cacCtx = document.getElementById('cacLtvChart').getContext('2d');
+            new Chart(cacCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Year 1', 'Year 2', 'Year 3'],
+                    datasets: [
+                        {
+                            label: 'CAC (Cost to Acquire)',
+                            data: [120, 80, 60],
+                            backgroundColor: '#ef4444',
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'LTV (Lifetime Value)',
+                            data: [1500, 2500, 5000],
+                            backgroundColor: '#4ade80',
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: {
+                            labels: { 
+                                color: '#fff',
+                                font: { size: 16, weight: 'bold' }
+                            }
+                        },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            titleFont: { size: 16 },
+                            bodyFont: { size: 14 },
+                            callbacks: {
+                                label: (ctx) => ctx.dataset.label + ': $' + ctx.parsed.y
+                            }
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#fff',
+                                font: { size: 14, weight: 'bold' },
+                                callback: function(value) { return '$' + value; }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.2)' }
+                        },
+                        x: {
+                            ticks: { 
+                                color: '#fff',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Market Share (doughnut)
+            const msCtx = document.getElementById('marketShareChart').getContext('2d');
+            new Chart(msCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['AiniTravel (3.5%)', 'Major Competitors (16.5%)', 'Untapped Market (80%)'],
+                    datasets: [{
+                        data: [3.5, 16.5, 80],
+                        backgroundColor: ['#ffd700', '#60a5fa', '#cbd5e1'],
+                        borderColor: ['#fff', '#fff', '#fff'],
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: {
+                                color: '#fff',
+                                font: { size: 16, weight: 'bold' },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            titleFont: { size: 16 },
+                            bodyFont: { size: 14 },
+                            callbacks: {
+                                label: (ctx) => ctx.label + ': ' + ctx.parsed + '%'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
