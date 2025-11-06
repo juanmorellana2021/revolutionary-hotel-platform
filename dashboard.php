@@ -193,6 +193,117 @@ $rooms = $roomObj->getAllRooms();
             font-weight: 700;
         }
         
+        /* Theme Toggle Button */
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 1rem;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .theme-toggle i {
+            color: #6366f1;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        
+        /* Light Theme Styles */
+        body.light-theme {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        
+        body.light-theme .sidebar {
+            background: #ffffff;
+            border-right-color: #e2e8f0;
+        }
+        
+        body.light-theme .logo h2,
+        body.light-theme .nav-link {
+            color: #0f172a;
+        }
+        
+        body.light-theme .nav-link:hover,
+        body.light-theme .nav-link.active {
+            background: #f1f5f9;
+            color: #6366f1;
+        }
+        
+        body.light-theme .main-content {
+            background: #f8fafc;
+        }
+        
+        body.light-theme .top-bar {
+            background: #ffffff;
+            border-bottom-color: #e2e8f0;
+        }
+        
+        body.light-theme .search-box {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        
+        body.light-theme .search-box input {
+            color: #0f172a;
+        }
+        
+        body.light-theme .search-box input::placeholder {
+            color: #64748b;
+        }
+        
+        body.light-theme .user-info {
+            color: #0f172a;
+        }
+        
+        body.light-theme .welcome-section h1 {
+            color: #0f172a;
+        }
+        
+        body.light-theme .stat-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+        
+        body.light-theme .stat-value {
+            color: #0f172a;
+        }
+        
+        body.light-theme .room-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+        
+        body.light-theme .room-number {
+            color: #0f172a;
+        }
+        
+        body.light-theme .section-header h2,
+        body.light-theme .action-content h3 {
+            color: #0f172a;
+        }
+        
+        body.light-theme .action-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+        
+        body.light-theme .theme-toggle {
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
         /* Dashboard Content */
         .dashboard-content {
             padding: 1.5rem 2rem;
@@ -632,17 +743,23 @@ $rooms = $roomObj->getAllRooms();
                 <input type="text" placeholder="Search rooms, bookings...">
             </div>
             
-            <div class="user-info">
-                <div>
-                    <div style="text-align: right; margin-bottom: 0.25rem;">
-                        <strong><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></strong>
-                    </div>
-                    <div style="font-size: 0.875rem; color: #64748b;">
-                        <?php echo ucfirst($user['user_role'] ?? 'Owner'); ?>
-                    </div>
+            <div style="display: flex; align-items: center;">
+                <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Theme">
+                    <i class="fas fa-sun" id="theme-icon"></i>
                 </div>
-                <div class="user-avatar">
-                    <?php echo strtoupper(substr($user['name'] ?? 'U', 0, 1)); ?>
+                
+                <div class="user-info">
+                    <div>
+                        <div style="text-align: right; margin-bottom: 0.25rem;">
+                            <strong><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></strong>
+                        </div>
+                        <div style="font-size: 0.875rem; color: #64748b;">
+                            <?php echo ucfirst($user['user_role'] ?? 'Owner'); ?>
+                        </div>
+                    </div>
+                    <div class="user-avatar">
+                        <?php echo strtoupper(substr($user['name'] ?? 'U', 0, 1)); ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -829,5 +946,38 @@ $rooms = $roomObj->getAllRooms();
             </div>
         </div>
     </div>
+    
+    <script>
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            body.classList.toggle('light-theme');
+            
+            // Update icon
+            if (body.classList.contains('light-theme')) {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Load saved theme preference on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        });
+    </script>
 </body>
 </html>

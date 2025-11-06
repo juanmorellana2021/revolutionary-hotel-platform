@@ -1,0 +1,31 @@
+{% include 'partials/header.html' %}
+
+  <!-- section 1 showcase -->
+  <div class="showcase font-baries relative ">
+
+    {% include 'partials/navbar.html' %}
+
+    <div class="md:relative min-h-screen flex flex-col w-full  px-4 pt-32 pb-32  text-white space-y-8 ">
+
+
+      <!-- confirm -->
+      <div class=" absolute top-44 md:top-32 left-1/2 transform -translate-x-1/2  w-96 md:p-2  rounded-2xl bg-primaryLight drop-shadow-md ">
+        <div class="flex flex-col p-4 rounded-xl space-y-8">
+           <i class="fas fa-check fa-5x text-green"></i>
+           <h1 class="text-center text-4xl">{{ data.success.title }} </h1>
+
+            <a class="text-center text-xl p-2 w-full bg-gray text-white hover:bg-dark " href="{{ data.success.btn_back.link }}">{{ data.success.btn_back.text }} </a>
+
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

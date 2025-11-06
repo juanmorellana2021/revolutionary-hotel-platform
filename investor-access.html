@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniTravel - Investor Access</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .nda-section {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .nda-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .nda-content {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .nda-content h3 {
+            color: #333;
+            margin: 20px 0 10px;
+            font-size: 1.1rem;
+        }
+
+        .nda-content p {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin: 30px 0;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            min-width: 24px;
+            min-height: 24px;
+            margin-top: 3px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .signature-section {
+            margin: 30px 0;
+        }
+
+        .signature-pad {
+            width: 100%;
+            height: 150px;
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            background: white;
+            cursor: crosshair;
+            position: relative;
+        }
+
+        .signature-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        #signature-canvas {
+            border-radius: 15px;
+        }
+
+        .signature-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .info-box p {
+            color: #333;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀 AiniTravel</div>
+        <h1>Investor Access</h1>
+        <p class="subtitle">Confidential Information - NDA Required</p>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <p style="color: #666; font-size: 0.95rem;">
+                Already signed the NDA? 
+                <a href="investor-login.php" style="color: #667eea; font-weight: 600; text-decoration: none;">Login here</a>
+            </p>
+        </div>
+
+        <div class="success-message" id="success-message">
+            ✓ NDA Accepted! Redirecting to investor presentation...
+        </div>
+
+        <div class="info-box">
+            <p><strong>⚠️ Confidential Material:</strong> The information you are about to access contains proprietary business strategies, financial projections, and trade secrets. By proceeding, you agree to keep all information strictly confidential.</p>
+        </div>
+
+        <form id="nda-form">
+            <!-- Personal Information -->
+            <div class="form-group">
+                <label for="full-name">Full Name *</label>
+                <input type="text" id="full-name" name="full-name" required placeholder="John Doe">
+                <span class="error" id="name-error">Please enter your full name</span>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="john@example.com">
+                <span class="error" id="email-error">Please enter a valid email</span>
+            </div>
+
+            <div class="form-group">
+                <label for="company">Company / Organization *</label>
+                <input type="text" id="company" name="company" required placeholder="ABC Ventures">
+            </div>
+
+            <div class="form-group">
+                <label for="title">Title / Position *</label>
+                <input type="text" id="title" name="title" required placeholder="Managing Partner">
+            </div>
+
+            <div class="form-group">
+                <label for="investor-type">Investor Type *</label>
+                <select id="investor-type" name="investor-type" required>
+                    <option value="">-- Select Type --</option>
+                    <option value="angel">Angel Investor</option>
+                    <option value="vc">Venture Capital Firm</option>
+                    <option value="pe">Private Equity</option>
+                    <option value="corporate">Corporate Investor</option>
+                    <option value="family-office">Family Office</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <!-- NDA Agreement -->
+            <div class="nda-section">
+                <div class="nda-title">📜 Non-Disclosure Agreement</div>
+                <div class="nda-content">
+                    <p><strong>MUTUAL NON-DISCLOSURE AGREEMENT</strong></p>
+                    <p>This Non-Disclosure Agreement ("Agreement") is entered into as of <strong id="current-date"></strong> by and between:</p>
+                    
+                    <p><strong>Disclosing Party:</strong> AiniTravel, a hospitality technology company ("Company")</p>
+                    <p><strong>Receiving Party:</strong> The individual/entity identified above ("Recipient")</p>
+
+                    <h3>1. Confidential Information</h3>
+                    <p>"Confidential Information" means any information disclosed by the Company, including but not limited to: business strategies, financial projections, customer lists, technology specifications, marketing plans, product roadmaps, partnership agreements, and any other proprietary information.</p>
+
+                    <h3>2. Obligations of Recipient</h3>
+                    <p>Recipient agrees to:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 15px;">
+                        <li>Keep all Confidential Information strictly confidential</li>
+                        <li>Not disclose to any third party without prior written consent</li>
+                        <li>Use Confidential Information solely for evaluating investment opportunity</li>
+                        <li>Protect information with same degree of care as own confidential information</li>
+                        <li>Not copy, reproduce, or reverse engineer any materials</li>
+                    </ul>
+
+                    <h3>3. Exclusions</h3>
+                    <p>This Agreement does not apply to information that: (a) is publicly available through no fault of Recipient; (b) was known to Recipient prior to disclosure; (c) is independently developed by Recipient; or (d) is required to be disclosed by law.</p>
+
+                    <h3>4. Term</h3>
+                    <p>This Agreement shall remain in effect for a period of five (5) years from the date of execution.</p>
+
+                    <h3>5. Return of Materials</h3>
+                    <p>Upon Company's request, Recipient shall promptly return or destroy all Confidential Information and certify such destruction in writing.</p>
+
+                    <h3>6. No License</h3>
+                    <p>Nothing in this Agreement grants Recipient any license or rights to Company's intellectual property, trademarks, or patents.</p>
+
+                    <h3>7. Remedies</h3>
+                    <p>Recipient acknowledges that breach of this Agreement may cause irreparable harm for which monetary damages may be inadequate. Company shall be entitled to seek equitable relief, including injunction and specific performance, in addition to all other remedies.</p>
+
+                    <h3>8. Governing Law</h3>
+                    <p>This Agreement shall be governed by the laws of Peru, without regard to conflict of law provisions.</p>
+
+                    <h3>9. Entire Agreement</h3>
+                    <p>This Agreement constitutes the entire agreement between the parties concerning the subject matter hereof and supersedes all prior agreements and understandings.</p>
+                </div>
+            </div>
+
+            <!-- Agreement Checkbox -->
+            <div class="checkbox-group">
+                <input type="checkbox" id="agree-nda" name="agree-nda" required>
+                <label for="agree-nda">
+                    I have read and understand the Non-Disclosure Agreement above. I agree to be legally bound by its terms and conditions. I acknowledge that violation of this agreement may result in legal action including claims for damages and injunctive relief.
+                </label>
+            </div>
+
+            <!-- Digital Signature -->
+            <div class="signature-section">
+                <label>Digital Signature *</label>
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Please sign below using your mouse or touchscreen</p>
+                <div class="signature-pad">
+                    <span class="signature-placeholder" id="sig-placeholder">Sign here</span>
+                    <canvas id="signature-canvas"></canvas>
+                </div>
+                <div class="signature-controls">
+                    <button type="button" class="btn btn-secondary" onclick="clearSignature()">Clear Signature</button>
+                </div>
+                <span class="error" id="signature-error">Signature is required</span>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; margin-top: 30px;">
+                Accept NDA & View Presentation →
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 30px; color: #999; font-size: 0.9rem;">
+            Your information is stored securely and will only be used to track NDA agreements.
+        </p>
+    </div>
+
+    <script>
+        // Set current date
+        const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('current-date').textContent = today;
+
+        // Signature Canvas Setup
+        const canvas = document.getElementById('signature-canvas');
+        const ctx = canvas.getContext('2d');
+        const placeholder = document.getElementById('sig-placeholder');
+        
+        // Set canvas size
+        const resizeCanvas = () => {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        };
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let isDrawing = false;
+        let hasSigned = false;
+
+        const startDrawing = (e) => {
+            isDrawing = true;
+            hasSigned = true;
+            placeholder.style.display = 'none';
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        };
+
+        const draw = (e) => {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        };
+
+        const stopDrawing = () => {
+            isDrawing = false;
+        };
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSigned = false;
+            placeholder.style.display = 'block';
+        }
+
+        // Form submission
+        document.getElementById('nda-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validate
+            let isValid = true;
+
+            // Check signature
+            if (!hasSigned) {
+                document.getElementById('signature-error').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('signature-error').style.display = 'none';
+            }
+
+            // Check NDA agreement
+            if (!document.getElementById('agree-nda').checked) {
+                alert('Please agree to the NDA terms');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Collect data
+            const formData = {
+                fullName: document.getElementById('full-name').value,
+                email: document.getElementById('email').value,
+                company: document.getElementById('company').value,
+                title: document.getElementById('title').value,
+                investorType: document.getElementById('investor-type').value,
+                signature: canvas.toDataURL(),
+                agreedAt: new Date().toISOString(),
+                ipAddress: 'Logged on server'
+            };
+
+            // Send to server
+            fetch('log_nda.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Save to localStorage
+                    localStorage.setItem('nda_accepted', 'true');
+                    localStorage.setItem('investor_data', JSON.stringify(formData));
+
+                    // Show success and redirect to portal
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('nda-form').style.display = 'none';
+
+                    setTimeout(() => {
+                        window.location.href = 'investor-portal.php';
+                    }, 2000);
+                } else {
+                    alert('Error saving NDA: ' + (result.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting NDA. Please try again or contact support.');
+            });
+        });
+
+        // Check if already accepted - redirect to login
+        if (localStorage.getItem('nda_accepted') === 'true') {
+            window.location.href = 'investor-login.php';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+
+<!-- Payment Status Modal (Tailwind) -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[10000]">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3 border-b">
+                <h3 class="text-lg font-bold text-gray-900">💳 Actualizar Estado de Pago</h3>
+                <button onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Booking Info -->
+            <div class="mt-4 bg-blue-50 p-3 rounded-lg">
+                <p class="text-sm text-gray-600">Reserva: <span class="font-bold text-gray-900" id="paymentBookingId">#-</span></p>
+                <p class="text-sm text-gray-600">Monto Total: <span class="font-bold text-green-600" id="paymentAmount">$0.00</span></p>
+                <p class="text-sm text-gray-600">Estado Actual: <span class="font-bold" id="paymentCurrentStatus">-</span></p>
+            </div>
+
+            <!-- Payment Status Options -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Estado:</label>
+                
+                <!-- Paid Button -->
+                <button onclick="processPaymentStatus('paid')" class="w-full mb-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    ✅ Pagado Completo
+                </button>
+
+                <!-- Partial Payment Button -->
+                <button onclick="processPaymentStatus('partial')" class="w-full mb-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    ⚡ Pago Parcial
+                </button>
+
+                <!-- Pending Button -->
+                <button onclick="processPaymentStatus('pending')" class="w-full mb-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    🔄 Pendiente
+                </button>
+
+                <!-- Refunded Button -->
+                <button onclick="processPaymentStatus('refunded')" class="w-full mb-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                    </svg>
+                    💰 Reembolsado
+                </button>
+            </div>
+
+            <!-- Cancel Button -->
+            <div class="mt-4">
+                <button onclick="closePaymentModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
