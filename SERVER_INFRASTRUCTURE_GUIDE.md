@@ -56,7 +56,18 @@ ssh ai-vps
 
 ```
 /var/www/html/
-├── manage/                          ⭐ MAIN PROJECT (154 files)
+├── ainitravel.com/                  ⭐ OTA (Online Travel Agency) + INVESTOR PORTAL
+│   ├── index.php                    # Main OTA homepage
+│   ├── search.php                   # Hotel search (OTA)
+│   ├── investor-access.html         # NDA signing page
+│   ├── investor-login.php           # Investor login
+│   ├── investor-portal.php          # Investor dashboard
+│   ├── investor-admin.php           # Admin panel
+│   ├── investors.html               # Presentation deck
+│   ├── log_nda.php                  # NDA handler
+│   └── log_investor_activity.php    # Activity tracking
+│
+├── manage/                          ⭐ MAIN PMS PROJECT (154 files)
 │   ├── public_booking.php           # Hotel search system (Booking.com style)
 │   ├── public_booking_api.php       # Public API
 │   ├── manager_dashboard.php        # Admin dashboard
@@ -123,6 +134,33 @@ http://108.175.12.152/manage/manager_dashboard.php
 http://108.175.12.152/manage/calendar_view.php
 ```
 
+#### **AiniTravel OTA (Online Travel Agency):**
+```
+https://ainitravel.com/                           ⭐ Main OTA Homepage
+https://ainitravel.com/search                     ⭐ Hotel Search
+https://ainitravel.com/hotels                     ⭐ Browse Hotels
+```
+
+#### **Investor Portal:**
+```
+https://ainitravel.com/investor-access.html       ⭐ NDA Signing
+https://ainitravel.com/investor-login.php         ⭐ Investor Login
+https://ainitravel.com/investor-portal.php        ⭐ Investor Dashboard
+https://ainitravel.com/investors.html             ⭐ Presentation Deck
+https://ainitravel.com/investor-admin.php         ⭐ Admin Panel
+```
+
+#### **AiniFlow Social Network (Social VPS):**
+```
+http://72.61.217.65/                              ⭐ Main/Login Page
+http://72.61.217.65/login.html                    ⭐ Phone Login
+http://72.61.217.65/dashboard.html                ⭐ User Dashboard
+http://72.61.217.65/chat.html                     ⭐ Messaging/Chat
+http://72.61.217.65/contacts.html                 ⭐ Contacts
+http://72.61.217.65/wallet.html                   ⭐ AiNi Coins Wallet
+https://ainiflow.com                              ⭐ Domain (future)
+```
+
 #### **Domains with SSL:**
 ```
 https://samaywasipisac.com
@@ -130,6 +168,7 @@ https://api.samaywasipisac.com
 https://pma.samaywasipisac.com
 https://perubookingtravel.com
 https://api.perubookingtravel.com
+https://pms.ainitravel.com                        ⭐ PMS System
 ```
 
 ### **Apache Configuration**
@@ -141,8 +180,16 @@ https://api.perubookingtravel.com
 - `pma.samaywasipisac.com.conf` + SSL
 - `perubookingtravel.com.conf` + SSL
 - `api.perubookingtravel.com.conf` + SSL
+- `ainitravel.com` - Points to `/var/www/html/ainitravel.com/` (Investor Portal)
+- `pms.ainitravel.com` - Points to `/var/www/html/manage/` (PMS System)
 
 **Document Root:** `/var/www/html`
+
+**Key Directory Paths:**
+- **PMS System:** `/var/www/html/manage/` (accessed via pms.ainitravel.com)
+- **AiniTravel OTA + Investor Portal:** `/var/www/html/ainitravel.com/` (accessed via ainitravel.com)
+- **Upload files to PMS:** `scp file.php prod-vps:/var/www/html/manage/`
+- **Upload files to OTA/Investor Portal:** `scp file.php prod-vps:/var/www/html/ainitravel.com/`
 
 ### **Backups**
 
@@ -201,17 +248,102 @@ https://api.perubookingtravel.com
 ## 👥 Social VPS Server (72.61.217.65)
 
 ### **Purpose**
-Future social travel network system
+AiniFlow social travel network system
+
+### **Web Server Configuration**
+- **Web Server:** Nginx (Node.js backend)
+- **Backend:** Node.js (server4_app.js)
+- **Root Directory:** `/var/www/aini-platform/public/`
+- **Service:** `ainiflow.service` (systemd)
+
+### **Application Files**
+```
+/var/www/aini-platform/
+├── public/
+│   ├── login.html              # Phone login page
+│   ├── dashboard.html          # User dashboard
+│   ├── chat.html               # Messaging interface
+│   ├── contacts.html           # Contacts management
+│   └── wallet.html             # AiNi Coins wallet
+├── index.js                    # Node.js backend (server4_app.js)
+└── package.json                # Dependencies
+```
+
+### **Nginx Configuration**
+```nginx
+# /etc/nginx/sites-enabled/ainiflow
+server {
+    listen 80;
+    server_name 72.61.217.65;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+**IMPORTANT:** Nginx proxies to Node.js on port 3000 - files are served by Node.js, NOT directly by Nginx!
+
+### **Deployment Commands**
+```bash
+# Upload AiniFlow files
+scp ainiflow_login.html social-vps:/var/www/aini-platform/public/login.html
+scp ainiflow_dashboard.html social-vps:/var/www/aini-platform/public/dashboard.html
+scp ainiflow_chat.html social-vps:/var/www/aini-platform/public/chat.html
+scp ainiflow_contacts.html social-vps:/var/www/aini-platform/public/contacts.html
+scp ainiflow_wallet.html social-vps:/var/www/aini-platform/public/wallet.html
+scp server4_app.js social-vps:/var/www/aini-platform/index.js
+
+# ⚠️ ALWAYS restart service after uploading files!
+# Node.js caches files in memory - restart required to load new versions
+ssh social-vps "systemctl restart ainiflow"
+
+# Check service status
+ssh social-vps "systemctl status ainiflow"
+```
+
+### **Troubleshooting**
+
+#### **Files Not Updating After Upload**
+**Problem:** HTML changes don't appear after uploading (e.g., login still redirects to old page)  
+**Cause:** Node.js caches files in memory - doesn't automatically reload when files change  
+**Solution:**
+```bash
+# Always restart the service after uploading files
+ssh social-vps "systemctl restart ainiflow"
+
+# Verify service restarted successfully
+ssh social-vps "systemctl status ainiflow"
+```
+
+#### **Finding Files on Server**
+```bash
+# Find all login files
+ssh social-vps "find /var/www -name 'login.html'"
+
+# Download file from server to verify contents
+scp social-vps:/var/www/aini-platform/public/login.html ./login_from_server.html
+
+# Check what Node.js is serving
+ssh social-vps "grep -n 'dashboard.html' /var/www/aini-platform/public/*.html"
+```
 
 ### **System Info**
 - **Disk:** 96GB (3% used - 94GB free)
 - **RAM:** 7.8GB (531MB used)
 - **OS:** Ubuntu 24.04 LTS
 - **Python:** 3.12.3 installed
-- **pip3:** Not installed yet
+- **Node.js:** Installed for backend
 
 ### **Status**
-Ready for social network deployment
+✅ Active - AiniFlow social network deployed and running
 
 ---
 
@@ -396,8 +528,14 @@ ssh ai-vps "docker logs open-webui"
 ### **File Management**
 
 ```bash
-# Upload files to server
+# Upload files to PMS system (pms.ainitravel.com)
 scp local_file.php prod-vps:/var/www/html/manage/
+
+# Upload files to AiniTravel OTA or Investor Portal (ainitravel.com)
+scp local_file.php prod-vps:/var/www/html/ainitravel.com/
+
+# Upload files to AiniFlow (social-vps)
+scp ainiflow_page.html social-vps:/var/www/aini-platform/public/
 
 # Download from server
 scp prod-vps:/var/www/html/manage/file.php ./
@@ -414,6 +552,7 @@ rsync -avz ./local_dir/ prod-vps:/var/www/html/manage/
 
 | Service | URL |
 |---------|-----|
+| **AiniTravel OTA** | https://ainitravel.com/ |
 | Hotel Search | http://108.175.12.152/manage/public_booking.php |
 | Dashboard | http://108.175.12.152/manage/manager_dashboard.php |
 | Calendar | http://108.175.12.152/manage/calendar_view.php |
@@ -422,6 +561,8 @@ rsync -avz ./local_dir/ prod-vps:/var/www/html/manage/
 | Employees | http://108.175.12.152/manage/employee_management.php |
 | WhatsApp | http://108.175.12.152/manage/whatsapp_management.php |
 | Social | http://108.175.12.152/manage/travel_social.php |
+| **Investor Portal** | https://ainitravel.com/investor-portal.php |
+| **AiniFlow Social** | http://72.61.217.65/ |
 
 ### **Database Connection Info**
 

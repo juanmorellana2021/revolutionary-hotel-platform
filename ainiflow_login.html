@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AiniFlow - Login</title>
+    <title>AiniFlow - Login v2.0 (CHAT)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,6 +31,11 @@
     </style>
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    
+    <!-- VERSION INDICATOR -->
+    <div style="position: fixed; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 5px; font-size: 11px; z-index: 9999;">
+        v2.0-CHAT
+    </div>
     
     <div x-data="loginApp()" class="w-full max-w-md">
         
@@ -324,12 +329,16 @@
                         // Check if new user (needs profile) or existing user
                         if (data.user.name === 'User') {
                             // New user - go to profile creation
+                            console.log('NEW USER - Going to profile creation step');
                             this.step = 3;
                         } else {
-                            // Existing user - save token and redirect to dashboard
+                            // Existing user - save token and redirect to chat-ui
+                            console.log('EXISTING USER - Redirecting to CHAT-UI.HTML');
                             localStorage.setItem('ainiflow_token', data.token);
                             localStorage.setItem('ainiflow_user', JSON.stringify(data.user));
-                            window.location.href = '/dashboard.html';
+                            console.log('About to redirect to:', '/chat-ui.html');
+                            window.location.href = '/chat-ui.html';
+                            console.log('Redirect executed');
                         }
                         
                     } catch (err) {
@@ -361,13 +370,16 @@
                         }
                         
                         // Save user data and redirect
+                        console.log('NEW USER PROFILE CREATED - Redirecting to CHAT-UI.HTML');
                         localStorage.setItem('ainiflow_user', JSON.stringify({
                             phone: this.phone,
                             name: this.name,
                             bio: this.bio
                         }));
                         
-                        window.location.href = '/dashboard.html';
+                        console.log('About to redirect to:', '/chat-ui.html');
+                        window.location.href = '/chat-ui.html';
+                        console.log('Redirect executed');
                         
                     } catch (err) {
                         this.error = err.message;

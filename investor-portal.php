@@ -28,6 +28,10 @@ $activities = $activity_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Investor Portal - AiniTravel</title>
+    <script>
+        // Set NDA accepted flag immediately when portal loads
+        localStorage.setItem('nda_accepted', 'true');
+    </script>
     <style>
         * {
             margin: 0;
@@ -253,7 +257,7 @@ $activities = $activity_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 <div class="card-icon">📊</div>
                 <h3>Investor Presentation</h3>
                 <p>Interactive slide deck with our vision, market opportunity, financial projections, and team.</p>
-                <a href="investors.html" class="card-btn" target="_blank">View Presentation</a>
+                <a href="investors.html?authorized=true" class="card-btn" target="_blank">View Presentation</a>
             </div>
 
             <div class="card">
@@ -317,6 +321,9 @@ $activities = $activity_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <script>
+        // Set NDA accepted flag for presentation access
+        localStorage.setItem('nda_accepted', 'true');
+        
         // Log portal view
         fetch('log_investor_activity.php', {
             method: 'POST',

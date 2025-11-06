@@ -6,9 +6,17 @@
     <title>AiniTravel - Investor Presentation</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <script>
-        // Check if NDA was accepted
-        if (localStorage.getItem('nda_accepted') !== 'true') {
+        // Check if authorized via URL parameter OR if NDA was accepted
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAuthorized = urlParams.get('authorized') === 'true';
+        
+        if (!isAuthorized && localStorage.getItem('nda_accepted') !== 'true') {
             window.location.href = 'investor-access.html';
+        }
+        
+        // If authorized via URL, save to localStorage for future visits
+        if (isAuthorized) {
+            localStorage.setItem('nda_accepted', 'true');
         }
     </script>
     <style>
