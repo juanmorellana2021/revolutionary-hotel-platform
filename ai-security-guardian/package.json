@@ -1,0 +1,114 @@
+{
+  "name": "ai-security-guardian",
+  "displayName": "AI Security Guardian",
+  "description": "AI-powered security scanner with auto-fix for OWASP vulnerabilities. Find XSS, SQL injection, CSRF, and more.",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Linters",
+    "Testing",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "security",
+    "owasp",
+    "vulnerability",
+    "scanner",
+    "xss",
+    "sql injection",
+    "csrf",
+    "auto-fix"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:php",
+    "onLanguage:typescript"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiSecurityGuardian.scanFile",
+        "title": "AI Security: Scan Current File"
+      },
+      {
+        "command": "aiSecurityGuardian.scanWorkspace",
+        "title": "AI Security: Scan Entire Workspace"
+      },
+      {
+        "command": "aiSecurityGuardian.autoFix",
+        "title": "AI Security: Auto-Fix All Issues"
+      },
+      {
+        "command": "aiSecurityGuardian.generateTests",
+        "title": "AI Security: Generate Security Tests"
+      },
+      {
+        "command": "aiSecurityGuardian.showDashboard",
+        "title": "AI Security: Show Security Dashboard"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == javascript || resourceLangId == php || resourceLangId == typescript",
+          "command": "aiSecurityGuardian.scanFile",
+          "group": "security@1"
+        },
+        {
+          "when": "resourceLangId == javascript || resourceLangId == php || resourceLangId == typescript",
+          "command": "aiSecurityGuardian.autoFix",
+          "group": "security@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "aiSecurityGuardian.scanWorkspace",
+          "group": "security"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Security Guardian",
+      "properties": {
+        "aiSecurityGuardian.licenseKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Pro license key (get one at https://securityai.dev)"
+        },
+        "aiSecurityGuardian.autoScanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan files when saved"
+        },
+        "aiSecurityGuardian.severity": {
+          "type": "string",
+          "default": "medium",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Minimum severity to show warnings"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node ./test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juanmorellana2021/revolutionary-hotel-platform"
+  },
+  "license": "MIT"
+}
