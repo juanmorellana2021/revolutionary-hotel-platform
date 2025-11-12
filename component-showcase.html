@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniFlow Component Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="design-tokens.css">
+    <script src="components.html"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+    <!-- Toast Container -->
+    <div x-data="AiniToast()" x-init="window.toast = $data" class="fixed top-4 right-4 z-50 space-y-2">
+        <template x-for="notification in notifications" :key="notification.id">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg transform transition-all animate-slide-in"
+                 :class="{
+                     'bg-green-500 text-white': notification.type === 'success',
+                     'bg-red-500 text-white': notification.type === 'error',
+                     'bg-yellow-500 text-white': notification.type === 'warning',
+                     'bg-blue-500 text-white': notification.type === 'info'
+                 }">
+                <span x-text="notification.message"></span>
+                <button @click="remove(notification.id)" class="ml-auto">×</button>
+            </div>
+        </template>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                🎨 AiniFlow Component Library
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                Reusable Alpine.js components with design tokens
+            </p>
+        </header>
+
+        <!-- Buttons Section -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Buttons</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md mb-6">
+                <h3 class="text-lg font-semibold mb-4">Variants</h3>
+                <div class="flex flex-wrap gap-4">
+                    <button x-data="AiniButton()" :class="classes">Primary Button</button>
+                    <button x-data="AiniButton()" x-init="variant = 'secondary'" :class="classes">Secondary</button>
+                    <button x-data="AiniButton()" x-init="variant = 'outline'" :class="classes">Outline</button>
+                    <button x-data="AiniButton()" x-init="variant = 'ghost'" :class="classes">Ghost</button>
+                    <button x-data="AiniButton()" x-init="variant = 'danger'" :class="classes">Danger</button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md mb-6">
+                <h3 class="text-lg font-semibold mb-4">Sizes</h3>
+                <div class="flex items-center flex-wrap gap-4">
+                    <button x-data="AiniButton()" x-init="size = 'sm'" :class="classes">Small</button>
+                    <button x-data="AiniButton()" x-init="size = 'md'" :class="classes">Medium</button>
+                    <button x-data="AiniButton()" x-init="size = 'lg'" :class="classes">Large</button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md">
+                <h3 class="text-lg font-semibold mb-4">States</h3>
+                <div class="flex flex-wrap gap-4">
+                    <button x-data="AiniButton()" :class="classes">Normal</button>
+                    <button x-data="AiniButton()" x-init="disabled = true" :class="classes" disabled>Disabled</button>
+                    <button x-data="AiniButton()" x-init="loading = true" :class="classes">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl p-6 mt-4">
+                <pre class="text-sm text-green-400"><code>&lt;button x-data="AiniButton()" :class="classes"&gt;Click Me&lt;/button&gt;
+&lt;button x-data="AiniButton()" x-init="variant = 'outline'" :class="classes"&gt;Outline&lt;/button&gt;</code></pre>
+            </div>
+        </section>
+
+        <!-- Cards Section -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Cards</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div x-data="AiniCard()" :class="classes" class="p-6">
+                    <h3 class="text-lg font-semibold mb-2">Basic Card</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Simple card with shadow</p>
+                </div>
+                
+                <div x-data="AiniCard()" x-init="hoverable = true" :class="classes" class="p-6">
+                    <h3 class="text-lg font-semibold mb-2">Hoverable Card</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Hover me for effect</p>
+                </div>
+                
+                <div x-data="AiniCard()" x-init="clickable = true" :class="classes" class="p-6" 
+                     @click="window.toast.success('Card clicked!')">
+                    <h3 class="text-lg font-semibold mb-2">Clickable Card</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Click me!</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl p-6">
+                <pre class="text-sm text-green-400"><code>&lt;div x-data="AiniCard()" :class="classes" class="p-6"&gt;
+    &lt;h3&gt;Card Title&lt;/h3&gt;
+    &lt;p&gt;Card content&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+            </div>
+        </section>
+
+        <!-- Badges Section -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Badges</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md mb-6">
+                <div class="flex flex-wrap gap-3">
+                    <span x-data="AiniBadge()" :class="classes">Primary</span>
+                    <span x-data="AiniBadge()" x-init="variant = 'success'" :class="classes">Success</span>
+                    <span x-data="AiniBadge()" x-init="variant = 'warning'" :class="classes">Warning</span>
+                    <span x-data="AiniBadge()" x-init="variant = 'error'" :class="classes">Error</span>
+                    <span x-data="AiniBadge()" x-init="variant = 'info'" :class="classes">Info</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modal Demo -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Modal</h2>
+            
+            <div x-data="AiniModal()" x-init="title = 'Example Modal'">
+                <button x-data="AiniButton()" :class="classes" @click="show()">Open Modal</button>
+                
+                <div x-show="open" class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="hide()">
+                    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="hide()"></div>
+                    
+                    <div class="flex items-center justify-center min-h-screen p-4">
+                        <div :class="sizeClasses" class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all w-full">
+                            <div class="flex items-center justify-between p-6 border-b dark:border-gray-700">
+                                <h3 class="text-xl font-semibold" x-text="title"></h3>
+                                <button @click="hide()" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="p-6">
+                                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                                    This is a modal dialog. Press ESC or click outside to close.
+                                </p>
+                                <button x-data="AiniButton()" :class="classes" @click="hide()">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Toast Demo -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Toasts</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md">
+                <div class="flex flex-wrap gap-4">
+                    <button x-data="AiniButton()" :class="classes" 
+                            @click="window.toast.success('Success message!')">Success Toast</button>
+                    <button x-data="AiniButton()" x-init="variant = 'danger'" :class="classes" 
+                            @click="window.toast.error('Error message!')">Error Toast</button>
+                    <button x-data="AiniButton()" x-init="variant = 'secondary'" :class="classes" 
+                            @click="window.toast.warning('Warning message!')">Warning Toast</button>
+                    <button x-data="AiniButton()" x-init="variant = 'outline'" :class="classes" 
+                            @click="window.toast.info('Info message!')">Info Toast</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Form Inputs -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Form Inputs</h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md space-y-6">
+                <div x-data="AiniInput()" x-init="label = 'Email Address'; placeholder = 'you@example.com'; type = 'email'; required = true">
+                    <label class="block text-sm font-semibold mb-2" x-text="label"></label>
+                    <input :type="type" x-model="value" :placeholder="placeholder" :class="inputClasses" @blur="validate()">
+                    <p x-show="error" x-text="error" class="text-red-500 text-sm mt-1"></p>
+                </div>
+                
+                <div x-data="AiniInput()" x-init="label = 'Phone Number'; placeholder = '+1234567890'; required = true">
+                    <label class="block text-sm font-semibold mb-2" x-text="label"></label>
+                    <input type="tel" x-model="value" :placeholder="placeholder" :class="inputClasses" @blur="validate()">
+                    <p x-show="error" x-text="error" class="text-red-500 text-sm mt-1"></p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <style>
+        @keyframes slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
+    </style>
+</body>
+</html>

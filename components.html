@@ -1,0 +1,303 @@
+<!-- AiniFlow Component Library -->
+<!-- Reusable Alpine.js Components -->
+
+<script>
+/**
+ * Component Library for AiniFlow
+ * Usage: Import this file in your HTML and use components via Alpine.js
+ */
+
+// ========== BUTTON COMPONENT ==========
+window.AiniButton = () => ({
+    variant: 'primary',  // primary, secondary, outline, ghost, danger
+    size: 'md',          // sm, md, lg
+    disabled: false,
+    loading: false,
+    
+    get classes() {
+        const base = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+        
+        const sizes = {
+            sm: 'px-3 py-1.5 text-sm',
+            md: 'px-4 py-2 text-base',
+            lg: 'px-6 py-3 text-lg'
+        };
+        
+        const variants = {
+            primary: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
+            secondary: 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500',
+            outline: 'border-2 border-orange-500 text-orange-500 hover:bg-orange-50 focus:ring-orange-500',
+            ghost: 'text-orange-500 hover:bg-orange-50 focus:ring-orange-500',
+            danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500'
+        };
+        
+        return `${base} ${sizes[this.size]} ${variants[this.variant]}`;
+    }
+});
+
+// ========== CARD COMPONENT ==========
+window.AiniCard = () => ({
+    hoverable: false,
+    clickable: false,
+    
+    get classes() {
+        const base = 'bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden';
+        const hover = this.hoverable ? 'hover:shadow-lg transition-shadow duration-200' : '';
+        const click = this.clickable ? 'cursor-pointer hover:scale-[1.02] transition-transform duration-200' : '';
+        
+        return `${base} ${hover} ${click}`;
+    }
+});
+
+// ========== INPUT COMPONENT ==========
+window.AiniInput = () => ({
+    value: '',
+    type: 'text',
+    placeholder: '',
+    error: '',
+    disabled: false,
+    required: false,
+    label: '',
+    
+    get inputClasses() {
+        const base = 'w-full px-4 py-2 rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2';
+        const error = this.error 
+            ? 'border-red-500 focus:ring-red-500' 
+            : 'border-gray-300 focus:border-orange-500 focus:ring-orange-500';
+        const disabled = this.disabled ? 'bg-gray-100 cursor-not-allowed' : '';
+        
+        return `${base} ${error} ${disabled}`;
+    },
+    
+    validate() {
+        if (this.required && !this.value) {
+            this.error = 'This field is required';
+            return false;
+        }
+        if (this.type === 'email' && this.value && !this.value.includes('@')) {
+            this.error = 'Invalid email address';
+            return false;
+        }
+        this.error = '';
+        return true;
+    }
+});
+
+// ========== MODAL COMPONENT ==========
+window.AiniModal = () => ({
+    open: false,
+    title: '',
+    size: 'md',  // sm, md, lg, xl, full
+    
+    show() {
+        this.open = true;
+        document.body.style.overflow = 'hidden';
+    },
+    
+    hide() {
+        this.open = false;
+        document.body.style.overflow = '';
+    },
+    
+    get sizeClasses() {
+        const sizes = {
+            sm: 'max-w-sm',
+            md: 'max-w-md',
+            lg: 'max-w-lg',
+            xl: 'max-w-xl',
+            full: 'max-w-full m-4'
+        };
+        return sizes[this.size];
+    }
+});
+
+// ========== TOAST/NOTIFICATION COMPONENT ==========
+window.AiniToast = () => ({
+    notifications: [],
+    
+    show(message, type = 'info', duration = 3000) {
+        const id = Date.now();
+        this.notifications.push({ id, message, type });
+        
+        if (duration > 0) {
+            setTimeout(() => this.remove(id), duration);
+        }
+    },
+    
+    remove(id) {
+        this.notifications = this.notifications.filter(n => n.id !== id);
+    },
+    
+    success(message) { this.show(message, 'success'); },
+    error(message) { this.show(message, 'error'); },
+    warning(message) { this.show(message, 'warning'); },
+    info(message) { this.show(message, 'info'); }
+});
+
+// ========== DROPDOWN COMPONENT ==========
+window.AiniDropdown = () => ({
+    open: false,
+    
+    toggle() {
+        this.open = !this.open;
+    },
+    
+    close() {
+        this.open = false;
+    }
+});
+
+// ========== TABS COMPONENT ==========
+window.AiniTabs = () => ({
+    activeTab: 0,
+    
+    switchTab(index) {
+        this.activeTab = index;
+    }
+});
+
+// ========== ACCORDION COMPONENT ==========
+window.AiniAccordion = () => ({
+    openItems: [],
+    
+    toggle(index) {
+        if (this.openItems.includes(index)) {
+            this.openItems = this.openItems.filter(i => i !== index);
+        } else {
+            this.openItems.push(index);
+        }
+    },
+    
+    isOpen(index) {
+        return this.openItems.includes(index);
+    }
+});
+
+// ========== LOADING SPINNER COMPONENT ==========
+window.AiniSpinner = () => ({
+    size: 'md',  // sm, md, lg
+    
+    get classes() {
+        const sizes = {
+            sm: 'w-4 h-4 border-2',
+            md: 'w-8 h-8 border-3',
+            lg: 'w-12 h-12 border-4'
+        };
+        return `${sizes[this.size]} border-orange-500 border-t-transparent rounded-full animate-spin`;
+    }
+});
+
+// ========== AVATAR COMPONENT ==========
+window.AiniAvatar = () => ({
+    src: '',
+    alt: '',
+    size: 'md',  // sm, md, lg, xl
+    fallback: '?',
+    
+    get sizeClasses() {
+        const sizes = {
+            sm: 'w-8 h-8 text-xs',
+            md: 'w-12 h-12 text-sm',
+            lg: 'w-16 h-16 text-base',
+            xl: 'w-24 h-24 text-xl'
+        };
+        return sizes[this.size];
+    }
+});
+
+// ========== BADGE COMPONENT ==========
+window.AiniBadge = () => ({
+    variant: 'primary',  // primary, success, warning, error, info
+    size: 'md',          // sm, md, lg
+    
+    get classes() {
+        const base = 'inline-flex items-center font-semibold rounded-full';
+        
+        const sizes = {
+            sm: 'px-2 py-0.5 text-xs',
+            md: 'px-3 py-1 text-sm',
+            lg: 'px-4 py-1.5 text-base'
+        };
+        
+        const variants = {
+            primary: 'bg-orange-100 text-orange-800',
+            success: 'bg-green-100 text-green-800',
+            warning: 'bg-yellow-100 text-yellow-800',
+            error: 'bg-red-100 text-red-800',
+            info: 'bg-blue-100 text-blue-800'
+        };
+        
+        return `${base} ${sizes[this.size]} ${variants[this.variant]}`;
+    }
+});
+
+</script>
+
+<!-- ========== COMPONENT TEMPLATES ========== -->
+
+<!-- BUTTON TEMPLATE -->
+<template x-if="false" id="aini-btn-template">
+    <button 
+        x-data="AiniButton()"
+        :class="classes"
+        :disabled="disabled || loading"
+        type="button"
+    >
+        <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span x-text="$el.textContent"></span>
+    </button>
+</template>
+
+<!-- MODAL TEMPLATE -->
+<template x-if="false" id="aini-modal-template">
+    <div x-data="AiniModal()" x-show="open" class="fixed inset-0 z-50 overflow-y-auto" 
+         @keydown.escape.window="hide()" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="hide()"></div>
+        
+        <!-- Modal -->
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div :class="sizeClasses" class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl transform transition-all w-full">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold" x-text="title"></h3>
+                    <button @click="hide()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6">
+                    <slot></slot>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- TOAST CONTAINER TEMPLATE -->
+<template x-if="false" id="aini-toast-template">
+    <div x-data="AiniToast()" class="fixed top-4 right-4 z-50 space-y-2">
+        <template x-for="notification in notifications" :key="notification.id">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg transform transition-all"
+                 :class="{
+                     'bg-green-500 text-white': notification.type === 'success',
+                     'bg-red-500 text-white': notification.type === 'error',
+                     'bg-yellow-500 text-white': notification.type === 'warning',
+                     'bg-blue-500 text-white': notification.type === 'info'
+                 }">
+                <span x-text="notification.message"></span>
+                <button @click="remove(notification.id)" class="ml-auto">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
+</template>
