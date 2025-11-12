@@ -1,0 +1,169 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  pre-deploy-checks:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+        continue-on-error: false
+      
+      - name: Check for critical files
+        run: |
+          if [ ! -f "index.js" ] && [ ! -f "server4_app.js" ]; then
+            echo "Error: Main server file not found"
+            exit 1
+          fi
+          echo "✅ Critical files present"
+      
+      - name: Validate package.json
+        run: |
+          node -e "const pkg = require('./package.json'); console.log('Package valid:', pkg.name)"
+
+  deploy:
+    name: Deploy to VPS
+    needs: pre-deploy-checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Navigate to app directory
+            cd /var/www/aini-platform
+            
+            # Store current commit for potential rollback
+            PREVIOUS_COMMIT=$(git rev-parse HEAD)
+            echo "Previous commit: $PREVIOUS_COMMIT" > /tmp/last_deploy.txt
+            
+            # Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Install dependencies
+            echo "📦 Installing dependencies..."
+            npm ci --production
+            
+            # Run database migrations
+            echo "🗄️ Running migrations..."
+            if [ -d "migrations" ]; then
+              for migration in migrations/*.sql; do
+                if [ -f "$migration" ]; then
+                  echo "Running: $migration"
+                  sudo -u postgres psql -d aini_platform -f "$migration" || echo "Migration failed or already applied"
+                fi
+              done
+            fi
+            
+            # Restart application
+            echo "🔄 Restarting application..."
+            pm2 restart aini-platform || pm2 start index.js --name aini-platform
+            
+            # Wait for app to start
+            sleep 5
+            
+            echo "✅ Deployment complete!"
+      
+      - name: Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Check health endpoint
+            echo "🏥 Running health check..."
+            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health)
+            
+            if [ "$HEALTH_STATUS" = "200" ]; then
+              echo "✅ Health check passed (200)"
+              exit 0
+            else
+              echo "❌ Health check failed (Status: $HEALTH_STATUS)"
+              echo "🔄 Rolling back deployment..."
+              
+              # Rollback to previous commit
+              cd /var/www/aini-platform
+              PREVIOUS_COMMIT=$(cat /tmp/last_deploy.txt | cut -d' ' -f3)
+              git reset --hard $PREVIOUS_COMMIT
+              
+              # Restart with old code
+              pm2 restart aini-platform
+              
+              echo "⚠️ Rolled back to: $PREVIOUS_COMMIT"
+              exit 1
+            fi
+      
+      - name: Send Success Notification
+        if: success()
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          
+          # Telegram notification (replace with your bot token and chat ID)
+          # curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          #   -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+          #   -d "text=✅ Deployment Successful%0A%0ACommit: $COMMIT_HASH%0AMessage: $COMMIT_MSG%0ATime: $(date)"
+          
+          echo "✅ Deployment successful: $COMMIT_HASH"
+      
+      - name: Send Failure Notification
+        if: failure()
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          
+          # Telegram notification
+          # curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          #   -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+          #   -d "text=❌ Deployment Failed%0A%0ACommit: $COMMIT_HASH%0ATime: $(date)"
+          
+          echo "❌ Deployment failed: $COMMIT_HASH"
+
+  post-deploy:
+    name: Post-Deployment Tasks
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Warm up cache
+        run: |
+          # Hit main endpoints to warm up cache
+          curl -s https://ainiflow.com/health > /dev/null || true
+          curl -s https://ainiflow.com/api/social/cards?limit=10 > /dev/null || true
+          echo "✅ Cache warmed up"
+      
+      - name: Create deployment tag
+        uses: actions/checkout@v3
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          TAG="deploy-$(date +%Y%m%d-%H%M%S)"
+          git tag -a "$TAG" -m "Production deployment"
+          git push origin "$TAG" || echo "Tag already exists"
