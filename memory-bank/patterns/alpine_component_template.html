@@ -1,0 +1,181 @@
+<!-- Alpine.js Component Template -->
+<!-- Use this pattern for all interactive AiniFlow components -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniFlow - Component Name</title>
+    
+    <!-- Required CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        [x-cloak] { display: none !important; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F4F1DE;
+        }
+        
+        /* Component-specific styles */
+    </style>
+</head>
+<body>
+    
+    <!-- Alpine.js Component -->
+    <div x-data="componentApp()" x-cloak class="max-w-md mx-auto bg-white min-h-screen">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sticky top-0 z-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-icon text-2xl"></i>
+                    <h1 class="text-xl font-bold">Component Title</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Header actions -->
+                </div>
+            </div>
+        </header>
+        
+        <!-- Loading State -->
+        <div x-show="loading" class="flex items-center justify-center py-20">
+            <i class="fas fa-spinner fa-spin text-4xl text-orange-500"></i>
+        </div>
+        
+        <!-- Error State -->
+        <div x-show="error" class="p-4">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <p x-text="error"></p>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div x-show="!loading && !error" class="p-4">
+            
+            <!-- Loop through items -->
+            <template x-for="item in items" :key="item.id">
+                <div class="bg-white rounded-lg shadow p-4 mb-4">
+                    <h3 x-text="item.title" class="font-bold text-lg"></h3>
+                    <p x-text="item.description" class="text-gray-600"></p>
+                    
+                    <!-- Actions -->
+                    <button @click="handleAction(item.id)" 
+                            class="mt-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg">
+                        Action Button
+                    </button>
+                </div>
+            </template>
+            
+            <!-- Empty State -->
+            <div x-show="items.length === 0" class="text-center py-20">
+                <i class="fas fa-icon text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-600">No items found</p>
+            </div>
+            
+        </div>
+        
+        <!-- Bottom Navigation (if needed) -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 max-w-md mx-auto">
+            <div class="grid grid-cols-4 gap-1 p-2">
+                <a href="page1.html" class="flex flex-col items-center py-2 text-gray-600">
+                    <i class="fas fa-icon text-xl mb-1"></i>
+                    <span class="text-xs">Tab 1</span>
+                </a>
+                <!-- More tabs -->
+            </div>
+        </nav>
+        
+    </div>
+    
+    <script>
+        function componentApp() {
+            return {
+                // State
+                items: [],
+                loading: true,
+                error: null,
+                currentUser: null,
+                
+                // Initialize
+                async init() {
+                    console.log('Component initialized');
+                    
+                    // Check authentication
+                    const userData = localStorage.getItem('ainiflow_user');
+                    if (!userData) {
+                        window.location.href = 'ainiflow_login.html';
+                        return;
+                    }
+                    
+                    try {
+                        this.currentUser = JSON.parse(userData);
+                        await this.loadData();
+                    } catch (e) {
+                        console.error('Init error:', e);
+                        this.error = 'Failed to initialize';
+                        this.loading = false;
+                    }
+                },
+                
+                // Load data from API
+                async loadData() {
+                    try {
+                        this.loading = true;
+                        const userPhone = this.currentUser?.phone || '';
+                        
+                        const response = await fetch(`/api/endpoint?user_phone=${encodeURIComponent(userPhone)}`);
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        this.items = data;
+                        this.loading = false;
+                        
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                        this.error = error.message;
+                        this.loading = false;
+                    }
+                },
+                
+                // Handle action
+                async handleAction(itemId) {
+                    try {
+                        const response = await fetch('/api/action', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_phone: this.currentUser?.phone || '',
+                                item_id: itemId
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            alert('Action completed!');
+                            await this.loadData(); // Reload
+                        } else {
+                            alert('Error: ' + (data.error || 'Unknown error'));
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to complete action');
+                    }
+                }
+            }
+        }
+    </script>
+    
+</body>
+</html>
