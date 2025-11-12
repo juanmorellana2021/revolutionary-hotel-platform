@@ -1,0 +1,180 @@
+# Monitoring Dashboard - Simple HTML
+# Displays metrics from /metrics endpoint
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniFlow Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { margin-bottom: 30px; color: #f97316; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .metric {
+            font-size: 36px;
+            font-weight: bold;
+            color: #f97316;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.healthy { background: #10b981; color: white; }
+        .status.degraded { background: #f59e0b; color: white; }
+        .status.unhealthy { background: #ef4444; color: white; }
+        .services { margin-top: 15px; }
+        .service {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .chart-container {
+            grid-column: 1 / -1;
+            height: 300px;
+        }
+        .refresh { 
+            float: right; 
+            background: #f97316; 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            🎯 AiniFlow Monitoring Dashboard
+            <button class="refresh" onclick="loadMetrics()">Refresh</button>
+        </h1>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>Service Status</h2>
+                <div id="status" class="metric">Loading...</div>
+                <div id="services" class="services"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Uptime</h2>
+                <div id="uptime" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Total Requests</h2>
+                <div id="requests" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Avg Response Time</h2>
+                <div id="responseTime" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Error Rate</h2>
+                <div id="errorRate" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Cache Hit Rate</h2>
+                <div id="cacheHit" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Memory Usage</h2>
+                <div id="memory" class="metric">-</div>
+            </div>
+            
+            <div class="card">
+                <h2>Active Connections</h2>
+                <div id="connections" class="metric">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadMetrics() {
+            try {
+                // Load health
+                const health = await fetch('/health').then(r => r.json());
+                document.getElementById('status').innerHTML = 
+                    `<span class="status ${health.status}">${health.status.toUpperCase()}</span>`;
+                
+                document.getElementById('uptime').textContent = 
+                    Math.floor(health.uptime / 3600) + 'h';
+                
+                document.getElementById('memory').textContent = 
+                    health.memory.used + ' MB';
+                
+                // Services
+                let servicesHtml = '';
+                for (const [service, status] of Object.entries(health.services)) {
+                    servicesHtml += `
+                        <div class="service">
+                            <span>${service}</span>
+                            <span class="status ${status}">${status}</span>
+                        </div>
+                    `;
+                }
+                document.getElementById('services').innerHTML = servicesHtml;
+                
+                // Load metrics
+                const metrics = await fetch('/metrics').then(r => r.json());
+                document.getElementById('requests').textContent = 
+                    metrics.api.totalRequests.toLocaleString();
+                document.getElementById('responseTime').textContent = 
+                    Math.round(metrics.api.averageResponseTime) + ' ms';
+                document.getElementById('errorRate').textContent = 
+                    (metrics.api.errorRate * 100).toFixed(2) + '%';
+                document.getElementById('cacheHit').textContent = 
+                    metrics.cache.hitRate;
+                document.getElementById('connections').textContent = 
+                    metrics.api.activeConnections;
+                    
+            } catch (error) {
+                console.error('Failed to load metrics:', error);
+                document.getElementById('status').innerHTML = 
+                    '<span class="status unhealthy">ERROR</span>';
+            }
+        }
+        
+        // Load metrics on page load
+        loadMetrics();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(loadMetrics, 10000);
+    </script>
+</body>
+</html>
