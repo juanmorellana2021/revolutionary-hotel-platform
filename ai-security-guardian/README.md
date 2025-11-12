@@ -2,7 +2,11 @@
 
 **AI-powered security scanner with auto-fix for OWASP vulnerabilities**
 
-Stop security issues before they reach production! AI Security Guardian automatically scans your code for vulnerabilities and fixes them with one click.
+Stop security issues before they reach production! # 🤖 AI Dev Engineer
+
+> **Your AI pair programmer for production-grade code**
+
+AI Dev Engineer helps you write secure, high-quality code by scanning for vulnerabilities, enforcing best practices, and teaching you professional development patterns.
 
 ## ✨ Features
 

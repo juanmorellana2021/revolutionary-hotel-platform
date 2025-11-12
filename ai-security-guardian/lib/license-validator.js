@@ -8,9 +8,11 @@ const axios = require('axios');
 class LicenseValidator {
     constructor(context) {
         this.context = context;
-        this.apiEndpoint = 'https://api.securityai.dev/validate-license'; // Will create this
+        // Temporary placeholder - will create real API in Step 8
+        this.apiEndpoint = 'https://api.securityai.dev/validate-license';
         this.cachedTier = null;
         this.cacheExpiry = null;
+        this.pricingUrl = 'https://github.com/juanmorellana2021/revolutionary-hotel-platform#pricing'; // Temporary
     }
 
     /**

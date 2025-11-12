@@ -1,10 +1,9 @@
 {
-  "name": "ai-security-guardian",
-  "displayName": "AI Security Guardian",
-  "description": "AI-powered security scanner with auto-fix for OWASP vulnerabilities. Find XSS, SQL injection, CSRF, and more.",
-  "version": "1.0.0",
-  "publisher": "your-publisher-name",
-  "icon": "icon.png",
+  "name": "ai-dev-engineer",
+  "displayName": "AI Dev Engineer",
+  "description": "Your senior dev code reviewer - scans security, architecture, error handling, database, performance & API design. Auto-fix with best practices.",
+  "version": "2.0.0",
+  "publisher": "juanmorellana",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -14,14 +13,14 @@
     "Programming Languages"
   ],
   "keywords": [
+    "ai",
+    "developer",
     "security",
-    "owasp",
-    "vulnerability",
-    "scanner",
-    "xss",
-    "sql injection",
-    "csrf",
-    "auto-fix"
+    "code quality",
+    "auto-fix",
+    "best practices",
+    "javascript",
+    "php"
   ],
   "activationEvents": [
     "onLanguage:javascript",
@@ -32,63 +31,95 @@
   "contributes": {
     "commands": [
       {
-        "command": "aiSecurityGuardian.scanFile",
-        "title": "AI Security: Scan Current File"
+        "command": "aiDevEngineer.scanFile",
+        "title": "AI Dev: Scan Current File"
       },
       {
-        "command": "aiSecurityGuardian.scanWorkspace",
-        "title": "AI Security: Scan Entire Workspace"
+        "command": "aiDevEngineer.scanWorkspace",
+        "title": "AI Dev: Scan Entire Workspace"
       },
       {
-        "command": "aiSecurityGuardian.autoFix",
-        "title": "AI Security: Auto-Fix All Issues"
+        "command": "aiDevEngineer.autoFix",
+        "title": "AI Dev: Auto-Fix Issues"
       },
       {
-        "command": "aiSecurityGuardian.generateTests",
-        "title": "AI Security: Generate Security Tests"
+        "command": "aiDevEngineer.generateTests",
+        "title": "AI Dev: Generate Tests"
       },
       {
-        "command": "aiSecurityGuardian.showDashboard",
-        "title": "AI Security: Show Security Dashboard"
+        "command": "aiDevEngineer.showDashboard",
+        "title": "AI Dev: Show Dashboard"
+      },
+      {
+        "command": "aiDevEngineer.loadContext",
+        "title": "AI Dev: Load Project Context (Copy to Clipboard)"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "ai-dev-engineer.context",
+        "name": "context",
+        "fullName": "AI Dev Context",
+        "description": "Loads your project context automatically",
+        "isSticky": true
       }
     ],
     "menus": {
       "editor/context": [
         {
           "when": "resourceLangId == javascript || resourceLangId == php || resourceLangId == typescript",
-          "command": "aiSecurityGuardian.scanFile",
-          "group": "security@1"
+          "command": "aiDevEngineer.scanFile",
+          "group": "aidev@1"
         },
         {
           "when": "resourceLangId == javascript || resourceLangId == php || resourceLangId == typescript",
-          "command": "aiSecurityGuardian.autoFix",
-          "group": "security@2"
+          "command": "aiDevEngineer.autoFix",
+          "group": "aidev@2"
         }
       ],
       "explorer/context": [
         {
-          "command": "aiSecurityGuardian.scanWorkspace",
-          "group": "security"
+          "command": "aiDevEngineer.scanWorkspace",
+          "group": "aidev"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "aiDevEngineer.loadContext",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "aiDevEngineer.scanFile",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus"
+      }
+    ],
     "configuration": {
-      "title": "AI Security Guardian",
+      "title": "AI Dev Engineer",
       "properties": {
-        "aiSecurityGuardian.licenseKey": {
+        "aiDevEngineer.licenseKey": {
           "type": "string",
           "default": "",
-          "description": "Your Pro license key (get one at https://securityai.dev)"
+          "description": "Your Pro license key"
         },
-        "aiSecurityGuardian.autoScanOnSave": {
+        "aiDevEngineer.autoScanOnSave": {
           "type": "boolean",
           "default": false,
           "description": "Automatically scan files when saved"
         },
-        "aiSecurityGuardian.severity": {
+        "aiDevEngineer.severity": {
           "type": "string",
           "default": "medium",
-          "enum": ["low", "medium", "high", "critical"],
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
           "description": "Minimum severity to show warnings"
         }
       }

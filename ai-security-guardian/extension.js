@@ -2,8 +2,18 @@ const vscode = require('vscode');
 const SecurityScanner = require('./lib/security-scanner');
 const AutoFixer = require('./lib/auto-fixer');
 const LicenseValidator = require('./lib/license-validator');
+const ErrorHandlingScanner = require('./lib/error-handling-scanner');
+const ArchitectureScanner = require('./lib/architecture-scanner');
+const DatabaseScanner = require('./lib/database-scanner');
+const PerformanceScanner = require('./lib/performance-scanner');
+const APIScanner = require('./lib/api-scanner');
 
 let securityScanner;
+let errorHandlingScanner;
+let architectureScanner;
+let databaseScanner;
+let performanceScanner;
+let apiScanner;
 let autoFixer;
 let licenseValidator;
 let diagnosticCollection;
@@ -12,19 +22,32 @@ let diagnosticCollection;
  * Activates the extension
  */
 function activate(context) {
-    console.log('AI Security Guardian is now active!');
+    console.log('AI Dev Engineer is now active!');
 
-    // Initialize services
+    // Initialize all scanners
     securityScanner = new SecurityScanner();
+    errorHandlingScanner = new ErrorHandlingScanner();
+    architectureScanner = new ArchitectureScanner();
+    databaseScanner = new DatabaseScanner();
+    performanceScanner = new PerformanceScanner();
+    apiScanner = new APIScanner();
     autoFixer = new AutoFixer();
     licenseValidator = new LicenseValidator(context);
     
     // Create diagnostic collection for showing errors in editor
-    diagnosticCollection = vscode.languages.createDiagnosticCollection('aiSecurityGuardian');
+    diagnosticCollection = vscode.languages.createDiagnosticCollection('aiDevEngineer');
     context.subscriptions.push(diagnosticCollection);
 
+    // AUTO-LOAD CONTEXT: Show welcome message with context on startup
+    const config = vscode.workspace.getConfiguration('aiDevEngineer');
+    if (config.get('autoShowContextOnStartup', true)) {
+        setTimeout(() => {
+            showContextWelcome(context);
+        }, 2000); // Wait 2 seconds for workspace to fully load
+    }
+
     // ==================== COMMAND: Scan Current File ====================
-    let scanFileCommand = vscode.commands.registerCommand('aiSecurityGuardian.scanFile', async () => {
+    let scanFileCommand = vscode.commands.registerCommand('aiDevEngineer.scanFile', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showWarningMessage('No file is currently open');
@@ -38,52 +61,93 @@ function activate(context) {
         // Show progress
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Scanning for vulnerabilities...",
+            title: "AI Dev Engineer scanning code...",
             cancellable: false
         }, async (progress) => {
-            progress.report({ increment: 0 });
+            progress.report({ increment: 0, message: "Security..." });
 
-            // Perform scan
-            const vulnerabilities = securityScanner.scan(fileContent, filePath);
+            // Run ALL scanners
+            const securityIssues = securityScanner.scan(fileContent, filePath);
+            progress.report({ increment: 20, message: "Error handling..." });
+            
+            const errorIssues = errorHandlingScanner.scan(fileContent, filePath);
+            progress.report({ increment: 40, message: "Architecture..." });
+            
+            const archIssues = architectureScanner.scan(fileContent, filePath);
+            progress.report({ increment: 60, message: "Database..." });
+            
+            const dbIssues = databaseScanner.scan(fileContent, filePath);
+            progress.report({ increment: 80, message: "Performance..." });
+            
+            const perfIssues = performanceScanner.scan(fileContent, filePath);
+            progress.report({ increment: 90, message: "API design..." });
+            
+            const apiIssues = apiScanner.scan(fileContent, filePath);
+            
+            // Combine all issues
+            const allIssues = [
+                ...securityIssues,
+                ...errorIssues,
+                ...archIssues,
+                ...dbIssues,
+                ...perfIssues,
+                ...apiIssues
+            ];
             
             progress.report({ increment: 100 });
 
             // Show results
-            if (vulnerabilities.length === 0) {
-                vscode.window.showInformationMessage('✅ No security issues found!');
+            if (allIssues.length === 0) {
+                vscode.window.showInformationMessage('✅ No issues found! Your code looks great!');
                 diagnosticCollection.clear();
             } else {
-                const highSeverity = vulnerabilities.filter(v => v.severity === 'HIGH' || v.severity === 'CRITICAL').length;
+                const critical = allIssues.filter(v => v.severity === 'CRITICAL').length;
+                const high = allIssues.filter(v => v.severity === 'HIGH').length;
+                
+                // Group by type
+                const byType = {
+                    SECURITY: allIssues.filter(i => i.type === 'SECURITY').length,
+                    ERROR_HANDLING: allIssues.filter(i => i.type === 'ERROR_HANDLING').length,
+                    ARCHITECTURE: allIssues.filter(i => i.type === 'ARCHITECTURE').length,
+                    DATABASE: allIssues.filter(i => i.type === 'DATABASE').length,
+                    PERFORMANCE: allIssues.filter(i => i.type === 'PERFORMANCE').length,
+                    API_DESIGN: allIssues.filter(i => i.type === 'API_DESIGN').length
+                };
+                
+                const summary = Object.entries(byType)
+                    .filter(([_, count]) => count > 0)
+                    .map(([type, count]) => `${count} ${type.toLowerCase()}`)
+                    .join(', ');
                 
                 vscode.window.showWarningMessage(
-                    `⚠️ Found ${vulnerabilities.length} security issues (${highSeverity} critical)`,
+                    `⚠️ Found ${allIssues.length} issues: ${summary} (${critical + high} critical/high)`,
                     'View Issues',
                     'Auto-Fix'
                 ).then(async selection => {
                     if (selection === 'View Issues') {
-                        showVulnerabilitiesPanel(vulnerabilities, document);
+                        showVulnerabilitiesPanel(allIssues, document);
                     } else if (selection === 'Auto-Fix') {
-                        vscode.commands.executeCommand('aiSecurityGuardian.autoFix');
+                        vscode.commands.executeCommand('aiDevEngineer.autoFix');
                     }
                 });
 
                 // Add diagnostics to editor
-                addDiagnostics(document, vulnerabilities);
+                addDiagnostics(document, allIssues);
             }
         });
     });
 
     // ==================== COMMAND: Scan Workspace ====================
-    let scanWorkspaceCommand = vscode.commands.registerCommand('aiSecurityGuardian.scanWorkspace', async () => {
+    let scanWorkspaceCommand = vscode.commands.registerCommand('aiDevEngineer.scanWorkspace', async () => {
         const tier = await licenseValidator.checkLicense();
         
         if (tier === 'free') {
             vscode.window.showInformationMessage(
                 'Workspace scanning is a Pro feature. Upgrade for unlimited scans!',
-                'Upgrade to Pro'
+                'Learn More'
             ).then(selection => {
-                if (selection === 'Upgrade to Pro') {
-                    vscode.env.openExternal(vscode.Uri.parse('https://securityai.dev/pricing'));
+                if (selection === 'Learn More') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://github.com/juanmorellana2021/revolutionary-hotel-platform#ai-security-guardian'));
                 }
             });
             return;
@@ -130,25 +194,26 @@ function activate(context) {
     });
 
     // ==================== COMMAND: Auto-Fix ====================
-    let autoFixCommand = vscode.commands.registerCommand('aiSecurityGuardian.autoFix', async () => {
+    let autoFixCommand = vscode.commands.registerCommand('aiDevEngineer.autoFix', async () => {
         const tier = await licenseValidator.checkLicense();
         
         if (tier === 'free') {
             vscode.window.showInformationMessage(
-                '🔒 Auto-fix is a Pro feature. Upgrade for $9/month to fix issues automatically!',
-                'Upgrade to Pro',
-                'Enter License Key'
+                '🔒 Auto-fix is a Pro feature. Coming soon at $9/month!',
+                'Enter License Key',
+                'Learn More'
             ).then(async selection => {
-                if (selection === 'Upgrade to Pro') {
-                    vscode.env.openExternal(vscode.Uri.parse('https://securityai.dev/pricing'));
+                if (selection === 'Learn More') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://github.com/juanmorellana2021/revolutionary-hotel-platform#ai-security-guardian'));
                 } else if (selection === 'Enter License Key') {
                     const key = await vscode.window.showInputBox({
                         prompt: 'Enter your Pro license key',
-                        password: true
+                        password: true,
+                        placeHolder: 'xxxx-xxxx-xxxx-xxxx'
                     });
                     if (key) {
                         await context.secrets.store('licenseKey', key);
-                        vscode.window.showInformationMessage('License key saved! Try again.');
+                        vscode.window.showInformationMessage('License key saved! Try auto-fix again.');
                     }
                 }
             });
@@ -213,16 +278,16 @@ function activate(context) {
     });
 
     // ==================== COMMAND: Generate Tests ====================
-    let generateTestsCommand = vscode.commands.registerCommand('aiSecurityGuardian.generateTests', async () => {
+    let generateTestsCommand = vscode.commands.registerCommand('aiDevEngineer.generateTests', async () => {
         const tier = await licenseValidator.checkLicense();
         
         if (tier === 'free') {
             vscode.window.showInformationMessage(
-                '🔒 Test generation is a Pro feature. Upgrade for $9/month!',
-                'Upgrade to Pro'
+                '🔒 Test generation is a Pro feature. Coming soon!',
+                'Learn More'
             ).then(selection => {
-                if (selection === 'Upgrade to Pro') {
-                    vscode.env.openExternal(vscode.Uri.parse('https://securityai.dev/pricing'));
+                if (selection === 'Learn More') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://github.com/juanmorellana2021/revolutionary-hotel-platform#ai-security-guardian'));
                 }
             });
             return;
@@ -232,7 +297,7 @@ function activate(context) {
     });
 
     // ==================== COMMAND: Show Dashboard ====================
-    let showDashboardCommand = vscode.commands.registerCommand('aiSecurityGuardian.showDashboard', () => {
+    let showDashboardCommand = vscode.commands.registerCommand('aiDevEngineer.showDashboard', () => {
         const panel = vscode.window.createWebviewPanel(
             'securityDashboard',
             'Security Dashboard',
@@ -243,9 +308,116 @@ function activate(context) {
         panel.webview.html = getDashboardHTML();
     });
 
+    // ==================== COMMAND: Load Project Context ====================
+    let loadContextCommand = vscode.commands.registerCommand('aiDevEngineer.loadContext', async () => {
+        // Look for ai-dev-engineer.json in .vscode folder
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        
+        if (!workspaceFolders) {
+            vscode.window.showWarningMessage('No workspace folder open');
+            return;
+        }
+
+        const contextFilePath = vscode.Uri.joinPath(
+            workspaceFolders[0].uri,
+            '.vscode',
+            'ai-dev-engineer.json'
+        );
+
+        let contextData;
+        let contextExists = false;
+
+        try {
+            const fileContent = await vscode.workspace.fs.readFile(contextFilePath);
+            contextData = JSON.parse(fileContent.toString());
+            contextExists = true;
+        } catch (error) {
+            // File doesn't exist - create template
+            contextData = {
+                projectName: "New Project",
+                improvementPlan: {
+                    methodology: "Page-by-page systematic improvements",
+                    currentPhase: "Initial Setup",
+                    completedPages: [],
+                    pagesQueue: []
+                },
+                securityPatterns: {},
+                codeStandards: {},
+                nextSteps: []
+            };
+        }
+
+        // Generate context prompt
+        const completedPages = contextData.improvementPlan?.completedPages || [];
+        const pagesQueue = contextData.improvementPlan?.pagesQueue || [];
+        const securityPatterns = Object.keys(contextData.securityPatterns || {}).join(', ') || 'None yet';
+        
+        const lastCompleted = completedPages.length > 0 
+            ? completedPages[completedPages.length - 1].page 
+            : 'None';
+        
+        const nextPage = pagesQueue.length > 0 ? pagesQueue[0] : 'TBD';
+
+        const contextPrompt = `Context: ${contextData.projectName || 'Project'} - AI Dev Engineer Workflow
+
+📋 Project State:
+- Methodology: ${contextData.improvementPlan?.methodology || 'Page-by-page improvements'}
+- Current Phase: ${contextData.improvementPlan?.currentPhase || 'Setup'}
+- Last Completed: ${lastCompleted}
+- Next Target: ${nextPage}
+
+✅ Completed Pages (${completedPages.length}):
+${completedPages.map(p => `- ${p.page} (${p.date}): ${p.improvements?.slice(0, 2).join(', ') || 'Improvements applied'}`).join('\n') || '- None yet'}
+
+📚 Security Patterns Applied:
+${securityPatterns}
+
+🎯 Code Standards:
+${Object.entries(contextData.codeStandards || {}).map(([key, val]) => `- ${key}: ${val}`).join('\n') || '- Read from .vscode/ai-dev-engineer.json'}
+
+⏭️ Next Steps:
+${contextData.nextSteps?.slice(0, 3).map((step, i) => `${i + 1}. ${step}`).join('\n') || '1. Analyze next page\n2. Apply security patterns\n3. Test thoroughly'}
+
+📄 Full Context: Read .vscode/ai-dev-engineer.json for complete details
+
+---
+Ready to continue! What should we work on?`;
+
+        // Copy to clipboard
+        await vscode.env.clipboard.writeText(contextPrompt);
+
+        // Show notification with preview
+        const action = await vscode.window.showInformationMessage(
+            `✅ Context copied to clipboard! ${contextExists ? 'Based on your ai-dev-engineer.json' : '(Template - customize your JSON file)'}`,
+            'Paste in Chat',
+            'Edit Context File',
+            'View Full Context'
+        );
+
+        if (action === 'Edit Context File') {
+            if (!contextExists) {
+                // Create template file
+                const encoder = new TextEncoder();
+                await vscode.workspace.fs.writeFile(
+                    contextFilePath,
+                    encoder.encode(JSON.stringify(contextData, null, 2))
+                );
+            }
+            const doc = await vscode.workspace.openTextDocument(contextFilePath);
+            await vscode.window.showTextDocument(doc);
+        } else if (action === 'View Full Context') {
+            // Show in new untitled file
+            const doc = await vscode.workspace.openTextDocument({
+                content: contextPrompt,
+                language: 'markdown'
+            });
+            await vscode.window.showTextDocument(doc);
+        }
+    });
+
     // ==================== AUTO-SCAN ON SAVE ====================
     let autoScanDisposable = vscode.workspace.onDidSaveTextDocument(async (document) => {
-        const config = vscode.workspace.getConfiguration('aiSecurityGuardian');
+        const config = vscode.workspace.getConfiguration('aiDevEngineer');
         if (config.get('autoScanOnSave')) {
             const vulnerabilities = securityScanner.scan(document.getText(), document.fileName);
             if (vulnerabilities.length > 0) {
@@ -254,6 +426,68 @@ function activate(context) {
         }
     });
 
+    // ==================== CHAT PARTICIPANT: Auto-Context ====================
+    const chatParticipant = vscode.chat.createChatParticipant('ai-dev-engineer.context', async (request, chatContext, stream, token) => {
+        // Load project context
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        
+        if (!workspaceFolders) {
+            stream.markdown('No workspace folder open. Please open a project folder first.');
+            return;
+        }
+
+        const contextFilePath = vscode.Uri.joinPath(
+            workspaceFolders[0].uri,
+            '.vscode',
+            'ai-dev-engineer.json'
+        );
+
+        let contextData;
+        try {
+            const fileContent = await vscode.workspace.fs.readFile(contextFilePath);
+            contextData = JSON.parse(fileContent.toString());
+        } catch (error) {
+            stream.markdown('⚠️ No context file found. Create `.vscode/ai-dev-engineer.json` to track your project progress.');
+            return;
+        }
+
+        // Generate context markdown
+        const completedPages = contextData.improvementPlan?.completedPages || [];
+        const pagesQueue = contextData.improvementPlan?.pagesQueue || [];
+        const lastCompleted = completedPages.length > 0 ? completedPages[completedPages.length - 1].page : 'None';
+        const nextPage = pagesQueue.length > 0 ? pagesQueue[0] : 'TBD';
+
+        stream.markdown(`## 📋 ${contextData.projectName || 'Project'} Context\n\n`);
+        stream.markdown(`**Methodology:** ${contextData.improvementPlan?.methodology || 'Page-by-page improvements'}\n\n`);
+        stream.markdown(`**Current Phase:** ${contextData.improvementPlan?.currentPhase || 'Setup'}\n\n`);
+        stream.markdown(`**Last Completed:** ${lastCompleted}\n\n`);
+        stream.markdown(`**Next Target:** ${nextPage}\n\n`);
+        
+        if (completedPages.length > 0) {
+            stream.markdown(`### ✅ Completed Pages (${completedPages.length}):\n\n`);
+            completedPages.slice(-5).forEach(p => {
+                stream.markdown(`- **${p.page}** (${p.date}): ${p.improvements?.slice(0, 2).join(', ') || 'Improvements applied'}\n`);
+            });
+            stream.markdown('\n');
+        }
+
+        const securityPatterns = Object.keys(contextData.securityPatterns || {});
+        if (securityPatterns.length > 0) {
+            stream.markdown(`### 🔒 Security Patterns:\n${securityPatterns.join(', ')}\n\n`);
+        }
+
+        if (contextData.nextSteps && contextData.nextSteps.length > 0) {
+            stream.markdown(`### ⏭️ Next Steps:\n\n`);
+            contextData.nextSteps.slice(0, 3).forEach((step, i) => {
+                stream.markdown(`${i + 1}. ${step}\n`);
+            });
+        }
+
+        stream.markdown('\n\n---\n\n**Ready to continue!** What should we work on?\n');
+    });
+
+    chatParticipant.iconPath = new vscode.ThemeIcon('rocket');
+
     // Register all commands
     context.subscriptions.push(
         scanFileCommand,
@@ -261,7 +495,9 @@ function activate(context) {
         autoFixCommand,
         generateTestsCommand,
         showDashboardCommand,
-        autoScanDisposable
+        loadContextCommand,
+        autoScanDisposable,
+        chatParticipant
     );
 }
 
@@ -369,7 +605,7 @@ function getDashboardHTML() {
         </style>
     </head>
     <body>
-        <h1>🛡️ AI Security Guardian Dashboard</h1>
+        <h1>🛡️ AI Dev Engineer Dashboard</h1>
         <div class="stats">
             <div class="stat">
                 <div class="stat-value">0</div>
@@ -387,6 +623,44 @@ function getDashboardHTML() {
         <p>Start scanning files to see your security metrics!</p>
     </body>
     </html>`;
+}
+
+/**
+ * Show context welcome message on startup
+ */
+async function showContextWelcome(context) {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) return;
+
+    const contextFilePath = vscode.Uri.joinPath(
+        workspaceFolders[0].uri,
+        '.vscode',
+        'ai-dev-engineer.json'
+    );
+
+    let contextExists = false;
+    try {
+        await vscode.workspace.fs.readFile(contextFilePath);
+        contextExists = true;
+    } catch (error) {
+        // File doesn't exist
+        return;
+    }
+
+    if (contextExists) {
+        const action = await vscode.window.showInformationMessage(
+            '🚀 AI Dev Engineer: Ready! Context available for new chat sessions.',
+            'Copy Context Now',
+            'Don\'t Show Again'
+        );
+
+        if (action === 'Copy Context Now') {
+            vscode.commands.executeCommand('aiDevEngineer.loadContext');
+        } else if (action === 'Don\'t Show Again') {
+            const config = vscode.workspace.getConfiguration('aiDevEngineer');
+            await config.update('autoShowContextOnStartup', false, true);
+        }
+    }
 }
 
 function deactivate() {}
