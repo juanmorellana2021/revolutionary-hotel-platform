@@ -1174,6 +1174,22 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             -ms-user-select: none;
         }
 
+        /* Room status colors for room header */
+        .room-info.room-dirty {
+            background: linear-gradient(135deg, #92400e 0%, #78350f 100%) !important;
+            border: 2px solid #fbbf24;
+        }
+
+        .room-info.room-maintenance {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+            border: 2px solid #fb923c;
+        }
+
+        .room-info.room-out-of-order {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%) !important;
+            border: 2px solid #f87171;
+        }
+
         .room-details {
             text-align: center;
             user-select: none;
