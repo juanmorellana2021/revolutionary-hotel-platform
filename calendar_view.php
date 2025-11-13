@@ -1320,18 +1320,39 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
         }
 
         .day-cell.room-dirty {
-            border: 3px solid #dc2626;
-            background: rgba(220, 38, 38, 0.1);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+            border: 3px solid #f59e0b !important;
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        .day-cell.room-dirty::before {
+            content: "🧹 ";
+            font-size: 18px;
         }
 
         .day-cell.room-maintenance {
-            border: 3px solid #f59e0b;
-            background: rgba(245, 158, 11, 0.1);
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
+            border: 3px solid #ea580c !important;
+            color: #9a3412;
+            font-weight: 600;
+        }
+
+        .day-cell.room-maintenance::before {
+            content: "🔧 ";
+            font-size: 18px;
         }
 
         .day-cell.room-out-of-order {
-            border: 3px solid #ef4444;
-            background: rgba(239, 68, 68, 0.15);
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important;
+            border: 3px solid #dc2626 !important;
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        .day-cell.room-out-of-order::before {
+            content: "⚠️ ";
+            font-size: 18px;
         }
 
         .booking-info {
