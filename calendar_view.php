@@ -1657,7 +1657,11 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                     <?php foreach ($rooms as $room): ?>
                         <tr>
                             <td class="room-info <?php 
-                                $roomStatus = $room['status'] ?? 'clean';
+                                // Check today's status from room_status_by_date table
+                                $todayDate = date('Y-m-d');
+                                $statusKey = $room['id'] . '_' . $todayDate;
+                                $roomStatus = isset($roomStatusByDate[$statusKey]) ? $roomStatusByDate[$statusKey] : 'clean';
+                                
                                 if ($roomStatus === 'dirty') echo 'room-dirty';
                                 elseif ($roomStatus === 'maintenance') echo 'room-maintenance';
                                 elseif ($roomStatus === 'out_of_order') echo 'room-out-of-order';
