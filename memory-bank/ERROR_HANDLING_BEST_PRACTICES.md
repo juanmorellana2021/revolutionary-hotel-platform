@@ -363,4 +363,184 @@ curl http://localhost:3000/api/nonexistent
 
 ---
 
-**Remember**: Good error handling is invisible when things work, but saves the day when they don't!
+## 🚨 PHP Error Handling Best Practices
+
+### Critical Rule: Wrap ALL Database Queries in Try/Catch
+
+**WRONG - Causes HTTP 500 on empty tables:**
+```php
+// ❌ NO ERROR HANDLING
+$stmt = $pdo->query("SELECT * FROM users");
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+```
+
+**RIGHT - Graceful degradation:**
+```php
+// ✅ WITH ERROR HANDLING
+try {
+    $stmt = $pdo->query("SELECT * FROM users");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $users = []; // Empty array fallback
+    error_log("Query error: " . $e->getMessage());
+}
+```
+
+### Systematic Verification Process
+
+**Step 1: Find ALL database queries**
+```bash
+# Search for all PDO queries in file
+grep -n "\$pdo->" admin_bookings.php
+```
+
+**Step 2: Verify EACH query has try/catch**
+```bash
+# Check if query is inside try block
+# Line number from grep must be AFTER a "try {" line
+```
+
+**Step 3: Don't assume - verify line by line**
+```php
+// ❌ WRONG ASSUMPTION:
+// "I found 4 try/catch blocks, so all queries are covered"
+
+// ✅ CORRECT VERIFICATION:
+// Read the actual line numbers where queries occur
+// Confirm each is inside a try block
+```
+
+### Real-World Example: admin_bookings.php Issue
+
+**What went wrong:**
+```bash
+$ grep "try {" admin_bookings.php
+# Found matches on lines: 18, 928, 963, 980
+
+$ grep "\$pdo->prepare" admin_bookings.php  
+# Found matches on lines: 27, 42, 53, 63, 128, 153
+#                                           ^^^ ^^^
+# Lines 128 and 153 were NOT in try/catch blocks!
+```
+
+**The mistake:**
+- Saw 4 `try {` blocks
+- **Assumed** all queries were covered
+- Didn't verify the **actual line numbers** of main data queries
+- Result: HTTP 500 error when user clicked the link
+
+**The fix:**
+```php
+// Line 122-150: Main data queries
+try {
+    $count_sql = "SELECT COUNT(*) FROM ...";
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_bookings = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_bookings / $per_page);
+} catch (Exception $e) {
+    $total_bookings = 0;
+    $total_pages = 0;
+}
+
+try {
+    $sql = "SELECT b.*, e.name ... FROM ...";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $bookings = [];
+}
+```
+
+### Verification Checklist for PHP Admin Pages
+
+1. **Find all database operations:**
+   - [ ] `$pdo->query()`
+   - [ ] `$pdo->prepare()`
+   - [ ] `$stmt->execute()`
+   - [ ] `$stmt->fetch()`
+   - [ ] `$stmt->fetchAll()`
+
+2. **Verify each is wrapped:**
+   ```php
+   try {
+       // Database operation here
+   } catch (Exception $e) {
+       // Fallback value ([], 0, null, etc)
+   }
+   ```
+
+3. **Test the page:**
+   - [ ] Click the link in browser
+   - [ ] Verify no HTTP 500 error
+   - [ ] Check with empty database tables
+   - [ ] Check error logs: `tail -f /var/log/apache2/error.log`
+
+4. **Provide fallback values:**
+   ```php
+   catch (Exception $e) {
+       $users = [];           // For arrays
+       $count = 0;           // For counts
+       $total_revenue = 0;   // For sums
+       $avg_rating = 0;      // For averages
+   }
+   ```
+
+### Common Pitfalls to Avoid
+
+**Pitfall 1: Grepping for "try {" and assuming coverage**
+```bash
+# ❌ BAD: Only shows WHERE try blocks exist
+grep "try {" admin_file.php
+
+# ✅ GOOD: Shows WHERE queries are AND verifies try coverage
+grep -n "\$pdo->" admin_file.php
+# Then manually check each line is inside try block
+```
+
+**Pitfall 2: Only wrapping AJAX handlers**
+```php
+// ❌ INCOMPLETE
+if ($_POST['action']) {
+    try {
+        // AJAX queries wrapped
+    } catch (Exception $e) {}
+}
+
+// Main page queries NOT wrapped ❌
+$users = $pdo->query("SELECT ...")->fetchAll();
+```
+
+**Pitfall 3: Forgetting JOIN queries**
+```php
+// ❌ Especially risky with empty tables
+$sql = "SELECT u.*, p.business_name 
+        FROM users u
+        JOIN partners p ON u.partner_id = p.id";
+// If partners table is empty, this fails!
+```
+
+### Testing on Empty Database
+
+**Why this matters:**
+- New installations have empty tables
+- Queries return NULL instead of empty arrays
+- `json_encode(null)` causes JavaScript errors
+- Result: HTTP 500 error
+
+**How to test:**
+```bash
+# Truncate tables to simulate fresh install
+ssh prod-vps "mysql -u user -p database -e 'TRUNCATE aini_experience_bookings'"
+
+# Then click each admin link
+# All should load without 500 errors
+```
+
+---
+
+**Remember**: 
+- Good error handling is invisible when things work, but saves the day when they don't!
+- **NEVER assume - ALWAYS verify line-by-line for database queries**
+- Empty tables are your best test case for error handling

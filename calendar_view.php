@@ -2002,6 +2002,7 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             formData.append('date_mode', dateMode);
             formData.append('start_date', startDate);
             formData.append('end_date', endDate);
+            formData.append('csrf_token', '<?php echo $_SESSION['csrf_token']; ?>');
             
             // Send AJAX request
             fetch('calendar_view.php', {
