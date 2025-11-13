@@ -1095,8 +1095,32 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             backdrop-filter: blur(10px);
             padding: 20px;
             border-radius: 15px;
-            overflow-x: auto;
+            position: relative;
             margin-bottom: 30px;
+        }
+
+        /* Scrollable container for the table */
+        .calendar-scroll-container {
+            overflow-x: auto;
+            overflow-y: visible;
+            position: relative;
+        }
+
+        /* Sticky horizontal scrollbar at the top */
+        .calendar-top-scrollbar {
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-top-scrollbar > div {
+            height: 1px;
         }
 
         .calendar-table {
@@ -1609,20 +1633,27 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
 
         <!-- Calendar Grid -->
         <div class="calendar-wrapper">
-            <table class="calendar-table">
-                <thead>
-                    <tr>
-                        <th class="room-header">Room</th>
-                        <?php
-                        $daysInMonth = getDaysInMonth($currentMonth, $currentYear);
-                        for ($day = 1; $day <= $daysInMonth; $day++) {
-                            $dayOfWeek = date('D', mktime(0, 0, 0, $currentMonth, $day, $currentYear));
-                            echo "<th>{$day}<br><small>{$dayOfWeek}</small></th>";
-                        }
-                        ?>
-                    </tr>
-                </thead>
-                <tbody>
+            <!-- Sticky top scrollbar that stays visible -->
+            <div class="calendar-top-scrollbar" id="topScrollbar">
+                <div id="topScrollbarContent"></div>
+            </div>
+            
+            <!-- Main calendar scroll container -->
+            <div class="calendar-scroll-container" id="mainCalendar">
+                <table class="calendar-table">
+                    <thead>
+                        <tr>
+                            <th class="room-header">Room</th>
+                            <?php
+                            $daysInMonth = getDaysInMonth($currentMonth, $currentYear);
+                            for ($day = 1; $day <= $daysInMonth; $day++) {
+                                $dayOfWeek = date('D', mktime(0, 0, 0, $currentMonth, $day, $currentYear));
+                                echo "<th>{$day}<br><small>{$dayOfWeek}</small></th>";
+                            }
+                            ?>
+                        </tr>
+                    </thead>
+                    <tbody>
                     <?php foreach ($rooms as $room): ?>
                         <tr>
                             <td class="room-info <?php 
@@ -1775,7 +1806,8 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
+            </div> <!-- End calendar-scroll-container -->
+        </div> <!-- End calendar-wrapper -->
 
         <!-- Legend -->
         <div class="legend">
@@ -1845,6 +1877,50 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
         if (currentCurrency === 'PEN') {
             toggleCurrency();
         }
+
+        // ========================================
+        // STICKY SCROLLBAR SYNC
+        // ========================================
+        // Synchronize the top sticky scrollbar with the main calendar scroll
+        window.addEventListener('DOMContentLoaded', function() {
+            const topScrollbar = document.getElementById('topScrollbar');
+            const mainCalendar = document.getElementById('mainCalendar');
+            const topScrollbarContent = document.getElementById('topScrollbarContent');
+            const calendarTable = document.querySelector('.calendar-table');
+
+            // Set the width of the dummy content to match the table width
+            function updateScrollbarWidth() {
+                if (calendarTable) {
+                    topScrollbarContent.style.width = calendarTable.scrollWidth + 'px';
+                }
+            }
+
+            // Initial width setup
+            updateScrollbarWidth();
+
+            // Update on window resize
+            window.addEventListener('resize', updateScrollbarWidth);
+
+            // Sync main calendar scroll to top scrollbar
+            mainCalendar.addEventListener('scroll', function() {
+                if (!topScrollbar.scrollSyncing) {
+                    topScrollbar.scrollSyncing = true;
+                    topScrollbar.scrollLeft = mainCalendar.scrollLeft;
+                    setTimeout(() => topScrollbar.scrollSyncing = false, 10);
+                }
+            });
+
+            // Sync top scrollbar scroll to main calendar
+            topScrollbar.addEventListener('scroll', function() {
+                if (!mainCalendar.scrollSyncing) {
+                    mainCalendar.scrollSyncing = true;
+                    mainCalendar.scrollLeft = topScrollbar.scrollLeft;
+                    setTimeout(() => mainCalendar.scrollSyncing = false, 10);
+                }
+            });
+
+            console.log('✅ Sticky scrollbar initialized - Now you can scroll horizontally from the top!');
+        });
 
         // Sidebar toggle
         function toggleSidebar() {
