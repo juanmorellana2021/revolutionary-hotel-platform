@@ -1410,98 +1410,7 @@
 </head>
 <body class="bg-gray-50">
     
-    <!-- Single Menu Bar -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-primary to-secondary shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center">
-                    <span class="text-2xl font-bold text-white">
-                        🪙 AiNi Travel
-                    </span>
-                </div>
-                
-                <!-- Mobile Hamburger Button -->
-                <button class="mobile-menu-button text-white text-3xl" onclick="toggleMobileMenu()">
-                    ☰
-                </button>
-                
-                <!-- Navigation Links (Center - Desktop) -->
-                <nav class="hidden md:flex items-center space-x-1">
-                    <a href="#hotels" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        � Hotels
-                    </a>
-                    <a href="#experiences" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🎯 Experiences
-                    </a>
-                    <a href="travel_social.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🌍 Social
-                    </a>
-                    <a href="wallet.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🪙 Coins
-                    </a>
-                    <a href="partners/login.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🤝 Partners
-                    </a>
-                    <a href="#" onclick="openReservationsCart(event)" class="bg-cyan-400 text-white hover:bg-cyan-500 px-4 py-2 rounded-full transition font-medium relative shadow-lg">
-                        🛒 Cart
-                        <span id="cartCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
-                    </a>
-                </nav>
-                
-                <!-- Header Icons (Right) -->
-                <div class="flex items-center space-x-2">
-                    <!-- Language Selector -->
-                    <div class="relative">
-                        <button onclick="toggleLanguageMenu()" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-sm font-semibold text-white transition">
-                            🌐 ES
-                        </button>
-                        <div id="languageMenu" class="hidden absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <a href="?lang=es" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">🇪🇸 Español</a>
-                            <a href="?lang=en" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">🇺🇸 English</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Notifications -->
-                    <button class="relative px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full transition text-white">
-                        🔔
-                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-                    </button>
-                    
-                    <!-- Profile Menu -->
-                    <div class="relative">
-                        <button onclick="toggleProfileMenu()" class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full transition text-white">
-                            👤
-                        </button>
-                        <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <a href="profile.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">👤 My Profile</a>
-                            <a href="wallet.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">🪙 My Wallet</a>
-                            <a href="#mybookings" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">📅 My Bookings</a>
-                            <div class="border-t border-gray-200 my-1"></div>
-                            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100">🚪 Logout</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
-    <!-- Mobile Menu (Hidden by default) -->
-    <div id="mobileMenu" class="mobile-menu">
-        <a href="#hotels">🏨 Hotels</a>
-        <a href="#experiences">🎯 Experiences</a>
-        <a href="travel_social.php">🌍 Social</a>
-        <a href="wallet.php">🪙 Coins</a>
-        <a href="#" onclick="openReservationsCart(event)" class="relative" style="background: #22d3ee; padding: 0.75rem; border-radius: 0.5rem; font-weight: 600;">
-            🛒 Cart
-            <span id="cartCountMobile" class="absolute top-0 right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
-        </a>
-        <div class="border-t border-white/20 my-2 pt-2">
-            <a href="#" class="text-sm">🌐 ES</a>
-            <a href="#" class="text-sm">🔔 Notifications (3)</a>
-            <a href="#" class="text-sm">👤 Profile</a>
-        </div>
-    </div>
+    <?php include 'includes/navigation.php'; ?>
 
     <!-- Main Content - ONE SCREEN SPLIT VIEW -->
     <main class="h-screen flex flex-col">
@@ -1876,9 +1785,7 @@
         </div>
         <div class="header-nav">
             <nav class="main-nav">
-                <a href="#hotels" class="nav-item">🏨 Hotels</a>
-                <span class="nav-dot">•</span>
-                <a href="#experiences" class="nav-item">🎯 Experiences</a>
+                <a href="experiences_list.php" class="nav-item">🎯 Experiences</a>
                 <span class="nav-dot">•</span>
                 <a href="travel_social.php" class="nav-item">🌍 Social</a>
                 <span class="nav-dot">•</span>
@@ -2813,40 +2720,13 @@
             menu.classList.toggle('active');
         }
         
-        // Toggle Language Menu
-        function toggleLanguageMenu() {
-            const menu = document.getElementById('languageMenu');
-            const profileMenu = document.getElementById('profileMenu');
-            if (profileMenu) profileMenu.classList.add('hidden');
-            menu.classList.toggle('hidden');
-        }
-        
-        // Toggle Profile Menu
-        function toggleProfileMenu() {
-            const menu = document.getElementById('profileMenu');
-            const langMenu = document.getElementById('languageMenu');
-            if (langMenu) langMenu.classList.add('hidden');
-            menu.classList.toggle('hidden');
-        }
-        
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             const menu = document.getElementById('mobileMenu');
             const button = document.querySelector('.mobile-menu-button');
-            const langMenu = document.getElementById('languageMenu');
-            const profileMenu = document.getElementById('profileMenu');
             
-            // Close mobile menu
             if (menu && button && !menu.contains(event.target) && !button.contains(event.target)) {
                 menu.classList.remove('active');
-            }
-            
-            // Close dropdown menus when clicking outside
-            if (langMenu && !langMenu.contains(event.target) && !event.target.closest('button[onclick="toggleLanguageMenu()"]')) {
-                langMenu.classList.add('hidden');
-            }
-            if (profileMenu && !profileMenu.contains(event.target) && !event.target.closest('button[onclick="toggleProfileMenu()"]')) {
-                profileMenu.classList.add('hidden');
             }
         });
 

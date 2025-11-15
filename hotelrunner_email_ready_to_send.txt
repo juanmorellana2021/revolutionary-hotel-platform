@@ -1,0 +1,16 @@
+TO: partnerships@hotelrunner.com, sales@hotelrunner.com
+SUBJECT: Partnership Inquiry - Reselling Channel Manager API
+
+---
+
+Dear HotelRunner Team,
+
+My name is Juan Morellana and I'm the founder of AiNi Travel, a Property Management System serving independent hotels in Peru and Latin America. We're currently live with paying clients in Cusco and expanding throughout the region, and our hotels keep asking for integrated OTA connectivity to Booking.com, Expedia, Airbnb and similar channels. I'd like to explore reselling HotelRunner's channel manager API as part of our PMS offering, where we'd handle sales, billing and support under our brand while you provide the API infrastructure and OTA connections. Could you let me know if you have a reseller or partner program for PMS providers, what the commercial terms typically look like, and whether white-label integration is possible? I'd be happy to jump on a call to discuss how this could work and share more about our platform and growth plans.
+
+Best regards,
+
+Juan Morellana
+Founder & CEO, AiNi Travel Platform
+Email: [your-email@ainitravel.com]
+WhatsApp: +51 938 118 436
+Website: https://ainitravel.com

@@ -1,0 +1,16 @@
+{
+  "name": "security-ai-backend",
+  "version": "1.0.0",
+  "description": "Serverless API for AI Security Guardian license validation",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["vercel", "serverless", "license", "api"],
+  "author": "Juan Morellana",
+  "license": "MIT",
+  "dependencies": {
+    "crypto": "^1.0.1"
+  }
+}

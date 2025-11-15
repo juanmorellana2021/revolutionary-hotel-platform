@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniTravel - Coming Soon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 40px 20px;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            max-width: 800px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .coming-soon {
+            font-size: 2rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 40px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .description {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .launch-date {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #667eea;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 50px;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        .launch-date h2 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab-btn.active {
+            background: #ffd700;
+            color: #667eea;
+            border-color: #ffd700;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .feature i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .feature h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .notify-form {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 40px;
+        }
+
+        .notify-form h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .notify-form p {
+            margin-bottom: 25px;
+            opacity: 0.9;
+        }
+
+        .email-form {
+            display: flex;
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .email-form input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .email-form input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .email-form input:focus {
+            outline: none;
+            border-color: #ffd700;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .email-form button {
+            padding: 15px 40px;
+            background: #ffd700;
+            color: #667eea;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .email-form button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .social-links a {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .social-links a:hover {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: #ffd700;
+            transform: translateY(-5px);
+        }
+
+        .footer {
+            margin-top: 50px;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            50% {
+                transform: translateY(-100px) translateX(100px);
+            }
+        }
+
+        /* Honest Money Section Styles */
+        .honest-money-section {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            padding: 50px 40px;
+            border-radius: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 50px;
+            text-align: left;
+        }
+
+        .section-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #667eea;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            font-size: 1.3rem;
+            text-align: center;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .comparison-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .scam-card {
+            border-color: rgba(255, 68, 68, 0.5);
+            background: rgba(255, 68, 68, 0.05);
+        }
+
+        .honest-card {
+            border-color: rgba(76, 175, 80, 0.5);
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .card-header i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .scam-card .card-header i {
+            color: #ff4444;
+        }
+
+        .honest-card .card-header i {
+            color: #4caf50;
+        }
+
+        .card-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .badge-scam {
+            background: rgba(255, 68, 68, 0.3);
+            color: #ffcccc;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(255, 68, 68, 0.5);
+        }
+
+        .badge-honest {
+            background: rgba(76, 175, 80, 0.3);
+            color: #ccffcc;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+
+        .comparison-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .comparison-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .comparison-list li:last-child {
+            border-bottom: none;
+        }
+
+        .scam-card .comparison-list li i {
+            color: #ff4444;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .honest-card .comparison-list li i {
+            color: #4caf50;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .scam-fact, .honest-fact {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            border-left: 4px solid;
+        }
+
+        .scam-fact {
+            border-left-color: #ff4444;
+        }
+
+        .honest-fact {
+            border-left-color: #4caf50;
+        }
+
+        .transparency-panel {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            margin-bottom: 40px;
+        }
+
+        .transparency-panel h3 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+
+        .revenue-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .revenue-item {
+            text-align: center;
+        }
+
+        .revenue-icon {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .revenue-text strong {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .revenue-text p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .cta-transparent {
+            display: inline-block;
+            background: #ffd700;
+            color: #667eea;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            display: block;
+            width: fit-content;
+        }
+
+        .cta-transparent:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .manifesto {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 35px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+        }
+
+        .manifesto h3 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .manifesto-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            opacity: 0.95;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .coming-soon {
+                font-size: 1.5rem;
+                padding: 15px 30px;
+            }
+
+            .email-form {
+                flex-direction: column;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .honest-money-section {
+                padding: 30px 20px;
+            }
+
+            .transparency-panel {
+                padding: 25px 20px;
+            }
+
+            .revenue-breakdown {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles">
+        <div class="particle" style="width: 10px; height: 10px; top: 20%; left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="width: 15px; height: 15px; top: 40%; left: 80%; animation-delay: 2s;"></div>
+        <div class="particle" style="width: 8px; height: 8px; top: 60%; left: 30%; animation-delay: 4s;"></div>
+        <div class="particle" style="width: 12px; height: 12px; top: 80%; left: 70%; animation-delay: 6s;"></div>
+        <div class="particle" style="width: 20px; height: 20px; top: 30%; left: 50%; animation-delay: 8s;"></div>
+    </div>
+
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>AiniTravel</h1>
+        <p class="tagline">The Future of Hotel Technology</p>
+        
+        <div class="coming-soon">
+            ✨ Coming Soon ✨
+        </div>
+
+        <p class="description">
+            We're building the world's most advanced hotel management ecosystem powered by <strong>AI</strong>. 
+            Combining smart PMS, online booking platform, social networking, and <strong>AiNi Coin</strong> cryptocurrency rewards.
+        </p>
+
+        <div class="launch-date">
+            <h2>🚀 Launching Q1 2026</h2>
+            <p style="font-size: 1rem; opacity: 0.9; margin-top: 10px;">Be among the first 1,000 users to get lifetime premium benefits!</p>
+        </div>
+
+        <!-- Honest Money Section - AiNi Coin Truth -->
+        <div class="honest-money-section">
+            <div class="section-badge">💎 THE HONEST ALTERNATIVE</div>
+            <h2 class="section-title">Tired of Loyalty Programs That Steal Your Money?</h2>
+            <p class="section-subtitle">We expose the truth. Then we fix it.</p>
+            
+            <div class="comparison-grid">
+                <div class="comparison-card scam-card">
+                    <div class="card-header">
+                        <i class="fas fa-times-circle"></i>
+                        <h3>Traditional "Loyalty" Points</h3>
+                        <span class="badge-scam">THE SCAM</span>
+                    </div>
+                    <ul class="comparison-list">
+                        <li><i class="fas fa-skull-crossbones"></i> <strong>Points expire</strong> - They profit when you forget</li>
+                        <li><i class="fas fa-skull-crossbones"></i> <strong>Hidden fees</strong> - Complex rules designed to confuse</li>
+                        <li><i class="fas fa-skull-crossbones"></i> <strong>Devaluation</strong> - Change point values without notice</li>
+                        <li><i class="fas fa-skull-crossbones"></i> <strong>Breakage profit</strong> - $1.6B+ in unspent Starbucks cards</li>
+                        <li><i class="fas fa-skull-crossbones"></i> <strong>Black box</strong> - No transparency on backing or reserves</li>
+                    </ul>
+                    <div class="scam-fact">
+                        <strong>Industry Secret:</strong> Airlines bank on 20-30% of your miles expiring. 
+                        That's billions in pure profit from your forgetfulness.
+                    </div>
+                </div>
+
+                <div class="comparison-card honest-card">
+                    <div class="card-header">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>AiNi Coin</h3>
+                        <span class="badge-honest">THE TRUTH</span>
+                    </div>
+                    <ul class="comparison-list">
+                        <li><i class="fas fa-gem"></i> <strong>Never expire</strong> - Your money, forever</li>
+                        <li><i class="fas fa-gem"></i> <strong>Transparent fees</strong> - Simple: 3% to run the network. That's it.</li>
+                        <li><i class="fas fa-gem"></i> <strong>Fixed value</strong> - 1 coin = $1 USD, always</li>
+                        <li><i class="fas fa-gem"></i> <strong>No breakage games</strong> - We don't profit from your forgetfulness</li>
+                        <li><i class="fas fa-gem"></i> <strong>Live reserve fund</strong> - See real-time 1:1 backing proof</li>
+                    </ul>
+                    <div class="honest-fact">
+                        <strong>Our Promise:</strong> We make money from transparent fees, not tricks. 
+                        You can verify our reserve fund balance 24/7. Full transparency.
+                    </div>
+                </div>
+            </div>
+
+            <div class="transparency-panel">
+                <h3><i class="fas fa-shield-alt"></i> How We Actually Make Money (The Honest Truth)</h3>
+                <div class="revenue-breakdown">
+                    <div class="revenue-item">
+                        <div class="revenue-icon">3%</div>
+                        <div class="revenue-text">
+                            <strong>Network Fee</strong>
+                            <p>We charge partners 3% to process transactions. Fair, simple, transparent.</p>
+                        </div>
+                    </div>
+                    <div class="revenue-item">
+                        <div class="revenue-icon">$0</div>
+                        <div class="revenue-text">
+                            <strong>Expiration Profit</strong>
+                            <p>Your coins never expire. We don't make money from forgotten balances.</p>
+                        </div>
+                    </div>
+                    <div class="revenue-item">
+                        <div class="revenue-icon">1:1</div>
+                        <div class="revenue-text">
+                            <strong>Full Backing</strong>
+                            <p>Every coin backed by real reserves. Check our reserve fund anytime.</p>
+                        </div>
+                    </div>
+                </div>
+                <a href="#reserve-fund" class="cta-transparent">View Live Reserve Fund →</a>
+            </div>
+
+            <div class="manifesto">
+                <h3>🔥 Why We Built This</h3>
+                <p class="manifesto-text">
+                    AI is exposing every scam in the loyalty industry. Consumers are waking up. 
+                    The old tricks don't work anymore. So we built the <strong>honest alternative</strong>: 
+                    no expiration, no hidden fees, no breakage profit. Just fair, transparent value exchange. 
+                    This is the future of loyalty - and the scammers know it.
+                </p>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <i class="fas fa-hotel"></i>
+                <h3>Smart PMS</h3>
+                <p>AI-powered property management system</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-globe"></i>
+                <h3>Online Booking</h3>
+                <p>Direct bookings platform for your hotel</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-users"></i>
+                <h3>Social Network</h3>
+                <p>Travel community connecting guests & hotels</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-robot"></i>
+                <h3>AI Assistant</h3>
+                <p>24/7 intelligent chatbot for guest support</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-coins"></i>
+                <h3>AiNi Coin</h3>
+                <p>Earn crypto rewards on every booking</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-chart-line"></i>
+                <h3>Smart Analytics</h3>
+                <p>AI-driven insights & revenue optimization</p>
+            </div>
+        </div>
+
+        <div class="notify-form">
+            <h3>🎁 Get Early Access Benefits</h3>
+            <p>Join now and get exclusive rewards when we launch!</p>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('travelers')">
+                    <i class="fas fa-user"></i> I'm a Traveler
+                </button>
+                <button class="tab-btn" onclick="switchTab('properties')">
+                    <i class="fas fa-building"></i> I Own a Hotel
+                </button>
+            </div>
+
+            <!-- Travelers Tab -->
+            <div class="tab-content active" id="travelers-tab">
+                <p style="margin-bottom: 20px;">
+                    <strong>Early Bird Benefits:</strong><br>
+                    ✅ Lifetime 5% discount on all bookings<br>
+                    ✅ 1,000 AiNi Coins welcome bonus ($100 value)<br>
+                    ✅ VIP traveler status for life
+                </p>
+                <form class="email-form" id="traveler-form">
+                    <input type="email" id="traveler-email" placeholder="Enter your email" required>
+                    <button type="submit">Join Waitlist</button>
+                </form>
+                <div class="success-message" id="traveler-success">
+                    ✓ Welcome! Check your email for exclusive early access details.
+                </div>
+            </div>
+
+            <!-- Properties Tab -->
+            <div class="tab-content" id="properties-tab">
+                <p style="margin-bottom: 20px;">
+                    <strong>Early Partner Benefits:</strong><br>
+                    ✅ FREE PMS for first 6 months ($594 value)<br>
+                    ✅ 0% commission on first 100 bookings<br>
+                    ✅ Featured listing on launch day<br>
+                    ✅ Dedicated onboarding specialist
+                </p>
+                <form class="email-form" id="property-form">
+                    <input type="email" id="property-email" placeholder="Hotel email address" required>
+                    <button type="submit">Register Property</button>
+                </form>
+                <div class="success-message" id="property-success">
+                    ✓ Registered! Our team will contact you within 24 hours with onboarding details.
+                </div>
+            </div>
+        </div>
+
+        <div class="social-links">
+            <a href="mailto:juan.ceo@ainitravel.com" title="Email Us">
+                <i class="fas fa-envelope"></i>
+            </a>
+            <a href="#" title="LinkedIn">
+                <i class="fab fa-linkedin"></i>
+            </a>
+            <a href="#" title="Twitter">
+                <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" title="Instagram">
+                <i class="fab fa-instagram"></i>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2025 AiniTravel. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tab) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.tab-btn').classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        // Handle traveler waitlist form
+        document.getElementById('traveler-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('traveler-email').value;
+            
+            // Send to server
+            fetch('save_waitlist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    type: 'traveler',
+                    benefits: 'Lifetime 5% discount, 1000 AiNi Coins, VIP status'
+                })
+            }).catch(err => console.log('Saved locally'));
+            
+            document.getElementById('traveler-success').style.display = 'block';
+            document.getElementById('traveler-email').value = '';
+            
+            setTimeout(() => {
+                document.getElementById('traveler-success').style.display = 'none';
+            }, 5000);
+        });
+
+        // Handle property registration form
+        document.getElementById('property-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('property-email').value;
+            
+            // Send to server
+            fetch('save_waitlist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    type: 'property',
+                    benefits: 'Free 6 months PMS, 0% commission first 100 bookings, Featured listing'
+                })
+            }).catch(err => console.log('Saved locally'));
+            
+            // Send email notification to admin
+            fetch('mailto:juan.ceo@ainitravel.com?subject=New Property Registration&body=Hotel registered: ' + email);
+            
+            document.getElementById('property-success').style.display = 'block';
+            document.getElementById('property-email').value = '';
+            
+            setTimeout(() => {
+                document.getElementById('property-success').style.display = 'none';
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

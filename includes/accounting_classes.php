@@ -100,7 +100,7 @@ class IncomeManager {
             $params[] = $filters['payment_status'];
         }
         
-        $sql .= " ORDER BY i.transaction_date DESC, i.created_at DESC";
+        $sql .= " ORDER BY i.created_at DESC, i.transaction_date DESC";
         
         if (!empty($filters['limit'])) {
             $sql .= " LIMIT " . intval($filters['limit']);
@@ -229,12 +229,12 @@ class ExpenseManager {
                 $data['vendor_contact'] ?? '',
                 $data['invoice_number'] ?? '',
                 $data['expense_date'] ?? date('Y-m-d'),
-                $data['is_recurring'] ?? false,
+                isset($data['is_recurring']) ? (int)$data['is_recurring'] : 0,
                 $data['recurring_frequency'] ?? null,
                 $data['next_due_date'] ?? null,
                 $data['paid_by'] ?? null,
                 $data['status'] ?? 'paid',
-                $data['tax_deductible'] ?? 0,
+                isset($data['tax_deductible']) ? (int)$data['tax_deductible'] : 0,
                 $data['notes'] ?? ''
             ]);
             

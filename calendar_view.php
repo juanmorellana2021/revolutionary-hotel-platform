@@ -767,7 +767,166 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: #e0e0e0;
             min-height: 100vh;
-            transition: margin-left 0.3s ease;
+            transition: margin-left 0.3s ease, background 0.5s ease, color 0.5s ease;
+        }
+        
+        /* Dark Theme (Default) */
+        body.dark-theme {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+        }
+        
+        body.dark-theme .sidebar {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        body.dark-theme .calendar-container {
+            background: rgba(30, 41, 59, 0.6);
+        }
+        
+        body.dark-theme .calendar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        body.dark-theme table {
+            background: rgba(15, 23, 42, 0.8);
+        }
+        
+        body.dark-theme th {
+            background: rgba(30, 41, 59, 0.9);
+            color: #94a3b8;
+        }
+        
+        body.dark-theme .day-cell {
+            background: rgba(30, 41, 59, 0.4);
+            color: #cbd5e1;
+        }
+        
+        body.dark-theme .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e0e0e0;
+        }
+        
+        /* Light Theme */
+        body.light-theme {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            color: #1a202c;
+        }
+        
+        body.light-theme .sidebar {
+            background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.light-theme .menu-item {
+            color: #4a5568;
+        }
+        
+        body.light-theme .menu-item:hover {
+            background: rgba(66, 153, 225, 0.1);
+            color: #3182ce;
+            border-left-color: #3182ce;
+        }
+        
+        body.light-theme .menu-item.active {
+            background: rgba(66, 153, 225, 0.15);
+            color: #3182ce;
+            border-left-color: #3182ce;
+        }
+        
+        body.light-theme .hotel-name {
+            color: #3182ce;
+        }
+        
+        body.light-theme .calendar-container {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.light-theme .calendar-header {
+            background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+        }
+        
+        body.light-theme table {
+            background: #ffffff;
+        }
+        
+        body.light-theme th {
+            background: #edf2f7;
+            color: #2d3748;
+            border-bottom: 2px solid #cbd5e0;
+        }
+        
+        body.light-theme td {
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+        }
+        
+        body.light-theme .day-cell {
+            background: #ffffff;
+            color: #2d3748;
+        }
+        
+        body.light-theme .day-cell:hover {
+            background: #f7fafc;
+        }
+        
+        body.light-theme .booked {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+        
+        body.light-theme .room-info {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+        }
+        
+        body.light-theme .modal-content {
+            background: white;
+            color: #1a202c;
+        }
+        
+        body.light-theme .modal-header {
+            background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+        }
+        
+        body.light-theme input,
+        body.light-theme select,
+        body.light-theme textarea {
+            background: #f7fafc;
+            color: #2d3748;
+            border: 1px solid #cbd5e0;
+        }
+        
+        body.light-theme input:focus,
+        body.light-theme select:focus,
+        body.light-theme textarea:focus {
+            border-color: #4299e1;
+            background: white;
+        }
+        
+        body.light-theme .toggle-btn {
+            background: #ffffff;
+            color: #2d3748;
+        }
+        
+        body.light-theme .theme-toggle,
+        body.light-theme .currency-toggle {
+            background: rgba(66, 153, 225, 0.1);
+            color: #3182ce;
+        }
+        
+        body.light-theme .theme-toggle:hover,
+        body.light-theme .currency-toggle:hover {
+            background: rgba(66, 153, 225, 0.2);
+        }
+        
+        body.light-theme .dropdown-item {
+            color: #4a5568;
+        }
+        
+        body.light-theme .dropdown-item:hover {
+            color: #3182ce;
         }
 
         /* Import sidebar from includes */
@@ -1975,11 +2134,39 @@ if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
             document.querySelector('.sidebar').classList.add('collapsed');
         }
 
-        // Theme toggle
+        // Theme toggle with dark/light mode
         function toggleTheme() {
-            // Placeholder for theme functionality
-            alert('Theme toggle coming soon!');
+            const body = document.body;
+            const themeBtn = document.querySelector('.theme-toggle');
+            
+            if (body.classList.contains('dark-theme')) {
+                // Switch to light mode
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                themeBtn.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                // Switch to dark mode
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                themeBtn.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
         }
+        
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const themeBtn = document.querySelector('.theme-toggle');
+            
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                if (themeBtn) themeBtn.textContent = '🌙';
+            } else {
+                document.body.classList.add('dark-theme');
+                if (themeBtn) themeBtn.textContent = '☀️';
+            }
+        });
 
         // Dropdown toggle for Rooms menu
         function toggleDropdown(element) {

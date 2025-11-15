@@ -68,16 +68,63 @@ if (!$booking) {
     die('Booking not found');
 }
 
+// Generate unique receipt number
+function generateReceiptNumber($bookingId) {
+    return 'RCP-' . date('Ymd') . '-' . str_pad($bookingId, 6, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(md5(uniqid()), 0, 4));
+}
+
+// Log receipt generation to database
+function logReceiptGeneration($connection, $bookingId, $booking, $action, $emailTo = null) {
+    $receiptNumber = generateReceiptNumber($bookingId);
+    $userId = $_SESSION['user_id'] ?? null;
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+    
+    $stmt = $connection->prepare("
+        INSERT INTO receipts (
+            booking_id, receipt_number, receipt_type, 
+            guest_name, guest_email, total_amount, payment_status,
+            generated_by, email_sent_to, email_sent_at, 
+            ip_address, user_agent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    $emailSentAt = ($action === 'email' && $emailTo) ? date('Y-m-d H:i:s') : null;
+    
+    $stmt->execute([
+        $bookingId,
+        $receiptNumber,
+        $action,
+        $booking['display_guest_name'],
+        $booking['guest_email'] ?? $booking['email'],
+        $booking['total_price'],
+        $booking['payment_status'],
+        $userId,
+        $emailTo,
+        $emailSentAt,
+        $ipAddress,
+        $userAgent
+    ]);
+    
+    return $receiptNumber;
+}
+
 // Handle different actions
 switch ($action) {
     case 'pdf':
+        // Log PDF generation
+        $receiptNumber = logReceiptGeneration($connection, $bookingId, $booking, 'pdf');
+        
         $pdfGenerator = new ReceiptPDFGenerator($booking);
         $pdfGenerator->generatePDF();
         exit;
         
     case 'email':
-        $emailSender = new ReceiptEmailSender();
+        // Log email action
         $customEmail = $_GET['email'] ?? null;
+        $receiptNumber = logReceiptGeneration($connection, $bookingId, $booking, 'email', $customEmail);
+        
+        $emailSender = new ReceiptEmailSender();
         $result = $emailSender->sendReceiptEmail($booking, $customEmail);
         
         // Return JSON response for AJAX calls
@@ -93,11 +140,17 @@ switch ($action) {
         exit;
         
     case 'print':
+        // Log print action
+        $receiptNumber = logReceiptGeneration($connection, $bookingId, $booking, 'print');
+        
         // This will show the receipt with print-optimized styles
         $printMode = true;
         break;
         
     default:
+        // Log view action
+        $receiptNumber = logReceiptGeneration($connection, $bookingId, $booking, 'view');
+        
         $printMode = false;
         break;
 }
