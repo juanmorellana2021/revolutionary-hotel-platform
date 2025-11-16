@@ -20,6 +20,8 @@ This isn't just a hotel booking system—it's a complete hospitality ecosystem t
 
 ## 🚀 **Quick Start Setup**
 
+> 📖 **New to the AI Assistant?** Check out [HOW_TO_USE_AI_ASSISTANT.md](HOW_TO_USE_AI_ASSISTANT.md) for a comprehensive guide on how to work with GitHub Copilot on this project!
+
 ### Step 1: Start XAMPP Services
 1. Open **XAMPP Control Panel**
 2. Click **Start** for both:
