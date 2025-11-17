@@ -707,6 +707,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         $checkIn = cleanInput($_POST['edit_check_in'], 'string');
         $checkOut = cleanInput($_POST['edit_check_out'], 'string');
         $totalPrice = cleanInput($_POST['edit_total_price'], 'float');
+        $paidAmount = cleanInput($_POST['edit_paid_amount'] ?? 0, 'float');
+        $paidCurrency = cleanInput($_POST['edit_paid_currency'] ?? 'USD', 'string');
         $passportNumber = cleanInput($_POST['edit_passport_number'] ?? '', 'string');
         $idNumber = cleanInput($_POST['edit_id_number'] ?? '', 'string');
         $specialRequests = cleanInput($_POST['edit_special_requests'] ?? '', 'string');
@@ -721,6 +723,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
                 check_in_date = ?, 
                 check_out_date = ?, 
                 total_price = ?,
+                paid_amount = ?,
+                paid_currency = ?,
                 passport_number = ?,
                 id_number = ?,
                 special_requests = ?
@@ -735,6 +739,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
             $checkIn,
             $checkOut,
             $totalPrice,
+            $paidAmount,
+            $paidCurrency,
             $passportNumber,
             $idNumber,
             $specialRequests,
@@ -752,6 +758,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
     }
     
     // Redirect to calendar with cache-busting timestamp
+    $month = isset($_GET['month']) ? (int)$_GET['month'] : date('n');
+    $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
+    $timestamp = time();
+    header("Location: calendar_view_modern.php?month={$month}&year={$year}&refresh={$timestamp}");
+    exit;
+}
+
+// Handle extend stay functionality
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['extend_stay'])) {
+    $bookingId = (int)$_POST['extend_booking_id'];
+    $newCheckoutDate = $_POST['new_checkout_date'];
+    $paymentMethod = $_POST['extend_payment_method'];
+    $paymentType = $_POST['extend_payment_type'] ?? '';
+    $paymentDueDate = $_POST['payment_due_date'] ?? null;
+    $paymentNotes = $_POST['extend_payment_notes'] ?? $_POST['extend_payment_notes_later'] ?? '';
+    $discountAmount = (float)($_POST['extend_discount_amount'] ?? 0);
+    
+    try {
+        // Get current booking details
+        $stmt = $connection->prepare("
+            SELECT b.*, r.price as room_price 
+            FROM bookings b 
+            JOIN rooms r ON b.room_id = r.id 
+            WHERE b.id = ?
+        ");
+        $stmt->execute([$bookingId]);
+        $currentBooking = $stmt->fetch();
+        
+        if (!$currentBooking) {
+            throw new Exception("Booking not found");
+        }
+        
+        // Calculate additional nights
+        $currentCheckout = new DateTime($currentBooking['check_out_date']);
+        $newCheckout = new DateTime($newCheckoutDate);
+        $additionalNights = $currentCheckout->diff($newCheckout)->days;
+        
+        if ($additionalNights <= 0) {
+            throw new Exception("Nueva fecha de checkout debe ser después de la fecha actual");
+        }
+        
+        // Calculate extension cost in PEN (room price per night from current booking context)
+        // The cost is based on the discount amount per night in PEN
+        $extensionSubtotal = $additionalNights * $discountAmount; // This is now in PEN
+        $extensionTotal = $extensionSubtotal; // No additional discount applied
+        
+        // Update booking checkout date and add extension cost to total
+        // Store extension cost in PEN for now
+        $newTotalPrice = (float)$currentBooking['total_price'] + $extensionTotal;
+        
+        $stmt = $connection->prepare("
+            UPDATE bookings 
+            SET check_out_date = ?, total_price = ? 
+            WHERE id = ?
+        ");
+        $stmt->execute([$newCheckoutDate, $newTotalPrice, $bookingId]);
+        
+        // Create extension record
+        $stmt = $connection->prepare("
+            INSERT INTO booking_extensions 
+            (booking_id, original_checkout, new_checkout, extension_days, extension_cost, discount_amount, final_cost, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+        
+        $stmt->execute([
+            $bookingId,
+            $currentBooking['check_out_date'],
+            $newCheckoutDate,
+            $additionalNights,
+            $extensionSubtotal,
+            $discountAmount,
+            $extensionTotal
+        ]);
+        
+        // Create booking note about extension
+        $stmt = $connection->prepare("
+            INSERT INTO booking_notes (booking_id, note, created_by, created_at) 
+            VALUES (?, ?, ?, NOW())
+        ");
+        $userId = $_SESSION['user_id'] ?? 1;
+        $note = "Estadía extendida desde {$currentBooking['check_out_date']} a {$newCheckoutDate} ({$additionalNights} noches). Método de pago: {$paymentMethod}";
+        $stmt->execute([$bookingId, $note, $userId]);
+        
+        $_SESSION['success_message'] = "¡Reserva extendida exitosamente!";
+        
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = "Error al extender la reserva: " . $e->getMessage();
+    }
+    
+    // Redirect to calendar
     $month = isset($_GET['month']) ? (int)$_GET['month'] : date('n');
     $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
     $timestamp = time();
@@ -1493,6 +1589,32 @@ $headTemplate->render();
             background: rgba(51, 65, 85, 0.5);
         }
 
+        /* Highlight current day with soft blue transparent overlay */
+        .day-cell.today {
+            position: relative;
+        }
+        
+        .day-cell.today::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(96, 165, 250, 0.15);
+            border: 2px solid rgba(96, 165, 250, 0.4);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .day-cell.today .day-number,
+        .day-cell.today .guest-name,
+        .day-cell.today .booking-info {
+            position: relative;
+            z-index: 2;
+        }
+
         .day-cell.room-dirty {
             border: 3px solid #dc2626;
             background: rgba(220, 38, 38, 0.1);
@@ -1792,6 +1914,12 @@ $headTemplate->render();
             color: #0369a1 !important;
         }
 
+        /* Light theme today highlight */
+        html.light-theme .day-cell.today::before {
+            background: rgba(59, 130, 246, 0.12) !important;
+            border: 2px solid rgba(59, 130, 246, 0.5) !important;
+        }
+
         html.light-theme .day-cell.booked {
             background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
             color: #7f1d1d !important;
@@ -1996,6 +2124,7 @@ $headTemplate->render();
                                 
                                 $cellClass = 'day-cell';
                                 if ($isWeekend) $cellClass .= ' weekend';
+                                if ($isToday) $cellClass .= ' today';
                                 
                                 if ($booking) {
                                     if ($currentDate == $booking['check_out_date']) {
@@ -2645,6 +2774,7 @@ $headTemplate->render();
                 });
             }
         });
+
         // Helper functions for Guest Info Modal
         const USD_TO_PEN_RATE = <?php echo $exchangeRate; ?>;
         
@@ -2899,6 +3029,8 @@ $headTemplate->render();
             document.getElementById('edit_check_in').value = currentBookingData.check_in_date;
             document.getElementById('edit_check_out').value = currentBookingData.check_out_date;
             document.getElementById('edit_total_price').value = currentBookingData.total_price;
+            document.getElementById('edit_paid_amount').value = currentBookingData.paid_amount || 0;
+            document.getElementById('edit_paid_currency').value = currentBookingData.paid_currency || 'USD';
             document.getElementById('edit_special_requests').value = currentBookingData.special_requests || '';
             
             document.getElementById('editBookingModal').style.display = 'flex';
@@ -3078,6 +3210,10 @@ $headTemplate->render();
             // Calculate total
             const totalPEN = subtotalPEN - discountPEN;
             document.getElementById('extension_total').textContent = `S/ ${totalPEN.toFixed(2)}`;
+            
+            // Update hidden fields for form submission
+            document.getElementById('extend_extension_cost').value = subtotalPEN.toFixed(2);
+            document.getElementById('extend_final_total').value = totalPEN.toFixed(2);
         }
 
         // Room Management Modal Functions
@@ -3824,6 +3960,16 @@ $headTemplate->render();
                         <label for="edit_total_price">💰 Total Price (USD)</label>
                         <input type="number" id="edit_total_price" name="edit_total_price" step="0.01" required>
                     </div>
+                    <div class="form-group">
+                        <label for="edit_paid_amount">💵 Amount Paid</label>
+                        <div style="display: flex; gap: 10px; align-items: flex-start;">
+                            <input type="number" id="edit_paid_amount" name="edit_paid_amount" step="0.01" value="0" style="flex: 1;">
+                            <select id="edit_paid_currency" name="edit_paid_currency" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; min-width: 100px;">
+                                <option value="USD">USD $</option>
+                                <option value="PEN">PEN S/</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-row">
@@ -3875,6 +4021,8 @@ $headTemplate->render();
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <input type="hidden" id="extend_booking_id" name="extend_booking_id">
                 <input type="hidden" name="extend_stay" value="1">
+                <input type="hidden" id="extend_extension_cost" name="extend_extension_cost" value="0">
+                <input type="hidden" id="extend_final_total" name="extend_final_total" value="0">
                 
                 <!-- Current Booking Information -->
                 <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 25px;">
@@ -4573,6 +4721,30 @@ $headTemplate->render();
         </main>
     </div>
 </div>
+
+<script>
+    // Scroll to today's date when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            const todayCell = document.querySelector('.day-cell.today');
+            if (todayCell) {
+                // Get the calendar wrapper
+                const calendarWrapper = document.querySelector('.calendar-wrapper');
+                if (calendarWrapper) {
+                    // Scroll horizontally to the today column
+                    const cellPosition = todayCell.offsetLeft;
+                    const containerWidth = calendarWrapper.offsetWidth;
+                    const scrollPosition = cellPosition - (containerWidth / 2) + (todayCell.offsetWidth / 2);
+                    
+                    calendarWrapper.scrollLeft = Math.max(0, scrollPosition);
+                }
+                
+                // Optionally scroll the page to the calendar
+                todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
+    });
+</script>
 
 </body>
 </html>
