@@ -404,16 +404,29 @@ function toggleSidebar() {
     }
 }
 
-// Dropdown toggle function
+// Dropdown toggle function - uses hidden class for visibility
 function toggleDropdown(button) {
-    const menu = button.nextElementSibling;
+    // Find the parent li (dropdown-item)
+    const dropdownItem = button.closest('.dropdown-item');
+    if (!dropdownItem) return;
+    
+    // Find the menu within this dropdown item
+    const menu = dropdownItem.querySelector('.dropdown-menu');
+    if (!menu) return;
+    
     const arrow = button.querySelector('.dropdown-arrow');
-
-    if (menu) {
-        menu.classList.toggle('hidden');
-        if (arrow) {
-            arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-        }
+    const isHidden = menu.classList.contains('hidden');
+    
+    if (isHidden) {
+        // Show menu
+        menu.classList.remove('hidden');
+        menu.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        // Hide menu
+        menu.classList.add('hidden');
+        menu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
     }
 }
 </script>

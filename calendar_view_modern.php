@@ -1068,15 +1068,26 @@ $headTemplate->render();
             transform: rotate(180deg);
         }
 
-        .dropdown-menu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-            padding-left: 20px;
+        /* Sidebar dropdown menu styling - ensure proper dropdown display */
+        .sidebar .dropdown-item {
+            display: block !important;
+            padding: 0;
         }
 
-        .dropdown-menu.open {
-            max-height: 200px;
+        .sidebar .dropdown-menu {
+            display: block !important;
+            width: 100%;
+            margin-top: 0.25rem;
+            padding: 0.5rem 0 0.5rem 1rem;
+        }
+
+        .sidebar .dropdown-menu.hidden {
+            display: none !important;
+        }
+
+        .sidebar .dropdown-link {
+            display: flex;
+            width: 100%;
         }
 
         .dropdown-item {
@@ -2247,22 +2258,6 @@ $headTemplate->render();
                 setTimeout(updateStickyScrollbar, 100);
             }
         });
-
-        // Dropdown toggle for Rooms menu
-        function toggleDropdown(element) {
-            const menuItem = element.parentElement;
-            const dropdownMenu = menuItem.querySelector('.dropdown-menu');
-            const arrow = element.querySelector('.dropdown-arrow');
-            
-            menuItem.classList.toggle('open');
-            dropdownMenu.classList.toggle('open');
-            
-            if (menuItem.classList.contains('open')) {
-                arrow.style.transform = 'rotate(180deg)';
-            } else {
-                arrow.style.transform = 'rotate(0deg)';
-            }
-        }
 
         // Cell click handler
         function cellClick(roomId, date, status, bookingData) {
