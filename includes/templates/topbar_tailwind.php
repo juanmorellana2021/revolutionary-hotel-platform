@@ -135,7 +135,7 @@ class TopbarTemplate {
             </button>
 
             <!-- User Dropdown -->
-            <div id="userDropdown" class="hidden absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 p-2">
+            <div id="userDropdown" class="hidden absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[9999] p-2">
                 <a href="profile.php" class="flex items-center gap-3 px-3 py-2.5 text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-150">
                     <i class="fas fa-user w-5 text-center"></i>
                     <span class="text-sm">Profile</span>
