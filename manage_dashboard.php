@@ -65,8 +65,7 @@ $userBookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $rooms = $roomObj->getAllRooms();
 
 // Initialize templates
-$headTemplate = new HeadTemplate();
-$headTemplate->setTitle(($hotel['hotel_name'] ?? 'Dashboard') . ' - Dashboard');
+$headTemplate = new HeadTemplate('Dashboard', $hotel['hotel_name'] ?? 'AiNi Travel PMS');
 $headTemplate->render();
 
 $sidebarTemplate = new SidebarTemplate($hotel['hotel_name'] ?? 'AiNi Travel PMS', 'dashboard', $userInfo['role'] ?? 'manager');
