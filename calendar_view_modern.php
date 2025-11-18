@@ -714,6 +714,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         $idNumber = cleanInput($_POST['edit_id_number'] ?? '', 'string');
         $specialRequests = cleanInput($_POST['edit_special_requests'] ?? '', 'string');
         
+        // Get exchange rate for currency comparison
+        $currencyMgr = new CurrencyManager();
+        $rate = $currencyMgr->getExchangeRate();
+        
+        // Calculate payment status based on paid amount
+        // Need to normalize currencies for comparison
+        $totalInUSD = $totalPriceCurrency === 'PEN' ? $totalPrice / $rate : $totalPrice;
+        $paidInUSD = $paidCurrency === 'PEN' ? $paidAmount / $rate : $paidAmount;
+        
+        $paymentStatus = 'pending';
+        if ($paidInUSD >= $totalInUSD) {
+            $paymentStatus = 'paid';
+        } elseif ($paidInUSD > 0) {
+            $paymentStatus = 'partial';
+        }
+        
         // Update the booking
         $stmt = $connection->prepare("
             UPDATE bookings 
@@ -727,6 +743,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
                 total_price_currency = ?,
                 paid_amount = ?,
                 paid_currency = ?,
+                payment_status = ?,
                 passport_number = ?,
                 id_number = ?,
                 special_requests = ?
@@ -744,6 +761,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
             $totalPriceCurrency,
             $paidAmount,
             $paidCurrency,
+            $paymentStatus,
             $passportNumber,
             $idNumber,
             $specialRequests,
@@ -2620,18 +2638,12 @@ $headTemplate->render();
                 }
                 
                 if (amountInfo) {
-                    let amount = currentBookingData.total_amount || currentBookingData.total_price_usd || currentBookingData.total_price || 0;
-                    console.log('Amount:', amount);
+                    let amount = currentBookingData.total_amount || currentBookingData.total_price || 0;
+                    let currency = currentBookingData.total_price_currency || 'USD';
+                    console.log('Amount:', amount, 'Currency:', currency);
                     
                     if (amount && !isNaN(amount)) {
-                        const usdAmount = parseFloat(amount).toFixed(2);
-                        const penAmount = (parseFloat(amount) * USD_TO_PEN_RATE).toFixed(2);
-                        
-                        if (currentCurrency === 'USD') {
-                            amountInfo.innerHTML = `$${usdAmount} USD <span style="color: #94a3b8; font-size: 0.9em;">(S/ ${penAmount} PEN)</span>`;
-                        } else {
-                            amountInfo.innerHTML = `S/ ${penAmount} PEN <span style="color: #94a3b8; font-size: 0.9em;">($${usdAmount} USD)</span>`;
-                        }
+                        amountInfo.innerHTML = formatStoredPrice(amount, currency);
                     } else {
                         amountInfo.textContent = `Monto no disponible`;
                     }
