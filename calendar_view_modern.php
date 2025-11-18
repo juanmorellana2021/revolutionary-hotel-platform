@@ -707,6 +707,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
         $checkIn = cleanInput($_POST['edit_check_in'], 'string');
         $checkOut = cleanInput($_POST['edit_check_out'], 'string');
         $totalPrice = cleanInput($_POST['edit_total_price'], 'float');
+        $totalPriceCurrency = cleanInput($_POST['edit_total_price_currency'] ?? 'USD', 'string');
         $paidAmount = cleanInput($_POST['edit_paid_amount'] ?? 0, 'float');
         $paidCurrency = cleanInput($_POST['edit_paid_currency'] ?? 'USD', 'string');
         $passportNumber = cleanInput($_POST['edit_passport_number'] ?? '', 'string');
@@ -723,6 +724,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
                 check_in_date = ?, 
                 check_out_date = ?, 
                 total_price = ?,
+                total_price_currency = ?,
                 paid_amount = ?,
                 paid_currency = ?,
                 passport_number = ?,
@@ -739,6 +741,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_booking'])) {
             $checkIn,
             $checkOut,
             $totalPrice,
+            $totalPriceCurrency,
             $paidAmount,
             $paidCurrency,
             $passportNumber,
@@ -2174,6 +2177,7 @@ $headTemplate->render();
                                         'check_out_date' => $booking['check_out_date'],
                                         'total_amount' => $booking['total_price'],
                                         'total_price' => $booking['total_price'],
+                                        'total_price_currency' => $booking['total_price_currency'] ?? 'USD',
                                         'discount_amount' => $booking['discount_amount'] ?? 0,
                                         'status' => $booking['status'],
                                         'special_requests' => $booking['special_requests'] ?? '',
@@ -2181,6 +2185,7 @@ $headTemplate->render();
                                         'payment_status' => $booking['payment_status'] ?? 'pending',
                                         'payment_method' => $booking['payment_method'] ?? '',
                                         'paid_amount' => $booking['paid_amount'] ?? 0,
+                                        'paid_currency' => $booking['paid_currency'] ?? 'USD',
                                         'booking_reference' => $booking['booking_reference'] ?? '',
                                         'debug_raw_total_price' => $booking['total_price'],
                                         'debug_raw_discount' => $booking['discount_amount']
@@ -2781,6 +2786,22 @@ $headTemplate->render();
         // Rooms data for JavaScript
         const roomsData = <?php echo json_encode($rooms); ?>;
 
+        // Format price based on its stored currency with conversion preview
+        function formatStoredPrice(amount, storedCurrency) {
+            const numAmount = parseFloat(amount);
+            if (isNaN(numAmount)) return 'N/A';
+            
+            if (storedCurrency === 'PEN') {
+                // Stored in PEN, show PEN primary with USD conversion
+                const usdAmount = numAmount / USD_TO_PEN_RATE;
+                return `S/ ${numAmount.toFixed(2)} PEN <span style="color: #94a3b8; font-size: 0.9em;">($${usdAmount.toFixed(2)} USD)</span>`;
+            } else {
+                // Stored in USD (default), show USD primary with PEN conversion
+                const penAmount = numAmount * USD_TO_PEN_RATE;
+                return `$${numAmount.toFixed(2)} USD <span style="color: #94a3b8; font-size: 0.9em;">(S/ ${penAmount.toFixed(2)} PEN)</span>`;
+            }
+        }
+
         function formatDualCurrency(usdAmount) {
             const penAmount = usdAmount * USD_TO_PEN_RATE;
             return `$${parseFloat(usdAmount).toFixed(2)} USD <span style="color: #94a3b8; font-size: 0.9em;">(S/ ${penAmount.toFixed(2)} PEN)</span>`;
@@ -2853,12 +2874,14 @@ $headTemplate->render();
                 check_out_date: booking.check_out_date,
                 total_amount: booking.total_amount || booking.total_price,
                 total_price: booking.total_amount || booking.total_price,
+                total_price_currency: booking.total_price_currency || 'USD',
                 discount_amount: booking.discount_amount || 0,
                 special_requests: booking.special_requests || '',
                 guests_list: booking.guests_list || [],
                 all_guest_names: booking.all_guest_names || booking.guest_name || 'Guest',
                 payment_status: booking.payment_status || 'pending',
                 paid_amount: booking.paid_amount || 0,
+                paid_currency: booking.paid_currency || 'USD',
                 booking_date: booking.booking_date,
                 is_multi_room: booking.is_multi_room || false,
                 all_rooms: booking.all_rooms || booking.room_number
@@ -2908,9 +2931,9 @@ $headTemplate->render();
                                 `<p style="color: #94a3b8;"><strong>Habitación:</strong> <span style="color: #e0e0e0;">${booking.room_number}</span></p>`
                             }
                             <p style="color: #94a3b8;"><strong>Tipo:</strong> <span style="color: #e0e0e0;">${booking.room_type}</span></p>
-                            <p style="color: #94a3b8;"><strong>Precio Total:</strong> <span style="color: #10b981;">${formatDualCurrency(booking.total_amount)}</span></p>
+                            <p style="color: #94a3b8;"><strong>Precio Total:</strong> <span style="color: #10b981;">${formatStoredPrice(booking.total_amount, booking.total_price_currency || 'USD')}</span></p>
                             <p style="color: #94a3b8;"><strong>Estado de Pago:</strong> <span style="background: ${getPaymentStatusColor(booking.payment_status)}; padding: 4px 12px; border-radius: 6px; color: white; font-weight: 600;">${getPaymentStatusText(booking.payment_status)}</span></p>
-                            <p style="color: #94a3b8;"><strong>Monto Pagado:</strong> <span style="color: #10b981;">${formatDualCurrency(booking.paid_amount || 0)}</span></p>
+                            <p style="color: #94a3b8;"><strong>Monto Pagado:</strong> <span style="color: #10b981;">${formatStoredPrice(booking.paid_amount || 0, booking.paid_currency || 'USD')}</span></p>
                         </div>
                     </div>
                 </div>
@@ -3029,6 +3052,7 @@ $headTemplate->render();
             document.getElementById('edit_check_in').value = currentBookingData.check_in_date;
             document.getElementById('edit_check_out').value = currentBookingData.check_out_date;
             document.getElementById('edit_total_price').value = currentBookingData.total_price;
+            document.getElementById('edit_total_price_currency').value = currentBookingData.total_price_currency || 'USD';
             document.getElementById('edit_paid_amount').value = currentBookingData.paid_amount || 0;
             document.getElementById('edit_paid_currency').value = currentBookingData.paid_currency || 'USD';
             document.getElementById('edit_special_requests').value = currentBookingData.special_requests || '';
@@ -3919,7 +3943,7 @@ $headTemplate->render();
 
     <!-- Edit Booking Modal -->
     <div id="editBookingModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content" style="max-width: 1100px; width: 95%;">
             <div class="modal-header">
                 <h2>✏️ Editar Reserva</h2>
                 <span class="close" onclick="closeEditBookingModal()">&times;</span>
@@ -3956,15 +3980,24 @@ $headTemplate->render();
                         <label for="edit_check_out">📅 Check-out</label>
                         <input type="date" id="edit_check_out" name="edit_check_out" required>
                     </div>
+                </div>
+                
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="edit_total_price">💰 Total Price (USD)</label>
-                        <input type="number" id="edit_total_price" name="edit_total_price" step="0.01" required>
+                        <label for="edit_total_price">💰 Total Price</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="edit_total_price" name="edit_total_price" step="0.01" required style="flex: 1; width: auto !important; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; color: #fff; padding: 12px; font-size: 14px; min-width: 150px;">
+                            <select id="edit_total_price_currency" name="edit_total_price_currency" style="width: auto !important; padding: 12px; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; background: rgba(30, 41, 59, 0.6); color: #fff; cursor: pointer; min-width: 100px; font-size: 14px;">
+                                <option value="USD">USD $</option>
+                                <option value="PEN">PEN S/</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="edit_paid_amount">💵 Amount Paid</label>
-                        <div style="display: flex; gap: 10px; align-items: flex-start;">
-                            <input type="number" id="edit_paid_amount" name="edit_paid_amount" step="0.01" value="0" style="flex: 1;">
-                            <select id="edit_paid_currency" name="edit_paid_currency" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; min-width: 100px;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="edit_paid_amount" name="edit_paid_amount" step="0.01" value="0" style="flex: 1; width: auto !important; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; color: #fff; padding: 12px; font-size: 14px; min-width: 150px;">
+                            <select id="edit_paid_currency" name="edit_paid_currency" style="width: auto !important; padding: 12px; border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; background: rgba(30, 41, 59, 0.6); color: #fff; cursor: pointer; min-width: 100px; font-size: 14px;">
                                 <option value="USD">USD $</option>
                                 <option value="PEN">PEN S/</option>
                             </select>
