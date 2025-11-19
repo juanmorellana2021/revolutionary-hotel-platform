@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiniFlow - Discover</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        [x-cloak] { display: none !important; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F4F1DE;
+        }
+        
+        /* Card Container */
+        .card-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 128px);
+        }
+        
+        .card-container.embedded {
+            height: 100vh;
+        }
+        
+        .profile-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        
+        .profile-card.swipe-left {
+            transform: translateX(-150%) rotate(-15deg);
+            opacity: 0;
+        }
+        
+        .profile-card.swipe-right {
+            transform: translateX(150%) rotate(15deg);
+            opacity: 0;
+        }
+        
+        .profile-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .card-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+            color: white;
+            padding: 1.5rem 1rem;
+        }
+        
+        .embedded-hide {
+            display: block;
+        }
+        
+        body.embedded .embedded-hide {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    
+    <div x-data="discoverApp()" class="max-w-md mx-auto bg-white min-h-screen flex flex-col">
+        
+        <!-- Top Header -->
+        <div class="embedded-hide bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-compass text-2xl"></i>
+                    <h1 class="text-xl font-bold">Discover</h1>
+                </div>
+                <div class="flex items-center space-x-2 bg-white/20 px-3 py-1 rounded-full">
+                    <i class="fas fa-star"></i>
+                    <span class="font-semibold" x-text="'Level ' + userLevel"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="flex-1 overflow-hidden">
+            <div class="card-container" :class="{'embedded': isEmbedded}">
+                <!-- Cards Loop -->
+                <template x-for="(card, index) in cards" :key="card.id">
+                    <div x-show="index === 0" class="profile-card">
+                        <img :src="card.photo" :alt="card.name">
+                        <div class="card-info">
+                            <h2 class="text-2xl font-bold" x-text="card.name"></h2>
+                            <p class="text-sm opacity-90" x-text="card.bio"></p>
+                        </div>
+                        
+                        <!-- Swipe Buttons -->
+                        <div class="absolute bottom-8 right-4 flex flex-col gap-3 z-50">
+                            <button @click="likeCard()" class="w-14 h-14 rounded-full bg-gradient-to-r from-orange-500 to-red-500 shadow-xl flex items-center justify-center text-white hover:scale-110 transition">
+                                <i class="fas fa-thumbs-up text-xl"></i>
+                            </button>
+                            <button @click="messageCard()" class="w-14 h-14 rounded-full bg-blue-500 shadow-xl flex items-center justify-center text-white hover:scale-110 transition">
+                                <i class="fas fa-comments text-lg"></i>
+                            </button>
+                            <button @click="skipCard()" class="w-14 h-14 rounded-full bg-gray-200 shadow-xl flex items-center justify-center text-gray-600 hover:scale-110 transition">
+                                <i class="fas fa-thumbs-down text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Empty State -->
+                <div x-show="cards.length === 0" class="absolute inset-0 flex items-center justify-center bg-orange-50">
+                    <div class="text-center">
+                        <i class="fas fa-compass text-6xl text-orange-400 mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-2">All done! 🎉</h3>
+                        <button @click="reloadCards()" class="mt-4 px-8 py-3 bg-orange-500 text-white rounded-full font-bold">
+                            Start Over
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <div class="embedded-hide bg-white border-t sticky bottom-0 z-10">
+            <div class="flex justify-around py-3">
+                <a href="https://ainiflow.com/ainiflow_dashboard.html" class="flex flex-col items-center text-gray-600">
+                    <i class="fas fa-comments text-xl mb-1"></i>
+                    <span class="text-xs">Chats</span>
+                </a>
+                <a href="https://ainiflow.com/social.html" class="flex flex-col items-center text-orange-500">
+                    <i class="fas fa-compass text-xl mb-1"></i>
+                    <span class="text-xs font-semibold">Discover</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-gray-600">
+                    <i class="fas fa-bookmark text-xl mb-1"></i>
+                    <span class="text-xs">Saved</span>
+                </a>
+                <a href="https://ainiflow.com/ainiflow_wallet.html" class="flex flex-col items-center text-gray-600">
+                    <i class="fas fa-wallet text-xl mb-1"></i>
+                    <span class="text-xs">Wallet</span>
+                </a>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // Check if embedded in iframe
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmbedded = urlParams.get('embedded') === 'true';
+        if (isEmbedded) {
+            document.body.classList.add('embedded');
+        }
+        
+        function discoverApp() {
+            return {
+                userLevel: 3, // User's traveler level
+                cards: [],
+                loading: true,
+                error: null,
+                currentUser: null,
+                isEmbedded: isEmbedded,
+                
+                init() {
+                    console.log('Discover App Initialized');
+                    
+                    // Check authentication
+                    const userData = localStorage.getItem('ainiflow_user');
+                    if (!userData) {
+                        // Not logged in - redirect to login
+                        window.location.href = 'ainiflow_login.html';
+                        return;
+                    }
+                    
+                    try {
+                        this.currentUser = JSON.parse(userData);
+                        console.log('Logged in as:', this.currentUser);
+                        
+                        // Load user's level from profile
+                        this.userLevel = this.currentUser.level || 1;
+                    } catch (e) {
+                        console.error('Invalid user data:', e);
+                        window.location.href = 'ainiflow_login.html';
+                        return;
+                    }
+                    
+                    this.loadCards();
+                },
+                
+                async loadCards() {
+                    try {
+                        this.loading = true;
+                        const userPhone = this.currentUser?.phone || '';
+                        const response = await fetch(`/api/social/cards?limit=20&user_phone=${encodeURIComponent(userPhone)}`);
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        
+                        this.cards = data.map(card => ({
+                            id: card.id,
+                            name: card.first_name + ' ' + (card.last_name || ''),
+                            bio: card.bio || 'Traveler exploring the world',
+                            photo: card.profile_photo || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800',
+                            interests: card.interests,
+                            travel_style: card.travel_style,
+                            countries_visited: card.countries_visited,
+                            level: card.level || 1
+                        }));
+                        
+                        this.loading = false;
+                        console.log('Loaded cards:', this.cards.length);
+                    } catch (error) {
+                        console.error('Error loading cards:', error);
+                        this.error = error.message;
+                        this.loading = false;
+                        // Fallback to sample data if API fails
+                        this.loadSampleData();
+                    }
+                },
+                
+                loadSampleData() {
+                    this.cards = [
+                        {id: 1, name: 'Sarah Johnson', bio: 'Love exploring new cities! 🌍', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800'},
+                        {id: 2, name: 'Mike Chen', bio: 'Digital nomad & coffee addict ☕', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800'},
+                        {id: 3, name: 'Emma Wilson', bio: 'Adventure seeker from Australia 🏄‍♀️', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=800'},
+                        {id: 4, name: 'Carlos Rodriguez', bio: 'Foodie & culture enthusiast 🍜', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800'},
+                        {id: 5, name: 'Yuki Tanaka', bio: 'Photographer exploring the world 📸', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800'}
+                    ];
+                },
+                
+                async skipCard() {
+                    if (this.cards.length > 0) {
+                        const card = this.cards[0];
+                        
+                        // Add animation class
+                        const cardElement = document.querySelector('.profile-card');
+                        if (cardElement) {
+                            cardElement.classList.add('swipe-left');
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                        
+                        this.cards.shift();
+                        
+                        // Save swipe to database
+                        try {
+                            const response = await fetch('/api/social/swipe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_phone: this.currentUser?.phone || '',
+                                    swiped_id: card.id,
+                                    direction: 'left',
+                                    type: 'traveler'
+                                })
+                            });
+                        } catch (error) {
+                            console.error('Error saving swipe:', error);
+                        }
+                    }
+                },
+                
+                async messageCard() {
+                    if (this.cards.length > 0) {
+                        const card = this.cards[0];
+                        
+                        // Send friend request
+                        try {
+                            const response = await fetch('/api/social/friend-request', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_phone: this.currentUser?.phone || '',
+                                    receiver_id: card.id,
+                                    message: `Hi ${card.name.split(' ')[0]}, let's connect!`
+                                })
+                            });
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                alert(`📲 Friend Request Sent to ${card.name}!\n\nOnce they accept, you can:\n• Send messages\n• Exchange contacts\n• Plan meetups`);
+                                this.cards.shift();
+                            } else {
+                                alert('Error: ' + (data.error || 'Could not send request'));
+                            }
+                        } catch (error) {
+                            console.error('Error sending friend request:', error);
+                            alert('Could not send friend request. Please try again.');
+                        }
+                    }
+                },
+                
+                async likeCard() {
+                    if (this.cards.length > 0) {
+                        const card = this.cards[0];
+                        
+                        // Add animation class
+                        const cardElement = document.querySelector('.profile-card');
+                        if (cardElement) {
+                            cardElement.classList.add('swipe-right');
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                        
+                        this.cards.shift();
+                        
+                        // Save swipe to database
+                        try {
+                            const response = await fetch('/api/social/swipe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_phone: this.currentUser?.phone || '',
+                                    swiped_id: card.id,
+                                    direction: 'right',
+                                    type: 'traveler'
+                                })
+                            });
+                            const data = await response.json();
+                            
+                            // Check if it's a match!
+                            if (data.match) {
+                                setTimeout(() => {
+                                    alert(`🎉 It's a Match with ${card.name}!\n\nYou both liked each other! Start chatting now.`);
+                                }, 300);
+                            }
+                        } catch (error) {
+                            console.error('Error saving swipe:', error);
+                        }
+                    }
+                },
+                
+                reloadCards() {
+                    this.loadCards();
+                }
+            }
+        }
+    </script>
+    
+</body>
+</html>
