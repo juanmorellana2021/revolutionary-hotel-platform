@@ -552,14 +552,32 @@
                 
                 <!-- Question 1: Where are you from? -->
                 <div class="mb-4 pb-4 border-b">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-500 mb-1">Where are you from?</p>
-                            <p class="text-base text-gray-900" x-text="currentUser.location || 'Not specified'"></p>
+                    <p class="text-sm text-gray-500 mb-2">Where are you from?</p>
+                    <div x-show="editingField !== 'location'">
+                        <div class="flex items-start justify-between">
+                            <p class="text-base text-gray-900 flex-1" x-text="currentUser.location || 'Not specified'"></p>
+                            <button @click="startEditing('location')" class="text-orange-500 text-sm ml-2">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </div>
-                        <button class="text-orange-500 text-sm">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                    </div>
+                    <div x-show="editingField === 'location'" class="space-y-2">
+                        <input type="text" 
+                               x-model="editingValue" 
+                               placeholder="e.g., Cusco, Peru"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <div class="flex gap-2">
+                            <button @click="saveField('location')" 
+                                    :disabled="savingField"
+                                    class="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                                <i class="fas" :class="savingField ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                                Save
+                            </button>
+                            <button @click="cancelEdit()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -991,6 +1009,11 @@
                 profilePhotoUploading: false,
                 profilePhotoError: '',
                 
+                // About You editing
+                editingField: null,
+                editingValue: '',
+                savingField: false,
+                
                 // Contacts
                 contactsPermissionGranted: false,
                 contactsPermissionDenied: false,
@@ -1099,6 +1122,49 @@
                     } finally {
                         this.profilePhotoUploading = false;
                         event.target.value = '';
+                    }
+                },
+                
+                startEditing(fieldName) {
+                    this.editingField = fieldName;
+                    this.editingValue = this.currentUser[fieldName] || '';
+                },
+                
+                cancelEdit() {
+                    this.editingField = null;
+                    this.editingValue = '';
+                },
+                
+                async saveField(fieldName) {
+                    if (!this.currentUser || !this.currentUser.phone) {
+                        return;
+                    }
+                    
+                    this.savingField = true;
+                    
+                    try {
+                        const response = await fetch(`/api/users/${encodeURIComponent(this.currentUser.phone)}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ [fieldName]: this.editingValue })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.error || 'Save failed');
+                        }
+                        
+                        this.currentUser[fieldName] = this.editingValue;
+                        localStorage.setItem('ainiflow_user', JSON.stringify(this.currentUser));
+                        
+                        this.editingField = null;
+                        this.editingValue = '';
+                    } catch (error) {
+                        console.error('Failed to save field:', error);
+                        alert('Failed to save. Please try again.');
+                    } finally {
+                        this.savingField = false;
                     }
                 },
                 

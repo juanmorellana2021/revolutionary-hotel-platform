@@ -358,13 +358,68 @@ userRouter.get('/:phone', async (req, res) => {
 userRouter.put('/:phone', async (req, res) => {
     try {
         const { phone } = req.params;
-        const { name, profile_photo, bio } = req.body;
+        const { 
+            name, 
+            profile_photo, 
+            bio,
+            location,
+            travel_style,
+            interests,
+            languages,
+            countries_visited,
+            favorite_memory,
+            dream_destination
+        } = req.body;
         
-        // Update users table
-        if (name || profile_photo) {
+        // Build dynamic update query for users table
+        const userFields = [];
+        const userValues = [];
+        let valueIndex = 1;
+        
+        if (name !== undefined) {
+            userFields.push(`name = $${valueIndex++}`);
+            userValues.push(name);
+        }
+        if (profile_photo !== undefined) {
+            userFields.push(`profile_photo = $${valueIndex++}`);
+            userValues.push(profile_photo);
+        }
+        if (location !== undefined) {
+            userFields.push(`location = $${valueIndex++}`);
+            userValues.push(location);
+        }
+        if (travel_style !== undefined) {
+            userFields.push(`travel_style = $${valueIndex++}`);
+            userValues.push(travel_style);
+        }
+        if (interests !== undefined) {
+            userFields.push(`interests = $${valueIndex++}`);
+            userValues.push(interests);
+        }
+        if (languages !== undefined) {
+            userFields.push(`languages = $${valueIndex++}`);
+            userValues.push(languages);
+        }
+        if (countries_visited !== undefined) {
+            userFields.push(`countries_visited = $${valueIndex++}`);
+            userValues.push(countries_visited);
+        }
+        if (favorite_memory !== undefined) {
+            userFields.push(`favorite_memory = $${valueIndex++}`);
+            userValues.push(favorite_memory);
+        }
+        if (dream_destination !== undefined) {
+            userFields.push(`dream_destination = $${valueIndex++}`);
+            userValues.push(dream_destination);
+        }
+        
+        // Update users table if there are fields to update
+        if (userFields.length > 0) {
+            userFields.push(`updated_at = NOW()`);
+            userValues.push(phone);
             await pool.query(
-                'UPDATE users SET name = COALESCE($1, name), profile_photo = COALESCE($2, profile_photo), updated_at = NOW() WHERE phone = $3',
-                [name, profile_photo, phone]
+                `UPDATE users SET ${userFields.join(', ')} WHERE phone = $${valueIndex}`,
+                userValues
             );
         }
         
