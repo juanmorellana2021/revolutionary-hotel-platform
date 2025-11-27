@@ -451,6 +451,138 @@
             </div>
         </div>
         
+        <!-- Wallet View -->
+        <div x-show="currentView === 'wallet'" x-cloak class="fixed inset-0 bg-gray-50 z-30 overflow-y-auto pb-20 max-w-md mx-auto">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-4 sticky top-0 z-50">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold">
+                        <i class="fas fa-wallet mr-2"></i>
+                        My Wallet
+                    </h2>
+                    <button @click="currentView = 'home'" class="text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Balance Card -->
+            <div class="bg-gradient-to-br from-orange-500 to-red-500 m-4 p-6 rounded-2xl shadow-lg text-white">
+                <p class="text-sm opacity-80 mb-1">Available Balance</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-4xl font-bold" x-text="walletBalance.toFixed(2)">0.00</span>
+                    <span class="text-lg">AiNi</span>
+                </div>
+                <p class="text-xs opacity-70 mt-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    1 AiNi = $1.00 USD
+                </p>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-3 gap-3 mx-4 mb-4">
+                <button @click="showDepositModal = true" class="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-plus text-green-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Add Funds</span>
+                </button>
+                <button @click="showTransferModal = true" class="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-paper-plane text-blue-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Send</span>
+                </button>
+                <button class="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center opacity-50">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-qrcode text-purple-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Receive</span>
+                </button>
+            </div>
+            
+            <!-- Transaction History -->
+            <div class="bg-white mx-4 rounded-xl shadow-sm">
+                <div class="px-4 py-3 border-b flex items-center justify-between">
+                    <h3 class="font-bold text-gray-900">Recent Transactions</h3>
+                    <button @click="loadTransactions()" class="text-orange-500 text-sm">
+                        <i class="fas fa-sync-alt" :class="loadingTransactions ? 'fa-spin' : ''"></i>
+                    </button>
+                </div>
+                
+                <div x-show="loadingTransactions" class="p-8 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading transactions...</p>
+                </div>
+                
+                <div x-show="!loadingTransactions && transactions.length === 0" class="p-8 text-center text-gray-500">
+                    <i class="fas fa-receipt text-4xl mb-3 opacity-30"></i>
+                    <p>No transactions yet</p>
+                </div>
+                
+                <div x-show="!loadingTransactions && transactions.length > 0" class="divide-y">
+                    <template x-for="tx in transactions" :key="tx.id">
+                        <div class="px-4 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                                     :class="tx.transaction_type === 'deposit' ? 'bg-green-100' : tx.from_phone === currentUser.phone ? 'bg-red-100' : 'bg-green-100'">
+                                    <i class="fas" 
+                                       :class="tx.transaction_type === 'deposit' ? 'fa-arrow-down text-green-600' : tx.from_phone === currentUser.phone ? 'fa-arrow-up text-red-600' : 'fa-arrow-down text-green-600'"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900" x-text="tx.description || tx.transaction_type"></p>
+                                    <p class="text-xs text-gray-500" x-text="new Date(tx.created_at).toLocaleDateString()"></p>
+                                </div>
+                            </div>
+                            <span class="font-bold"
+                                  :class="tx.transaction_type === 'deposit' || tx.to_phone === currentUser.phone ? 'text-green-600' : 'text-red-600'"
+                                  x-text="(tx.transaction_type === 'deposit' || tx.to_phone === currentUser.phone ? '+' : '-') + parseFloat(tx.amount).toFixed(2)">
+                            </span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Deposit Modal -->
+        <div x-show="showDepositModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="showDepositModal = false">
+            <div class="bg-white rounded-2xl w-full max-w-sm p-6" @click.stop>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add Funds</h3>
+                <p class="text-sm text-gray-500 mb-4">Enter the amount of AiNi coins to add (Dev Mode - instant credit)</p>
+                <input type="number" x-model="depositAmount" placeholder="Amount" min="1" step="0.01"
+                       class="w-full px-4 py-3 border rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <div class="flex gap-3">
+                    <button @click="showDepositModal = false" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold">Cancel</button>
+                    <button @click="processDeposit()" :disabled="processingDeposit" 
+                            class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-semibold disabled:opacity-50">
+                        <span x-show="!processingDeposit">Add Funds</span>
+                        <i x-show="processingDeposit" class="fas fa-spinner fa-spin"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transfer Modal -->
+        <div x-show="showTransferModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="showTransferModal = false">
+            <div class="bg-white rounded-2xl w-full max-w-sm p-6" @click.stop>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Send AiNi</h3>
+                <input type="text" x-model="transferTo" placeholder="Recipient phone number"
+                       class="w-full px-4 py-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <input type="number" x-model="transferAmount" placeholder="Amount" min="0.01" step="0.01"
+                       class="w-full px-4 py-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <input type="text" x-model="transferDescription" placeholder="Note (optional)"
+                       class="w-full px-4 py-3 border rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <div x-show="transferError" class="mb-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm" x-text="transferError"></div>
+                <div class="flex gap-3">
+                    <button @click="showTransferModal = false; transferError = ''" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold">Cancel</button>
+                    <button @click="processTransfer()" :disabled="processingTransfer" 
+                            class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-semibold disabled:opacity-50">
+                        <span x-show="!processingTransfer">Send</span>
+                        <i x-show="processingTransfer" class="fas fa-spinner fa-spin"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <!-- Profile View -->
     <div x-show="currentView === 'profile'" x-cloak class="fixed inset-0 bg-gray-50 z-30 overflow-y-auto pb-20 max-w-md mx-auto">
@@ -1135,6 +1267,20 @@
                 addContactError: '',
                 qrScanError: '',
                 
+                // Wallet
+                walletBalance: 0,
+                transactions: [],
+                loadingTransactions: false,
+                showDepositModal: false,
+                showTransferModal: false,
+                depositAmount: '',
+                transferTo: '',
+                transferAmount: '',
+                transferDescription: '',
+                transferError: '',
+                processingDeposit: false,
+                processingTransfer: false,
+                
                 async init() {
                     // Fetch real hotels from API
                     await this.fetchHotels();
@@ -1142,6 +1288,18 @@
                     // Load user info from localStorage
                     const user = JSON.parse(localStorage.getItem('ainiflow_user') || '{}');
                     this.currentUser = user;
+                    
+                    // Load wallet balance from prod server
+                    if (user.phone) {
+                        await this.loadWalletBalance();
+                    }
+                    
+                    // Watch for wallet view to load transactions
+                    this.$watch('currentView', (value) => {
+                        if (value === 'wallet') {
+                            this.loadTransactions();
+                        }
+                    });
                     
                     // Watch for My QR Code modal to generate QR
                     this.$watch('showMyQRCode', (value) => {
@@ -1273,6 +1431,121 @@
                         alert('Failed to save. Please try again.');
                     } finally {
                         this.savingField = false;
+                    }
+                },
+                
+                // Wallet Methods
+                async loadTransactions() {
+                    if (!this.currentUser || !this.currentUser.phone) return;
+                    
+                    this.loadingTransactions = true;
+                    try {
+                        const response = await fetch(`https://ainitravel.com/wallet_api.php?action=transactions&phone=${encodeURIComponent(this.currentUser.phone)}`);
+                        const data = await response.json();
+                        this.transactions = Array.isArray(data) ? data : [];
+                    } catch (error) {
+                        console.error('Error loading transactions:', error);
+                        this.transactions = [];
+                    } finally {
+                        this.loadingTransactions = false;
+                    }
+                },
+                
+                async loadWalletBalance() {
+                    if (!this.currentUser || !this.currentUser.phone) return;
+                    
+                    console.log('Loading wallet balance for phone:', this.currentUser.phone);
+                    
+                    try {
+                        const response = await fetch(`https://ainitravel.com/wallet_api.php?action=balance&phone=${encodeURIComponent(this.currentUser.phone)}`);
+                        const data = await response.json();
+                        console.log('Wallet balance response:', data);
+                        
+                        if (data.success) {
+                            this.walletBalance = parseFloat(data.balance) || 0;
+                            this.currentUser.wallet_balance = this.walletBalance;
+                            localStorage.setItem('ainiflow_user', JSON.stringify(this.currentUser));
+                        }
+                    } catch (error) {
+                        console.error('Error loading wallet balance:', error);
+                    }
+                },
+                
+                async processDeposit() {
+                    if (!this.depositAmount || parseFloat(this.depositAmount) <= 0) return;
+                    
+                    this.processingDeposit = true;
+                    try {
+                        const response = await fetch('https://ainitravel.com/wallet_api.php?action=deposit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                phone: this.currentUser.phone,
+                                amount: parseFloat(this.depositAmount)
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.walletBalance = parseFloat(data.new_balance);
+                            this.currentUser.wallet_balance = this.walletBalance;
+                            localStorage.setItem('ainiflow_user', JSON.stringify(this.currentUser));
+                            this.showDepositModal = false;
+                            this.depositAmount = '';
+                            this.loadTransactions();
+                        } else {
+                            alert(data.error || 'Deposit failed');
+                        }
+                    } catch (error) {
+                        console.error('Deposit error:', error);
+                        alert('Deposit failed. Please try again.');
+                    } finally {
+                        this.processingDeposit = false;
+                    }
+                },
+                
+                async processTransfer() {
+                    if (!this.transferTo || !this.transferAmount || parseFloat(this.transferAmount) <= 0) {
+                        this.transferError = 'Please enter recipient and amount';
+                        return;
+                    }
+                    
+                    this.processingTransfer = true;
+                    this.transferError = '';
+                    
+                    try {
+                        const response = await fetch('https://ainitravel.com/wallet_api.php?action=transfer', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                from_phone: this.currentUser.phone,
+                                to_phone: this.transferTo,
+                                amount: parseFloat(this.transferAmount),
+                                description: this.transferDescription || 'AiNi transfer'
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.walletBalance -= parseFloat(this.transferAmount);
+                            this.currentUser.wallet_balance = this.walletBalance;
+                            localStorage.setItem('ainiflow_user', JSON.stringify(this.currentUser));
+                            this.showTransferModal = false;
+                            this.transferTo = '';
+                            this.transferAmount = '';
+                            this.transferDescription = '';
+                            this.loadTransactions();
+                            alert('Transfer successful!');
+                        } else {
+                            this.transferError = data.error || 'Transfer failed';
+                        }
+                    } catch (error) {
+                        console.error('Transfer error:', error);
+                        this.transferError = 'Transfer failed. Please try again.';
+                    } finally {
+                        this.processingTransfer = false;
                     }
                 },
                 
