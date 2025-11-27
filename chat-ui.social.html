@@ -583,40 +583,94 @@
                 
                 <!-- Question 2: What's your travel style? -->
                 <div class="mb-4 pb-4 border-b">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-500 mb-1">What's your travel style?</p>
-                            <p class="text-base text-gray-900" x-text="currentUser.travel_style || 'Not specified'"></p>
+                    <p class="text-sm text-gray-500 mb-2">What's your travel style?</p>
+                    <div x-show="editingField !== 'travel_style'">
+                        <div class="flex items-start justify-between">
+                            <p class="text-base text-gray-900 flex-1" x-text="currentUser.travel_style || 'Not specified'"></p>
+                            <button @click="console.log('Edit travel_style clicked'); startEditing('travel_style')" class="text-orange-500 text-sm ml-2">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </div>
-                        <button class="text-orange-500 text-sm">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                    </div>
+                    <div x-show="editingField === 'travel_style'" class="space-y-2">
+                        <input type="text" 
+                               x-model="editingValue" 
+                               placeholder="e.g., Adventure seeker"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <div class="flex gap-2">
+                            <button @click="console.log('Save travel_style clicked'); saveField('travel_style')" 
+                                    :disabled="savingField"
+                                    class="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                                <i class="fas" :class="savingField ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                                Save
+                            </button>
+                            <button @click="console.log('Cancel clicked'); cancelEdit()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Question 3: What are your interests? -->
                 <div class="mb-4 pb-4 border-b">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-500 mb-1">What are your interests?</p>
-                            <p class="text-base text-gray-900" x-text="currentUser.interests || 'Not specified'"></p>
+                    <p class="text-sm text-gray-500 mb-2">What are your interests?</p>
+                    <div x-show="editingField !== 'interests'">
+                        <div class="flex items-start justify-between">
+                            <p class="text-base text-gray-900 flex-1" x-text="currentUser.interests || 'Not specified'"></p>
+                            <button @click="startEditing('interests')" class="text-orange-500 text-sm ml-2">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </div>
-                        <button class="text-orange-500 text-sm">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                    </div>
+                    <div x-show="editingField === 'interests'" class="space-y-2">
+                        <input type="text" 
+                               x-model="editingValue" 
+                               placeholder="e.g., Hiking, Photography, Food"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <div class="flex gap-2">
+                            <button @click="saveField('interests')" 
+                                    :disabled="savingField"
+                                    class="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                                <i class="fas" :class="savingField ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                                Save
+                            </button>
+                            <button @click="cancelEdit()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Question 4: Languages you speak? -->
                 <div class="mb-4 pb-4 border-b">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-500 mb-1">Languages you speak?</p>
-                            <p class="text-base text-gray-900" x-text="currentUser.languages || 'Not specified'"></p>
+                    <p class="text-sm text-gray-500 mb-2">Languages you speak?</p>
+                    <div x-show="editingField !== 'languages'">
+                        <div class="flex items-start justify-between">
+                            <p class="text-base text-gray-900 flex-1" x-text="currentUser.languages || 'Not specified'"></p>
+                            <button @click="startEditing('languages')" class="text-orange-500 text-sm ml-2">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </div>
-                        <button class="text-orange-500 text-sm">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                    </div>
+                    <div x-show="editingField === 'languages'" class="space-y-2">
+                        <input type="text" 
+                               x-model="editingValue" 
+                               placeholder="e.g., English, Spanish, Quechua"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <div class="flex gap-2">
+                            <button @click="saveField('languages')" 
+                                    :disabled="savingField"
+                                    class="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                                <i class="fas" :class="savingField ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                                Save
+                            </button>
+                            <button @click="cancelEdit()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
