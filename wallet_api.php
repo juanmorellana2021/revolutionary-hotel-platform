@@ -61,7 +61,7 @@ if (empty($action)) {
 if ($method === 'GET' && $action === 'balance' && $phone) {
     try {
         $stmt = $pdo->prepare("
-            SELECT id, phone, aini_coins as balance 
+            SELECT id, phone, aini_coins as balance, aini_rewards, aini_crypto
             FROM ainitravel_users 
             WHERE phone = ?
         ");
@@ -69,9 +69,30 @@ if ($method === 'GET' && $action === 'balance' && $phone) {
         $user = $stmt->fetch();
         
         if ($user) {
+            // Get crypto price (default 1.00 if not found)
+            $stmt_price = $pdo->query("SELECT price_usd FROM aini_crypto_market_prices ORDER BY recorded_at DESC LIMIT 1");
+            $crypto_price = $stmt_price ? floatval($stmt_price->fetchColumn()) : 1.00;
+            if (!$crypto_price) $crypto_price = 1.00;
+            
+            // Get lifetime statistics
+            $stmt_stats = $pdo->prepare("
+                SELECT 
+                    SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as lifetime_earned,
+                    SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as lifetime_spent
+                FROM aini_coin_transactions 
+                WHERE user_id = ?
+            ");
+            $stmt_stats->execute([$user['id']]);
+            $stats = $stmt_stats->fetch();
+            
             echo json_encode([
                 'success' => true,
                 'balance' => floatval($user['balance'] ?? 0),
+                'aini_rewards' => floatval($user['aini_rewards'] ?? 0),
+                'aini_crypto' => floatval($user['aini_crypto'] ?? 0),
+                'crypto_price' => $crypto_price,
+                'lifetime_earned' => floatval($stats['lifetime_earned'] ?? 0),
+                'lifetime_spent' => floatval($stats['lifetime_spent'] ?? 0),
                 'user_id' => $user['id']
             ]);
         } else {
@@ -103,8 +124,11 @@ elseif ($method === 'GET' && $action === 'transactions' && $phone) {
                 user_id,
                 transaction_type,
                 amount,
+                balance_before,
                 balance_after,
                 description,
+                transaction_hash,
+                coin_type,
                 created_at
             FROM aini_coin_transactions 
             WHERE user_id = ? 
@@ -119,7 +143,11 @@ elseif ($method === 'GET' && $action === 'transactions' && $phone) {
                 'id' => $tx['id'],
                 'transaction_type' => $tx['transaction_type'],
                 'amount' => floatval($tx['amount']),
+                'balance_before' => $tx['balance_before'] ? floatval($tx['balance_before']) : null,
+                'balance_after' => $tx['balance_after'] ? floatval($tx['balance_after']) : null,
                 'description' => $tx['description'],
+                'transaction_hash' => $tx['transaction_hash'],
+                'coin_type' => $tx['coin_type'] ?? 'rewards',
                 'created_at' => $tx['created_at'],
                 'from_phone' => $phone,
                 'to_phone' => $phone,
@@ -307,6 +335,101 @@ elseif ($method === 'POST' && $action === 'transfer') {
             'success' => true,
             'message' => 'Transfer successful',
             'new_balance' => floatval($senderNewBalance)
+        ]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+// ROUTE: POST convert (between rewards and crypto)
+elseif ($method === 'POST' && $action === 'convert') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $phone = $data['phone'] ?? '';
+    $amount = floatval($data['amount'] ?? 0);
+    $from_type = $data['from_type'] ?? '';
+    $to_type = $data['to_type'] ?? '';
+    
+    if (!$phone || $amount <= 0 || !$from_type || !$to_type) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing or invalid fields']);
+        exit;
+    }
+    
+    if (!in_array($from_type, ['rewards', 'crypto']) || !in_array($to_type, ['rewards', 'crypto'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid coin types']);
+        exit;
+    }
+    
+    if ($from_type === $to_type) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Cannot convert to same type']);
+        exit;
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        $stmt = $pdo->prepare("SELECT id, aini_rewards, aini_crypto FROM ainitravel_users WHERE phone = ?");
+        $stmt->execute([$phone]);
+        $user = $stmt->fetch();
+        
+        if (!$user) {
+            $pdo->rollBack();
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            exit;
+        }
+        
+        // Check balance
+        $from_balance = floatval($user[$from_type === 'rewards' ? 'aini_rewards' : 'aini_crypto']);
+        if ($from_balance < $amount) {
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['error' => 'Insufficient ' . $from_type . ' balance']);
+            exit;
+        }
+        
+        // Update balances (1:1 conversion rate for now)
+        $new_from_balance = $from_balance - $amount;
+        $to_balance = floatval($user[$to_type === 'rewards' ? 'aini_rewards' : 'aini_crypto']);
+        $new_to_balance = $to_balance + $amount;
+        
+        $from_column = $from_type === 'rewards' ? 'aini_rewards' : 'aini_crypto';
+        $to_column = $to_type === 'rewards' ? 'aini_rewards' : 'aini_crypto';
+        
+        $stmt = $pdo->prepare("UPDATE ainitravel_users SET $from_column = ?, $to_column = ? WHERE id = ?");
+        $stmt->execute([$new_from_balance, $new_to_balance, $user['id']]);
+        
+        // Generate transaction hash
+        $txHash = hash('sha256', $user['id'] . 'convert' . $amount . time() . rand());
+        
+        // Record conversion transaction
+        $stmt = $pdo->prepare("
+            INSERT INTO aini_coin_transactions 
+            (user_id, transaction_type, amount, balance_before, balance_after, description, transaction_hash, created_at, coin_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+        ");
+        $stmt->execute([
+            $user['id'],
+            'conversion',
+            $amount,
+            $from_balance,
+            $new_from_balance,
+            "Converted {$amount} {$from_type} to {$to_type}",
+            $txHash,
+            $from_type
+        ]);
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Conversion successful',
+            'from_balance' => floatval($new_from_balance),
+            'to_balance' => floatval($new_to_balance)
         ]);
     } catch (Exception $e) {
         $pdo->rollBack();
