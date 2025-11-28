@@ -758,6 +758,86 @@
             </div>
         </div>
         
+        <!-- Add Contact Modal -->
+        <div x-show="showAddContactModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="showAddContactModal = false">
+            <div class="bg-white rounded-2xl w-full max-w-sm p-6" @click.stop>
+                <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">
+                    <i class="fas fa-user-plus mr-2 text-orange-600"></i>
+                    Add Contact
+                </h3>
+                <p class="text-sm text-gray-500 mb-6 text-center">Choose how you want to connect</p>
+                
+                <!-- Option 1: Show My QR Code -->
+                <button @click="showAddContactModal = false; showMyQRCode = true" 
+                        class="w-full mb-3 p-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl flex items-center justify-between transition">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-qrcode text-2xl"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">Show My QR Code</p>
+                            <p class="text-xs opacity-80">Let others scan to add you</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <!-- Option 2: Scan QR Code -->
+                <button @click="showAddContactModal = false; scanQRCode()" 
+                        class="w-full mb-3 p-4 bg-white border-2 border-orange-500 hover:bg-orange-50 text-orange-600 rounded-xl flex items-center justify-between transition">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-camera text-2xl"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">Scan QR Code</p>
+                            <p class="text-xs opacity-70">Add someone as a contact</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <!-- Option 3: Add by Phone Number -->
+                <button @click="showAddContactModal = false; showAddByPhoneModal = true" 
+                        class="w-full mb-4 p-4 bg-white border-2 border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl flex items-center justify-between transition">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-phone text-2xl"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">Add by Phone</p>
+                            <p class="text-xs opacity-70">Enter phone number manually</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <button @click="showAddContactModal = false" class="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold">
+                    Cancel
+                </button>
+            </div>
+        </div>
+        
+        <!-- Add by Phone Modal -->
+        <div x-show="showAddByPhoneModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="showAddByPhoneModal = false">
+            <div class="bg-white rounded-2xl w-full max-w-sm p-6" @click.stop>
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Add by Phone Number</h3>
+                <input type="tel" x-model="addContactPhone" placeholder="Enter phone number (e.g., +51938118436)"
+                       class="w-full px-4 py-3 border rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <div x-show="addContactError" class="mb-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm" x-text="addContactError"></div>
+                <div x-show="addContactSuccess" class="mb-3 p-3 bg-green-50 text-green-600 rounded-lg text-sm" x-text="addContactSuccess"></div>
+                <div class="flex gap-3">
+                    <button @click="showAddByPhoneModal = false; addContactPhone = ''; addContactError = ''; addContactSuccess = ''" 
+                            class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold">Cancel</button>
+                    <button @click="addContactByPhone()" :disabled="processingAddContact" 
+                            class="flex-1 py-3 bg-orange-500 text-white rounded-xl font-semibold disabled:opacity-50">
+                        <span x-show="!processingAddContact">Add Contact</span>
+                        <i x-show="processingAddContact" class="fas fa-spinner fa-spin"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Profile View -->
     <div x-show="currentView === 'profile'" x-cloak class="fixed inset-0 bg-gray-50 z-30 overflow-y-auto pb-20 max-w-md mx-auto">
             <!-- Header -->
@@ -1378,7 +1458,7 @@
                     <i class="fas fa-compass text-xl" :class="activeTab === 'meet' ? 'text-orange-500' : 'text-gray-400'"></i>
                     <span class="text-xs mt-1" :class="activeTab === 'meet' ? 'text-orange-500 font-semibold' : 'text-gray-500'">Discover</span>
                 </button>
-                <button @click="currentView = 'post'" class="flex flex-col items-center justify-center w-full py-2">
+                <button @click="showAddContactModal = true" class="flex flex-col items-center justify-center w-full py-2">
                     <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center -mt-6 shadow-lg">
                         <i class="fas fa-plus text-white text-xl"></i>
                     </div>
@@ -1453,6 +1533,8 @@
                 showDepositModal: false,
                 showTransferModal: false,
                 showReceiveQRModal: false,
+                showAddContactModal: false,
+                showAddByPhoneModal: false,
                 showConvertModal: false,
                 depositAmount: '',
                 transferTo: '',
@@ -1464,6 +1546,10 @@
                 convertFrom: 'rewards',
                 convertAmount: '',
                 processingConvert: false,
+                addContactPhone: '',
+                addContactError: '',
+                addContactSuccess: '',
+                processingAddContact: false,
                 
                 async init() {
                     // Fetch real hotels from API
@@ -2071,6 +2157,67 @@ Transaction Hash: ${tx.transaction_hash || 'N/A'}
                         alert('Conversion failed. Please try again.');
                     } finally {
                         this.processingConvert = false;
+                    }
+                },
+                
+                async addContactByPhone() {
+                    this.addContactError = '';
+                    this.addContactSuccess = '';
+                    
+                    if (!this.addContactPhone || this.addContactPhone.trim() === '') {
+                        this.addContactError = 'Please enter a phone number';
+                        return;
+                    }
+                    
+                    if (this.addContactPhone === this.currentUser.phone) {
+                        this.addContactError = 'You cannot add yourself as a contact';
+                        return;
+                    }
+                    
+                    this.processingAddContact = true;
+                    try {
+                        // Check if user exists
+                        const response = await fetch(`https://ainitravel.com/wallet_api.php?action=balance&phone=${encodeURIComponent(this.addContactPhone)}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // User exists, add to contacts
+                            const contactName = this.addContactPhone; // In future, fetch user's name
+                            
+                            // Store in localStorage (in production, this would be saved to backend)
+                            let contacts = JSON.parse(localStorage.getItem('ainiflow_contacts') || '[]');
+                            
+                            // Check if already added
+                            if (contacts.some(c => c.phone === this.addContactPhone)) {
+                                this.addContactError = 'Contact already exists';
+                                this.processingAddContact = false;
+                                return;
+                            }
+                            
+                            contacts.push({
+                                phone: this.addContactPhone,
+                                name: contactName,
+                                avatar: `https://i.pravatar.cc/150?u=${this.addContactPhone}`,
+                                added_at: new Date().toISOString()
+                            });
+                            
+                            localStorage.setItem('ainiflow_contacts', JSON.stringify(contacts));
+                            
+                            this.addContactSuccess = 'Contact added successfully!';
+                            this.addContactPhone = '';
+                            
+                            setTimeout(() => {
+                                this.showAddByPhoneModal = false;
+                                this.addContactSuccess = '';
+                            }, 2000);
+                        } else {
+                            this.addContactError = 'User not found. Please check the phone number.';
+                        }
+                    } catch (error) {
+                        console.error('Error adding contact:', error);
+                        this.addContactError = 'Failed to add contact. Please try again.';
+                    } finally {
+                        this.processingAddContact = false;
                     }
                 },
                 
