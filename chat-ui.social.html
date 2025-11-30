@@ -48,6 +48,11 @@
             min-width: 20px;
             height: 20px;
         }
+        
+        .custom-marker {
+            background: transparent;
+            border: none;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -1477,7 +1482,7 @@
             </div>
         </div>
         <!-- Meet Tab: Discover Map with partner locations -->
-        <div x-show="activeTab === 'meet'" class="fixed inset-0 z-30" style="top: 0; left: 0; right: 0; bottom: 0;">
+        <div x-show="activeTab === 'meet'" class="fixed inset-0 z-10" style="top: 0; left: 0; right: 0; bottom: 80px;">
             <!-- Discover Map: uses Leaflet, shows user location + partner pins -->
             <div id="discover-map" style="width: 100%; height: 100%;"></div>
             <!-- Locate me floating action -->
@@ -1486,7 +1491,7 @@
                 <span class="text-xs">Locate me</span>
             </button>
             <!-- Vertical Chat/Save Buttons -->
-            <div class="fixed left-2 bottom-24 flex flex-col items-center gap-3 z-40">
+            <div class="fixed left-2 bottom-24 flex flex-col items-center gap-3 z-50">
                 <button class="w-12 h-12 bg-orange-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-orange-600 transition">
                     <i class="fas fa-comment-dots text-xl"></i>
                 </button>
@@ -1500,7 +1505,7 @@
     
     <script>
         function ainiflowApp() {
-            return {
+            const app = {
                 activeTab: 'chats',
                 currentView: 'home',
                 searchQuery: '',
@@ -1875,6 +1880,8 @@
                     map: null,
                     partnerMarkers: [],
                     partners: [],
+                    userLocation: null,
+                    currentRoute: null,
 
                 async initDiscoverMap() {
                     try {
@@ -1994,13 +2001,36 @@
                             const lat = parseFloat(p.lat);
                             const lng = parseFloat(p.lng);
                             if (!lat || !lng) return;
-                            const marker = L.marker([lat, lng]).addTo(this.map);
+                            
+                            // Custom icon for partners
+                            const partnerIcon = L.divIcon({
+                                html: '<i class="fas fa-map-marker-alt" style="color:#E07A5F; font-size:32px;"></i>',
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 32],
+                                popupAnchor: [0, -32],
+                                className: 'custom-marker'
+                            });
+                            
+                            const marker = L.marker([lat, lng], { icon: partnerIcon }).addTo(this.map);
+                            
+                            // Calculate distance if user location is available
+                            let distanceText = '';
+                            if (this.userLocation) {
+                                const distance = this.map.distance(this.userLocation, [lat, lng]);
+                                const distanceKm = (distance / 1000).toFixed(2);
+                                distanceText = `<small style="color:#666;">📍 ${distanceKm} km away</small><br/>`;
+                            }
+                            
                             const popupHtml = `
-                                <div style="min-width:160px">
+                                <div style="min-width:180px">
                                     <strong>${p.business_name}</strong><br/>
                                     <small>${p.business_type || ''} • ${p.city || ''}</small>
-                                    <p style="margin:6px 0 0; font-size:12px; color:#666">${p.address || ''}</p>
-                                    <a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat + ',' + lng)}" style="font-size:12px; display:block; margin-top:6px; color:#0b6ef6">Directions</a>
+                                    <p style="margin:6px 0 4px; font-size:12px; color:#666">${p.address || ''}</p>
+                                    ${distanceText}
+                                    <button onclick="window.ainiflowAppInstance.showDirections(${lat}, ${lng}, '${p.business_name.replace(/'/g, "\\'")}')" 
+                                            style="background:#E07A5F; color:white; padding:6px 12px; border:none; border-radius:6px; font-size:12px; cursor:pointer; width:100%; margin-top:8px;">
+                                        <i class="fas fa-route"></i> Show Route
+                                    </button>
                                 </div>`;
                             marker.bindPopup(popupHtml);
                             this.partnerMarkers.push(marker);
@@ -2019,12 +2049,86 @@
                         navigator.geolocation.getCurrentPosition((pos) => {
                             const lat = pos.coords.latitude;
                             const lon = pos.coords.longitude;
+                            this.userLocation = [lat, lon]; // Store user location
                             this.map.setView([lat, lon], 14);
                             L.circleMarker([lat, lon], { radius: 8, color: '#FF5722', fillColor: '#FF8A65', fillOpacity: 0.9 }).addTo(this.map).bindPopup('You are here').openPopup();
                         }, (err) => {
                             console.error('Geolocation failure', err);
                             alert('Unable to access location. Please allow location permissions.');
                         }, { enableHighAccuracy: true, timeout: 10000 });
+                    },
+
+                    showDirections(destLat, destLng, businessName) {
+                        if (!this.map) return;
+                        
+                        // Remove previous route if exists
+                        if (this.currentRoute) {
+                            this.map.removeLayer(this.currentRoute);
+                            this.currentRoute = null;
+                        }
+                        
+                        // If we don't have user location, get it first
+                        if (!this.userLocation) {
+                            if (!navigator.geolocation) {
+                                alert('Geolocation not supported');
+                                return;
+                            }
+                            
+                            navigator.geolocation.getCurrentPosition((pos) => {
+                                this.userLocation = [pos.coords.latitude, pos.coords.longitude];
+                                this.drawRoute(this.userLocation, [destLat, destLng], businessName);
+                            }, (err) => {
+                                console.error('Geolocation failure', err);
+                                alert('Unable to get your location. Please allow location permissions.');
+                            }, { enableHighAccuracy: true, timeout: 10000 });
+                        } else {
+                            this.drawRoute(this.userLocation, [destLat, destLng], businessName);
+                        }
+                    },
+
+                    drawRoute(start, end, businessName) {
+                        if (!this.map) return;
+                        
+                        // Draw a simple line route
+                        this.currentRoute = L.polyline([start, end], {
+                            color: '#E07A5F',
+                            weight: 4,
+                            opacity: 0.8,
+                            dashArray: '10, 10'
+                        }).addTo(this.map);
+                        
+                        // Calculate distance
+                        const distance = this.map.distance(start, end);
+                        const distanceKm = (distance / 1000).toFixed(2);
+                        const distanceMiles = (distance / 1609.34).toFixed(2);
+                        
+                        // Show info popup at midpoint
+                        const midLat = (start[0] + end[0]) / 2;
+                        const midLng = (start[1] + end[1]) / 2;
+                        
+                        const routePopup = L.popup()
+                            .setLatLng([midLat, midLng])
+                            .setContent(`
+                                <div style="text-align:center;">
+                                    <strong>Route to ${businessName}</strong><br/>
+                                    <small>${distanceKm} km (${distanceMiles} mi)</small><br/>
+                                    <button onclick="window.ainiflowAppInstance.clearRoute()" 
+                                            style="background:#666; color:white; padding:4px 8px; border:none; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">
+                                        Clear Route
+                                    </button>
+                                </div>
+                            `)
+                            .openOn(this.map);
+                        
+                        // Fit map to show both points
+                        this.map.fitBounds([start, end], { padding: [50, 50] });
+                    },
+
+                    clearRoute() {
+                        if (this.currentRoute && this.map) {
+                            this.map.removeLayer(this.currentRoute);
+                            this.currentRoute = null;
+                        }
                     },
                 
                 chats: [
@@ -2501,7 +2605,11 @@ Transaction Hash: ${tx.transaction_hash || 'N/A'}
                     console.log('Opening chat with:', chat.name);
                     // Navigate to chat view
                 }
-            }
+            };
+            
+            // Make app instance globally accessible for popup buttons
+            window.ainiflowAppInstance = app;
+            return app;
         }
     </script>
     
