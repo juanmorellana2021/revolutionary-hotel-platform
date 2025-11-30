@@ -124,6 +124,12 @@
                     class="pb-2 px-1">
                     Meet
                 </button>
+                <button 
+                    @click="activeTab = 'partners'; currentView = 'home'" 
+                    :class="activeTab === 'partners' && currentView === 'home' ? 'border-b-2 border-white font-semibold' : 'opacity-70'"
+                    class="pb-2 px-1">
+                    Partners
+                </button>
             </div>
         </div>
         
@@ -152,6 +158,110 @@
                 <h2 class="text-lg font-bold mb-2">Adventures</h2>
                 <p class="text-gray-600">Browse and join travel adventures, activities, and experiences.</p>
                 <!-- ...add adventures content here... -->
+            </div>
+            
+            <!-- Partners Tab -->
+            <div x-show="activeTab === 'partners'" class="p-4 space-y-4">
+                <div class="mb-4">
+                    <h2 class="text-lg font-bold mb-1">Partner Network</h2>
+                    <p class="text-sm text-gray-600">Discover cafés, restaurants, shops & more in our network</p>
+                </div>
+                
+                <!-- Filter Buttons -->
+                <div class="flex gap-2 overflow-x-auto pb-2">
+                    <button @click="partnerFilter = 'all'" 
+                            :class="partnerFilter === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-th-large"></i> All
+                    </button>
+                    <button @click="partnerFilter = 'restaurant'" 
+                            :class="partnerFilter === 'restaurant' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-utensils"></i> Restaurants
+                    </button>
+                    <button @click="partnerFilter = 'cafe'" 
+                            :class="partnerFilter === 'cafe' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-coffee"></i> Cafés
+                    </button>
+                    <button @click="partnerFilter = 'shop'" 
+                            :class="partnerFilter === 'shop' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-shopping-bag"></i> Shops
+                    </button>
+                    <button @click="partnerFilter = 'hotel'" 
+                            :class="partnerFilter === 'hotel' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-hotel"></i> Hotels
+                    </button>
+                    <button @click="partnerFilter = 'tour_operator'" 
+                            :class="partnerFilter === 'tour_operator' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'"
+                            class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
+                        <i class="fas fa-compass"></i> Tours
+                    </button>
+                </div>
+                
+                <!-- Partners List -->
+                <template x-for="partner in filteredPartners" :key="partner.id">
+                    <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                        <!-- Partner Header -->
+                        <div class="p-4 bg-gradient-to-r from-orange-50 to-red-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-lg text-gray-900 mb-1" x-text="partner.business_name"></h3>
+                                    <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                        <span class="inline-flex items-center">
+                                            <i class="fas fa-tag mr-1 text-orange-500"></i>
+                                            <span x-text="partner.business_type.replace('_', ' ')"></span>
+                                        </span>
+                                        <span class="inline-flex items-center" x-show="partner.is_verified">
+                                            <i class="fas fa-check-circle text-blue-500 mr-1"></i>
+                                            Verified
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-map-marker-alt text-orange-500"></i>
+                                        <span x-text="partner.city || 'Cusco'"></span>
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-2">
+                                        <i class="fas fa-percent"></i>
+                                        <span x-text="partner.reward_percentage || '5'"></span>% Back
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Partner Info -->
+                        <div class="p-4">
+                            <p class="text-sm text-gray-600 mb-3" x-show="partner.address">
+                                <i class="fas fa-location-dot text-gray-400 mr-1"></i>
+                                <span x-text="partner.address"></span>
+                            </p>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex gap-2">
+                                <button @click="activeTab = 'meet'" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-2.5 rounded-xl font-semibold text-sm">
+                                    <i class="fas fa-map mr-1"></i>
+                                    View on Map
+                                </button>
+                                <button x-show="partner.phone" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                                <button class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl">
+                                    <i class="fas fa-bookmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Empty State -->
+                <div x-show="filteredPartners.length === 0" class="text-center py-12">
+                    <i class="fas fa-store-slash text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-600">No partners found in this category</p>
+                </div>
             </div>
             
             <!-- Groups Tab -->
@@ -1890,6 +2000,16 @@
                     partners: [],
                     userLocation: null,
                     currentRoute: null,
+                    
+                    // Partners Tab State
+                    partnerFilter: 'all',
+                    
+                    // Computed: Filtered Partners for Partners Tab
+                    get filteredPartners() {
+                        if (!Array.isArray(this.partners)) return [];
+                        if (this.partnerFilter === 'all') return this.partners;
+                        return this.partners.filter(p => p.business_type === this.partnerFilter);
+                    },
 
                 async initDiscoverMap() {
                     try {
