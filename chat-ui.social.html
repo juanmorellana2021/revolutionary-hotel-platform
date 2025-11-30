@@ -11,6 +11,9 @@
     <!-- QR Code Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2G8b0v1k3VY6tQ3p5w3yY4k5/1p2R9gq2v+0M6o=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7k2k7kXQ2w6b8sYb6vJ7m3qF2l1Kq9H2yZg7+M=" crossorigin=""></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -1475,7 +1478,13 @@
         </div>
         <!-- Meet Tab: Social Game Page with vertical chat/save buttons -->
         <div x-show="activeTab === 'meet'" class="w-full h-full">
-            <iframe src="/social.html?embedded=true" class="w-full h-screen border-0" title="Social Game"></iframe>
+            <!-- Discover Map: uses Leaflet, shows user location + partner pins -->
+            <div id="discover-map" class="w-full h-screen"></div>
+            <!-- Locate me floating action -->
+            <button @click="locateMe()" class="fixed right-4 top-24 z-50 bg-white px-3 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                <i class="fas fa-map-marker-alt text-orange-500"></i>
+                <span class="text-xs">Locate me</span>
+            </button>
             <!-- Vertical Chat/Save Buttons -->
             <div class="fixed left-2 bottom-24 flex flex-col items-center gap-3 z-40">
                 <button class="w-12 h-12 bg-orange-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-orange-600 transition">
@@ -1582,6 +1591,14 @@
                     this.$watch('showReceiveQRModal', (value) => {
                         if (value) {
                             setTimeout(() => this.generateReceiveQRCode(), 100);
+                        }
+                    });
+
+                    // Watch for Discover tab to initialize the map
+                    this.$watch('activeTab', (value) => {
+                        if (value === 'meet') {
+                            // initialize map after DOM updates
+                            setTimeout(() => this.initDiscoverMap(), 150);
                         }
                     });
                 },
@@ -1838,6 +1855,125 @@
                         this.processingTransfer = false;
                     }
                 },
+
+                    // Discover / Map State
+                    discoverMapInitialized: false,
+                    map: null,
+                    partnerMarkers: [],
+                    partners: [],
+
+                    async initDiscoverMap() {
+                        try {
+                            if (this.discoverMapInitialized) return;
+                            this.discoverMapInitialized = true;
+
+                            // Default center (Cusco approximate)
+                            const defaultLat = -13.53195;
+                            const defaultLng = -71.96746;
+
+                            if (typeof L === 'undefined') {
+                                console.error('Leaflet not available');
+                                return;
+                            }
+
+                            // initialize map
+                            this.map = L.map('discover-map', { scrollWheelZoom: true }).setView([defaultLat, defaultLng], 13);
+
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '&copy; OpenStreetMap contributors'
+                            }).addTo(this.map);
+
+                            // load partners and plot
+                            await this.loadPartners();
+                            this.plotPartners();
+
+                            // try to auto-locate user
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition((pos) => {
+                                    const lat = pos.coords.latitude;
+                                    const lon = pos.coords.longitude;
+                                    this.map.setView([lat, lon], 13);
+                                    L.circleMarker([lat, lon], { radius: 8, color: '#FF5722', fillColor: '#FF8A65', fillOpacity: 0.9 }).addTo(this.map).bindPopup('You are here');
+                                }, (err) => {
+                                    console.warn('Geolocation denied or failed', err);
+                                });
+                            }
+                        } catch (err) {
+                            console.error('initDiscoverMap error', err);
+                        }
+                    },
+
+                    async loadPartners() {
+                        try {
+                            // Try server API first (expects partners array with lat/lng fields)
+                            const res = await fetch('https://ainitravel.com/api_partners.php');
+                            const data = await res.json();
+                            if (Array.isArray(data.partners) && data.partners.length > 0) {
+                                this.partners = data.partners.map(p => ({
+                                    id: p.id,
+                                    business_name: p.business_name || p.name || 'Partner',
+                                    business_type: p.business_type || p.type || '',
+                                    lat: p.lat || p.latitude || p.latitud || null,
+                                    lng: p.lng || p.longitude || p.long || null,
+                                    city: p.city || p.location || '',
+                                    address: p.address || ''
+                                }));
+                                return;
+                            }
+                            throw new Error('no partners in response');
+                        } catch (err) {
+                            console.warn('Failed to load partners from API, falling back to sample data', err);
+                            // Fallback sample partners (latitude/longitude coordinates)
+                            this.partners = [
+                                { id: 1, business_name: 'Hotel Qosqo', business_type: 'hotel', lat: -13.5171, lng: -71.9785, city: 'Cusco', address: 'Plaza de Armas 123' },
+                                { id: 2, business_name: 'Trek Tours', business_type: 'tour_operator', lat: -13.5310, lng: -71.9675, city: 'Cusco', address: 'Av Sol 45' },
+                                { id: 3, business_name: 'Ceviche House', business_type: 'restaurant', lat: -13.5221, lng: -71.9780, city: 'Cusco', address: 'Calle del Sol 12' }
+                            ];
+                        }
+                    },
+
+                    plotPartners() {
+                        if (!this.map || !Array.isArray(this.partners)) return;
+                        // remove old markers
+                        this.partnerMarkers.forEach(m => this.map.removeLayer(m));
+                        this.partnerMarkers = [];
+
+                        this.partners.forEach(p => {
+                            const lat = parseFloat(p.lat);
+                            const lng = parseFloat(p.lng);
+                            if (!lat || !lng) return;
+                            const marker = L.marker([lat, lng]).addTo(this.map);
+                            const popupHtml = `
+                                <div style="min-width:160px">
+                                    <strong>${p.business_name}</strong><br/>
+                                    <small>${p.business_type || ''} • ${p.city || ''}</small>
+                                    <p style="margin:6px 0 0; font-size:12px; color:#666">${p.address || ''}</p>
+                                    <a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat + ',' + lng)}" style="font-size:12px; display:block; margin-top:6px; color:#0b6ef6">Directions</a>
+                                </div>`;
+                            marker.bindPopup(popupHtml);
+                            this.partnerMarkers.push(marker);
+                        });
+                    },
+
+                    locateMe() {
+                        if (!this.map) {
+                            alert('Map not initialized yet');
+                            return;
+                        }
+                        if (!navigator.geolocation) {
+                            alert('Geolocation not supported in this browser.');
+                            return;
+                        }
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                            const lat = pos.coords.latitude;
+                            const lon = pos.coords.longitude;
+                            this.map.setView([lat, lon], 14);
+                            L.circleMarker([lat, lon], { radius: 8, color: '#FF5722', fillColor: '#FF8A65', fillOpacity: 0.9 }).addTo(this.map).bindPopup('You are here').openPopup();
+                        }, (err) => {
+                            console.error('Geolocation failure', err);
+                            alert('Unable to access location. Please allow location permissions.');
+                        }, { enableHighAccuracy: true, timeout: 10000 });
+                    },
                 
                 chats: [
                     {
