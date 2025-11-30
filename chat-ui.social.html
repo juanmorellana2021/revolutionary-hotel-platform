@@ -1476,10 +1476,10 @@
                 </button>
             </div>
         </div>
-        <!-- Meet Tab: Social Game Page with vertical chat/save buttons -->
-        <div x-show="activeTab === 'meet'" class="w-full h-full">
+        <!-- Meet Tab: Discover Map with partner locations -->
+        <div x-show="activeTab === 'meet'" class="fixed inset-0 z-30" style="top: 0; left: 0; right: 0; bottom: 0;">
             <!-- Discover Map: uses Leaflet, shows user location + partner pins -->
-            <div id="discover-map" class="w-full h-screen"></div>
+            <div id="discover-map" style="width: 100%; height: 100%;"></div>
             <!-- Locate me floating action -->
             <button @click="locateMe()" class="fixed right-4 top-24 z-50 bg-white px-3 py-2 rounded-xl shadow-lg flex items-center gap-2">
                 <i class="fas fa-map-marker-alt text-orange-500"></i>
@@ -1598,7 +1598,7 @@
                     this.$watch('activeTab', (value) => {
                         if (value === 'meet') {
                             // initialize map after DOM updates
-                            setTimeout(() => this.initDiscoverMap(), 150);
+                            setTimeout(() => this.initDiscoverMap(), 300);
                         }
                     });
                 },
@@ -1862,48 +1862,57 @@
                     partnerMarkers: [],
                     partners: [],
 
-                    async initDiscoverMap() {
-                        try {
-                            if (this.discoverMapInitialized) return;
-                            this.discoverMapInitialized = true;
-
-                            // Default center (Cusco approximate)
-                            const defaultLat = -13.53195;
-                            const defaultLng = -71.96746;
-
-                            if (typeof L === 'undefined') {
-                                console.error('Leaflet not available');
-                                return;
+                async initDiscoverMap() {
+                    try {
+                        if (this.discoverMapInitialized) {
+                            // Map already exists, just invalidate size to refresh
+                            if (this.map) {
+                                setTimeout(() => this.map.invalidateSize(), 100);
                             }
-
-                            // initialize map
-                            this.map = L.map('discover-map', { scrollWheelZoom: true }).setView([defaultLat, defaultLng], 13);
-
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '&copy; OpenStreetMap contributors'
-                            }).addTo(this.map);
-
-                            // load partners and plot
-                            await this.loadPartners();
-                            this.plotPartners();
-
-                            // try to auto-locate user
-                            if (navigator.geolocation) {
-                                navigator.geolocation.getCurrentPosition((pos) => {
-                                    const lat = pos.coords.latitude;
-                                    const lon = pos.coords.longitude;
-                                    this.map.setView([lat, lon], 13);
-                                    L.circleMarker([lat, lon], { radius: 8, color: '#FF5722', fillColor: '#FF8A65', fillOpacity: 0.9 }).addTo(this.map).bindPopup('You are here');
-                                }, (err) => {
-                                    console.warn('Geolocation denied or failed', err);
-                                });
-                            }
-                        } catch (err) {
-                            console.error('initDiscoverMap error', err);
+                            return;
                         }
-                    },
+                        this.discoverMapInitialized = true;
 
-                    async loadPartners() {
+                        // Default center (Cusco approximate)
+                        const defaultLat = -13.53195;
+                        const defaultLng = -71.96746;
+
+                        if (typeof L === 'undefined') {
+                            console.error('Leaflet not available');
+                            return;
+                        }
+
+                        // initialize map
+                        this.map = L.map('discover-map', { scrollWheelZoom: true }).setView([defaultLat, defaultLng], 13);
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(this.map);
+
+                        // Force map to recalculate size after a moment
+                        setTimeout(() => {
+                            if (this.map) this.map.invalidateSize();
+                        }, 200);
+
+                        // load partners and plot
+                        await this.loadPartners();
+                        this.plotPartners();
+
+                        // try to auto-locate user
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition((pos) => {
+                                const lat = pos.coords.latitude;
+                                const lon = pos.coords.longitude;
+                                this.map.setView([lat, lon], 13);
+                                L.circleMarker([lat, lon], { radius: 8, color: '#FF5722', fillColor: '#FF8A65', fillOpacity: 0.9 }).addTo(this.map).bindPopup('You are here');
+                            }, (err) => {
+                                console.warn('Geolocation denied or failed', err);
+                            });
+                        }
+                    } catch (err) {
+                        console.error('initDiscoverMap error', err);
+                    }
+                },                    async loadPartners() {
                         try {
                             // Try server API first (expects partners array with lat/lng fields)
                             const res = await fetch('https://ainitravel.com/api_partners.php');
