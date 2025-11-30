@@ -150,7 +150,45 @@
             
             <!-- Chats Tab -->
             <div x-show="activeTab === 'chats'" class="divide-y">
-                <!-- ...existing code... -->
+                <!-- Loading State -->
+                <div x-show="chatsLoading" class="text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-orange-500 mb-3"></i>
+                    <p class="text-gray-600">Loading conversations...</p>
+                </div>
+                
+                <!-- Chats List -->
+                <template x-for="chat in conversations" :key="chat.id">
+                    <div @click="openConversation(chat)" class="px-4 py-3 flex items-center space-x-3 cursor-pointer hover:bg-gray-50">
+                        <div class="relative">
+                            <img :src="'https://i.pravatar.cc/150?u=' + (chat.other_user_id || chat.id)" 
+                                 class="w-14 h-14 rounded-full object-cover">
+                            <span x-show="chat.unread_count > 0" 
+                                  class="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold"
+                                  x-text="chat.unread_count"></span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="font-semibold text-gray-900 truncate" 
+                                    x-text="chat.conversation_type === 'direct' ? chat.other_user_name : chat.title"></h3>
+                                <span class="text-xs text-gray-500" x-text="formatChatTime(chat.last_message_time)"></span>
+                            </div>
+                            <p class="text-sm text-gray-600 truncate">
+                                <span x-show="chat.last_sender_id === currentUser.id" class="text-orange-500">You: </span>
+                                <span x-text="chat.last_message || 'Start a conversation'"></span>
+                            </p>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Empty State -->
+                <div x-show="!chatsLoading && conversations.length === 0" class="text-center py-12">
+                    <i class="fas fa-comments text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-600 mb-4">No conversations yet</p>
+                    <button @click="currentView = 'contacts'" class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-full font-semibold">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Find People to Chat
+                    </button>
+                </div>
             </div>
 
             <!-- Adventures Tab -->
@@ -357,6 +395,87 @@
                 </template>
             </div>
             
+        </div>
+        
+        <!-- Chat Conversation View -->
+        <div x-show="currentView === 'chat'" x-cloak class="fixed inset-0 bg-white z-30 flex flex-col">
+            <!-- Chat Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-3 flex-1">
+                    <button @click="closeChatView()" class="text-white">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <img :src="'https://i.pravatar.cc/150?u=' + (activeChat.other_user_id || activeChat.id)" 
+                         class="w-10 h-10 rounded-full">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold truncate" 
+                            x-text="activeChat.conversation_type === 'direct' ? activeChat.other_user_name : activeChat.title"></h3>
+                        <p class="text-xs opacity-90">Online</p>
+                    </div>
+                </div>
+                <button class="text-white">
+                    <i class="fas fa-ellipsis-v text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Messages Container -->
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                <!-- Loading Messages -->
+                <div x-show="messagesLoading" class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl text-orange-500"></i>
+                </div>
+                
+                <!-- Messages -->
+                <template x-for="msg in messages" :key="msg.id">
+                    <div :class="msg.sender_id === currentUser.id ? 'flex justify-end' : 'flex justify-start'">
+                        <div :class="msg.sender_id === currentUser.id ? 
+                                'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 
+                                'bg-white text-gray-900'" 
+                             class="max-w-[75%] rounded-2xl px-4 py-2 shadow-sm">
+                            <!-- Sender name for group chats -->
+                            <div x-show="activeChat.conversation_type === 'group' && msg.sender_id !== currentUser.id" 
+                                 class="text-xs font-semibold mb-1 opacity-70"
+                                 x-text="msg.sender_name"></div>
+                            <!-- Message text -->
+                            <p class="text-sm whitespace-pre-wrap break-words" x-html="msg.message_text"></p>
+                            <!-- Timestamp -->
+                            <div class="text-xs mt-1 opacity-70 text-right" x-text="formatMessageTime(msg.created_at)"></div>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Empty state -->
+                <div x-show="!messagesLoading && messages.length === 0" class="text-center py-12">
+                    <i class="fas fa-comments text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">No messages yet. Say hi! 👋</p>
+                </div>
+            </div>
+            
+            <!-- Message Input -->
+            <div class="bg-white border-t px-4 py-3">
+                <div class="flex items-end space-x-2">
+                    <button class="text-gray-400 hover:text-gray-600 pb-2">
+                        <i class="fas fa-plus-circle text-2xl"></i>
+                    </button>
+                    <div class="flex-1 bg-gray-100 rounded-full px-4 py-2 flex items-center">
+                        <input 
+                            type="text" 
+                            x-model="newMessage"
+                            @keydown.enter="sendMessage()"
+                            placeholder="Type a message..."
+                            class="flex-1 bg-transparent text-sm focus:outline-none">
+                        <button class="text-gray-400 hover:text-gray-600 ml-2">
+                            <i class="fas fa-smile text-xl"></i>
+                        </button>
+                    </div>
+                    <button @click="sendMessage()" 
+                            :disabled="!newMessage.trim()"
+                            :class="newMessage.trim() ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gray-300'"
+                            class="w-10 h-10 rounded-full text-white flex items-center justify-center">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
         </div>
         
         <!-- Contacts View (Bottom Nav) -->
@@ -1697,6 +1816,8 @@
                     // Load wallet balance from prod server
                     if (user.phone) {
                         await this.loadWalletBalance();
+                        // Load conversations if user is logged in
+                        await this.loadConversations();
                     }
                     
                     // Watch for wallet view to load transactions
@@ -2416,6 +2537,181 @@
                             this.currentRoute = null;
                         }
                     },
+                
+                // Chat System State
+                conversations: [],
+                chatsLoading: true,
+                messages: [],
+                messagesLoading: false,
+                activeChat: null,
+                newMessage: '',
+                messagePolling: null,
+                
+                // Load conversations from API
+                async loadConversations() {
+                    try {
+                        this.chatsLoading = true;
+                        const response = await fetch('https://ainitravel.com/chat_api.php?action=get_conversations');
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.conversations = data.conversations;
+                        }
+                    } catch (error) {
+                        console.error('Error loading conversations:', error);
+                    } finally {
+                        this.chatsLoading = false;
+                    }
+                },
+                
+                // Open a conversation
+                async openConversation(chat) {
+                    this.activeChat = chat;
+                    this.currentView = 'chat';
+                    this.messages = [];
+                    this.messagesLoading = true;
+                    
+                    try {
+                        // Load messages
+                        const response = await fetch(`https://ainitravel.com/chat_api.php?action=get_messages&conversation_id=${chat.id}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.messages = data.messages;
+                            
+                            // Mark as read
+                            await fetch('https://ainitravel.com/chat_api.php', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                                body: `action=mark_read&conversation_id=${chat.id}`
+                            });
+                            
+                            // Scroll to bottom
+                            setTimeout(() => this.scrollToBottom(), 100);
+                            
+                            // Start polling for new messages
+                            this.startMessagePolling();
+                        }
+                    } catch (error) {
+                        console.error('Error loading messages:', error);
+                    } finally {
+                        this.messagesLoading = false;
+                    }
+                },
+                
+                // Send message
+                async sendMessage() {
+                    if (!this.newMessage.trim() || !this.activeChat) return;
+                    
+                    const messageText = this.newMessage;
+                    this.newMessage = '';
+                    
+                    try {
+                        const response = await fetch('https://ainitravel.com/chat_api.php', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: `action=send_message&conversation_id=${this.activeChat.id}&message=${encodeURIComponent(messageText)}`
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Add message to UI
+                            this.messages.push({
+                                id: data.message_id,
+                                sender_id: this.currentUser.id,
+                                message_text: messageText,
+                                created_at: data.created_at,
+                                sender_name: this.currentUser.first_name
+                            });
+                            
+                            // Scroll to bottom
+                            setTimeout(() => this.scrollToBottom(), 50);
+                            
+                            // Reload conversations list to update last message
+                            this.loadConversations();
+                        }
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        alert('Failed to send message');
+                    }
+                },
+                
+                // Close chat view
+                closeChatView() {
+                    this.currentView = 'home';
+                    this.activeChat = null;
+                    this.messages = [];
+                    this.stopMessagePolling();
+                },
+                
+                // Scroll to bottom of messages
+                scrollToBottom() {
+                    const container = document.getElementById('messages-container');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                },
+                
+                // Poll for new messages every 3 seconds
+                startMessagePolling() {
+                    this.stopMessagePolling();
+                    this.messagePolling = setInterval(() => {
+                        if (this.activeChat && this.currentView === 'chat') {
+                            this.refreshMessages();
+                        }
+                    }, 3000);
+                },
+                
+                stopMessagePolling() {
+                    if (this.messagePolling) {
+                        clearInterval(this.messagePolling);
+                        this.messagePolling = null;
+                    }
+                },
+                
+                async refreshMessages() {
+                    if (!this.activeChat) return;
+                    
+                    try {
+                        const response = await fetch(`https://ainitravel.com/chat_api.php?action=get_messages&conversation_id=${this.activeChat.id}&limit=50`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.messages.length > this.messages.length) {
+                            const oldLength = this.messages.length;
+                            this.messages = data.messages;
+                            // Scroll to bottom if new messages
+                            if (data.messages.length > oldLength) {
+                                setTimeout(() => this.scrollToBottom(), 50);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error refreshing messages:', error);
+                    }
+                },
+                
+                // Format time helpers
+                formatChatTime(timestamp) {
+                    if (!timestamp) return '';
+                    const date = new Date(timestamp);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    
+                    if (diffMins < 60) return `${diffMins}m ago`;
+                    const diffHours = Math.floor(diffMins / 60);
+                    if (diffHours < 24) return `${diffHours}h ago`;
+                    const diffDays = Math.floor(diffHours / 24);
+                    if (diffDays === 1) return 'Yesterday';
+                    if (diffDays < 7) return `${diffDays} days ago`;
+                    return date.toLocaleDateString();
+                },
+                
+                formatMessageTime(timestamp) {
+                    if (!timestamp) return '';
+                    const date = new Date(timestamp);
+                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                },
                 
                 chats: [
                     {
