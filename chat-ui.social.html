@@ -2030,15 +2030,28 @@
                             }
                             
                             const popupHtml = `
-                                <div style="min-width:180px">
+                                <div style="min-width:200px">
                                     <strong>${p.business_name}</strong><br/>
                                     <small>${p.business_type || ''} • ${p.city || ''}</small>
                                     <p style="margin:6px 0 4px; font-size:12px; color:#666">${p.address || ''}</p>
                                     ${distanceText}
-                                    <button onclick="window.ainiflowAppInstance.showDirections(${lat}, ${lng}, '${p.business_name.replace(/'/g, "\\'")}')" 
-                                            style="background:#E07A5F; color:white; padding:6px 12px; border:none; border-radius:6px; font-size:12px; cursor:pointer; width:100%; margin-top:8px;">
-                                        <i class="fas fa-route"></i> Show Route
-                                    </button>
+                                    <div style="margin-top:8px;">
+                                        <div style="font-size:11px; font-weight:600; color:#666; margin-bottom:4px;">Choose Route Type:</div>
+                                        <div style="display:flex; gap:4px;">
+                                            <button onclick="window.ainiflowAppInstance.showDirections(${lat}, ${lng}, '${p.business_name.replace(/'/g, "\\'")}', 'foot')" 
+                                                    style="flex:1; background:#E07A5F; color:white; padding:6px 4px; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
+                                                <i class="fas fa-walking"></i> Walk
+                                            </button>
+                                            <button onclick="window.ainiflowAppInstance.showDirections(${lat}, ${lng}, '${p.business_name.replace(/'/g, "\\'")}', 'driving')" 
+                                                    style="flex:1; background:#3D5A80; color:white; padding:6px 4px; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
+                                                <i class="fas fa-car"></i> Drive
+                                            </button>
+                                            <button onclick="window.ainiflowAppInstance.showDirections(${lat}, ${lng}, '${p.business_name.replace(/'/g, "\\'")}', 'cycling')" 
+                                                    style="flex:1; background:#F2CC8F; color:#2D3142; padding:6px 4px; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
+                                                <i class="fas fa-bicycle"></i> Bike
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>`;
                             marker.bindPopup(popupHtml);
                             this.partnerMarkers.push(marker);
@@ -2066,12 +2079,12 @@
                         }, { enableHighAccuracy: true, timeout: 10000 });
                     },
 
-                    showDirections(destLat, destLng, businessName) {
+                    showDirections(destLat, destLng, businessName, mode = 'foot') {
                         if (!this.map) return;
                         
                         // Remove previous route if exists
                         if (this.currentRoute) {
-                            this.map.removeLayer(this.currentRoute);
+                            this.map.removeControl(this.currentRoute);
                             this.currentRoute = null;
                         }
                         
@@ -2084,73 +2097,59 @@
                             
                             navigator.geolocation.getCurrentPosition((pos) => {
                                 this.userLocation = [pos.coords.latitude, pos.coords.longitude];
-                                this.drawRoute(this.userLocation, [destLat, destLng], businessName);
+                                this.drawRoute(this.userLocation, [destLat, destLng], businessName, mode);
                             }, (err) => {
                                 console.error('Geolocation failure', err);
                                 alert('Unable to get your location. Please allow location permissions.');
                             }, { enableHighAccuracy: true, timeout: 10000 });
                         } else {
-                            this.drawRoute(this.userLocation, [destLat, destLng], businessName);
+                            this.drawRoute(this.userLocation, [destLat, destLng], businessName, mode);
                         }
                     },
 
-                    drawRoute(start, end, businessName) {
+                    async drawRoute(start, end, businessName, mode = 'foot') {
                         if (!this.map) return;
                         
-                        // Check if routing library is available
-                        if (typeof L.Routing === 'undefined') {
-                            console.error('Routing library not loaded, falling back to straight line');
-                            this.drawStraightLine(start, end, businessName);
-                            return;
-                        }
+                        // Map mode to profile and display name
+                        const modeConfig = {
+                            'foot': { profile: 'foot', osrmProfile: 'foot', icon: '🚶', name: 'Walking', color: '#E07A5F' },
+                            'driving': { profile: 'driving-car', osrmProfile: 'car', icon: '🚗', name: 'Driving', color: '#3D5A80' },
+                            'cycling': { profile: 'cycling-regular', osrmProfile: 'bike', icon: '🚴', name: 'Cycling', color: '#F2CC8F' }
+                        };
                         
-                        // Create routing control with OSRM (free routing service)
-                        this.currentRoute = L.Routing.control({
-                            waypoints: [
-                                L.latLng(start[0], start[1]),
-                                L.latLng(end[0], end[1])
-                            ],
-                            routeWhileDragging: false,
-                            addWaypoints: false,
-                            draggableWaypoints: false,
-                            fitSelectedRoutes: true,
-                            showAlternatives: false,
-                            lineOptions: {
-                                styles: [{
-                                    color: '#E07A5F',
+                        const config = modeConfig[mode] || modeConfig['foot'];
+                        
+                        // Try GraphHopper API first (better routing), fallback to OSRM
+                        try {
+                            const ghUrl = `https://graphhopper.com/api/1/route?point=${start[0]},${start[1]}&point=${end[0]},${end[1]}&vehicle=${config.profile}&locale=en&points_encoded=false&type=json`;
+                            
+                            const response = await fetch(ghUrl);
+                            const data = await response.json();
+                            
+                            if (data.paths && data.paths.length > 0) {
+                                const path = data.paths[0];
+                                const coordinates = path.points.coordinates.map(coord => [coord[1], coord[0]]); // swap lon,lat to lat,lon
+                                
+                                // Draw the route
+                                this.currentRoute = L.polyline(coordinates, {
+                                    color: config.color,
                                     opacity: 0.8,
                                     weight: 5
-                                }]
-                            },
-                            createMarker: function() { return null; }, // Don't show route markers
-                            router: L.Routing.osrmv1({
-                                serviceUrl: 'https://router.project-osrm.org/route/v1',
-                                profile: 'foot' // walking route
-                            }),
-                            formatter: new L.Routing.Formatter({
-                                language: 'en',
-                                units: 'metric'
-                            })
-                        }).addTo(this.map);
-                        
-                        // Listen for route found event to show distance
-                        this.currentRoute.on('routesfound', (e) => {
-                            const routes = e.routes;
-                            const summary = routes[0].summary;
-                            const distanceKm = (summary.totalDistance / 1000).toFixed(2);
-                            const distanceMiles = (summary.totalDistance / 1609.34).toFixed(2);
-                            const timeMinutes = Math.round(summary.totalTime / 60);
-                            
-                            // Show info in a popup
-                            setTimeout(() => {
-                                const midpoint = routes[0].coordinates[Math.floor(routes[0].coordinates.length / 2)];
+                                }).addTo(this.map);
+                                
+                                const distanceKm = (path.distance / 1000).toFixed(2);
+                                const distanceMiles = (path.distance / 1609.34).toFixed(2);
+                                const timeMinutes = Math.round(path.time / 1000 / 60);
+                                
+                                // Show info popup
+                                const midIndex = Math.floor(coordinates.length / 2);
                                 L.popup()
-                                    .setLatLng(midpoint)
+                                    .setLatLng(coordinates[midIndex])
                                     .setContent(`
                                         <div style="text-align:center;">
-                                            <strong>Walking Route to ${businessName}</strong><br/>
-                                            <small>📍 ${distanceKm} km (${distanceMiles} mi)</small><br/>
-                                            <small>⏱️ ~${timeMinutes} minutes walk</small><br/>
+                                            <strong>${config.icon} ${config.name} Route to ${businessName}</strong><br/>
+                                            <small>� ${distanceKm} km (${distanceMiles} mi)</small><br/>
+                                            <small>⏱️ ~${timeMinutes} minutes</small><br/>
                                             <button onclick="window.ainiflowAppInstance.clearRoute()" 
                                                     style="background:#666; color:white; padding:4px 8px; border:none; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">
                                                 Clear Route
@@ -2158,16 +2157,84 @@
                                         </div>
                                     `)
                                     .openOn(this.map);
-                            }, 500);
-                        });
+                                
+                                // Fit map to route
+                                this.map.fitBounds(this.currentRoute.getBounds(), { padding: [50, 50] });
+                                return;
+                            }
+                        } catch (error) {
+                            console.warn('GraphHopper routing failed, trying OSRM:', error);
+                        }
                         
-                        // Handle routing errors
-                        this.currentRoute.on('routingerror', (e) => {
-                            console.error('Routing error:', e);
-                            alert('Could not find route. Using direct line instead.');
-                            this.clearRoute();
+                        // Fallback to OSRM with Leaflet Routing Machine
+                        if (typeof L.Routing !== 'undefined') {
+                            this.currentRoute = L.Routing.control({
+                                waypoints: [
+                                    L.latLng(start[0], start[1]),
+                                    L.latLng(end[0], end[1])
+                                ],
+                                routeWhileDragging: false,
+                                addWaypoints: false,
+                                draggableWaypoints: false,
+                                fitSelectedRoutes: true,
+                                showAlternatives: false,
+                                lineOptions: {
+                                    styles: [{
+                                        color: config.color,
+                                        opacity: 0.8,
+                                        weight: 5
+                                    }]
+                                },
+                                createMarker: function() { return null; },
+                                router: L.Routing.osrmv1({
+                                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                                    profile: config.osrmProfile
+                                }),
+                                formatter: new L.Routing.Formatter({
+                                    language: 'en',
+                                    units: 'metric'
+                                })
+                                }).addTo(this.map);
+                            
+                            // Listen for route found event to show distance
+                            this.currentRoute.on('routesfound', (e) => {
+                                const routes = e.routes;
+                                const summary = routes[0].summary;
+                                const distanceKm = (summary.totalDistance / 1000).toFixed(2);
+                                const distanceMiles = (summary.totalDistance / 1609.34).toFixed(2);
+                                const timeMinutes = Math.round(summary.totalTime / 60);
+                                
+                                // Show info in a popup
+                                setTimeout(() => {
+                                    const midpoint = routes[0].coordinates[Math.floor(routes[0].coordinates.length / 2)];
+                                    L.popup()
+                                        .setLatLng(midpoint)
+                                        .setContent(`
+                                            <div style="text-align:center;">
+                                                <strong>${config.icon} ${config.name} Route (OSRM) to ${businessName}</strong><br/>
+                                                <small>📍 ${distanceKm} km (${distanceMiles} mi)</small><br/>
+                                                <small>⏱️ ~${timeMinutes} minutes</small><br/>
+                                                <button onclick="window.ainiflowAppInstance.clearRoute()" 
+                                                        style="background:#666; color:white; padding:4px 8px; border:none; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">
+                                                    Clear Route
+                                                </button>
+                                            </div>
+                                        `)
+                                        .openOn(this.map);
+                                }, 500);
+                            });
+                            
+                            // Handle routing errors
+                            this.currentRoute.on('routingerror', (e) => {
+                                console.error('Routing error:', e);
+                                alert('Could not find route. Using direct line instead.');
+                                this.clearRoute();
+                                this.drawStraightLine(start, end, businessName);
+                            });
+                        } else {
+                            console.error('Routing library not loaded, falling back to straight line');
                             this.drawStraightLine(start, end, businessName);
-                        });
+                        }
                     },
                     
                     drawStraightLine(start, end, businessName) {
@@ -2210,7 +2277,22 @@
 
                     clearRoute() {
                         if (this.currentRoute && this.map) {
-                            this.map.removeControl(this.currentRoute);
+                            // Check if it's a routing control or a polyline
+                            if (this.currentRoute.remove) {
+                                this.currentRoute.remove(); // For routing control
+                            } else if (this.currentRoute.removeFrom) {
+                                this.currentRoute.removeFrom(this.map); // For polyline
+                            } else {
+                                try {
+                                    this.map.removeControl(this.currentRoute);
+                                } catch(e) {
+                                    try {
+                                        this.map.removeLayer(this.currentRoute);
+                                    } catch(e2) {
+                                        console.warn('Could not remove route:', e, e2);
+                                    }
+                                }
+                            }
                             this.currentRoute = null;
                         }
                     },
