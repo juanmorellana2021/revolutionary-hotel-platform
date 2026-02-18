@@ -116,20 +116,35 @@ if ($action === 'chat') {
         $responseLanguage = $languageMap[$userLanguage];
         $languageInstruction = "� MANDATORY: Respond ONLY in {$responseLanguage}. Every single word must be in {$responseLanguage}.";
     } else {
-        // Auto-detect from message
-        $languageInstruction = "🚨 MANDATORY LANGUAGE RULE:
-The user wrote: \"{$message}\"
-
-You can understand this message, right? That means you KNOW what language it is.
-Respond in THE EXACT SAME LANGUAGE you just understood.
-
-- If you understood it as English → Write your ENTIRE response in English
-- If you understood it as Spanish → Write your ENTIRE response in Spanish  
-- If you understood it as French → Write your ENTIRE response in French
-- If you understood it as Chinese → Write your ENTIRE response in Chinese
-- And so on for ANY language
-
-DO NOT default to Spanish. DO NOT mix languages. MATCH the language you understood.";
+        // Auto-detect using PHP keyword matching
+        $messageLower = strtolower($message);
+        
+        // English detection
+        if (preg_match('/\b(hello|hi|hey|how are you|good morning|good afternoon|hotel|hotels|where|what|can you|i am|im|i\'m|do you have|looking for|need|want|recommend|show me|find|search|book|help|yes|no|please|thanks|thank you|any)\b/i', $messageLower)) {
+            $responseLanguage = 'ENGLISH';
+        }
+        // Spanish detection
+        else if (preg_match('/\b(hola|cómo estás|buenos días|buenas tardes|hotel|hoteles|dónde|donde|qué|que|puedes|quiero|necesito|busco|tienes|recomienda|muestra|encuentra|reserva|reservar|ayuda|sí|si|no|por favor|gracias)\b/i', $messageLower)) {
+            $responseLanguage = 'SPANISH';
+        }
+        // Portuguese
+        else if (preg_match('/\b(olá|oi|como está|bom dia|boa tarde|hotel|hotéis|onde|você pode|eu quero|preciso|procuro|tem|recomenda|mostre|encontre|ajuda|sim|não|nao|por favor)\b/i', $messageLower)) {
+            $responseLanguage = 'PORTUGUESE';
+        }
+        // French
+        else if (preg_match('/\b(bonjour|salut|hôtel|hotel|où|ou|quoi|pouvez-vous|je veux|je cherche|avez-vous|recommandez|montrez|trouvez|réserver|reserver|oui|non|merci)\b/i', $messageLower)) {
+            $responseLanguage = 'FRENCH';
+        }
+        // German  
+        else if (preg_match('/\b(hallo|guten tag|hotel|wo|was|können sie|ich möchte|ich brauche|suche|haben sie|empfehlen|zeigen|finden|buchen|ja|nein|bitte|danke)\b/i', $messageLower)) {
+            $responseLanguage = 'GERMAN';
+        }
+        // Default to English
+        else {
+            $responseLanguage = 'ENGLISH';
+        }
+        
+        $languageInstruction = "LANGUAGE DETECTED: {$responseLanguage}\n\nYou MUST respond ONLY in {$responseLanguage}. Every word must be in {$responseLanguage}.\nDo NOT mix languages. Do NOT use Spanish unless detected language is SPANISH.";
     }
     
     // Build Sofia's character prompt (CONDENSED for speed)
