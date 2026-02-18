@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 $isLoggedIn = isset($_SESSION['user_id']);
 
@@ -1440,7 +1440,7 @@ if ($isLoggedIn) {
                 <!-- Logo -->
                 <div class="flex items-center">
                     <span class="text-2xl font-bold text-white">
-                        ✈️ AiNi Travel
+                        ?? AiNi Travel
                     </span>
                 </div>
                 
@@ -1452,20 +1452,20 @@ if ($isLoggedIn) {
                 <!-- Navigation Links (Center - Desktop) -->
                 <nav class="hidden md:flex items-center space-x-1">
                     <a href="coming_soon_experiences.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🎯 Experiences
+                        ?? Experiences
                     </a>
                     <a href="coming_soon_social.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🌍 Social
+                        ?? Social
                     </a>
                     <a href="coming_soon_coins.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🪙 Coins
+                        ?? Coins
                     </a>
                     <a href="partner_register.php" class="text-white hover:bg-white/20 px-4 py-2 rounded-full transition font-medium">
-                        🏨 List Your Property
+                        ?? List Your Property
                     </a>
                 <?php if ($isLoggedIn): ?>
                 <a href="my_bookings.php" class="bg-cyan-400 text-white hover:bg-cyan-500 px-4 py-2 rounded-full transition font-medium shadow-lg">
-                    📋 View Reservations
+                    ?? View Reservations
                 </a>
                 <?php endif; ?>
             </nav>
@@ -1475,18 +1475,18 @@ if ($isLoggedIn) {
                     <!-- Language Selector -->
                     <div class="relative">
                         <button onclick="toggleLanguageMenu()" class="h-8 px-3 bg-white/20 hover:bg-white/30 rounded-full text-xs font-semibold text-white transition flex items-center gap-1">
-                            🌐 ES
+                            ?? ES
                         </button>
                         <div id="languageMenu" class="hidden absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <a href="?lang=es" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">✨🇪🇸 Español</a>
-                            <a href="?lang=en" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">🇺🇸 English</a>
+                            <a href="?lang=es" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">????? Espa�ol</a>
+                            <a href="?lang=en" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">???? English</a>
                         </div>
                     </div>
                     
                     <?php if ($isLoggedIn): ?>
                     <!-- Notifications -->
                     <button class="relative h-8 w-8 bg-white/20 hover:bg-white/30 rounded-full transition text-white flex items-center justify-center text-sm">
-                        🔔
+                        ??
                         <?php if ($notificationCount > 0): ?>
                         <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold"><?php echo $notificationCount; ?></span>
                         <?php endif; ?>
@@ -1496,20 +1496,20 @@ if ($isLoggedIn) {
                     <?php if (!$isLoggedIn): ?>
                     <!-- Login/Register Button -->
                     <a href="login.php" class="h-8 px-3 bg-white hover:bg-white/90 rounded-full transition text-primary text-xs font-semibold flex items-center gap-1">
-                        🔑 Login/Register
+                        ?? Login/Register
                     </a>
                     <?php else: ?>
                     <!-- Profile Menu -->
                     <div class="relative">
                         <button onclick="toggleProfileMenu()" class="h-8 w-8 bg-white/20 hover:bg-white/30 rounded-full transition text-white flex items-center justify-center text-sm">
-                            👤
+                            ??
                         </button>
                         <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <a href="profile.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">👤 My Profile</a>
-                            <a href="wallet.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">🪙 My Wallet</a>
-                            <a href="my_bookings.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">📅 My Bookings</a>
+                            <a href="profile.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">?? My Profile</a>
+                            <a href="wallet.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">?? My Wallet</a>
+                            <a href="my_bookings.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">?? My Bookings</a>
                             <div class="border-t border-gray-200 my-1"></div>
-                            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100">🚪 Logout</a>
+                            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100">?? Logout</a>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -1520,24 +1520,24 @@ if ($isLoggedIn) {
     
     <!-- Mobile Menu (Hidden by default) -->
     <div id="mobileMenu" class="mobile-menu">
-        <a href="coming_soon_experiences.php">🎯 Experiences</a>
-        <a href="coming_soon_social.php">🌍 Social</a>
-        <a href="coming_soon_coins.php">🪙 Coins</a>
+        <a href="coming_soon_experiences.php">?? Experiences</a>
+        <a href="coming_soon_social.php">?? Social</a>
+        <a href="coming_soon_coins.php">?? Coins</a>
         <?php if ($isLoggedIn): ?>
         <a href="my_bookings.php" class="relative" style="background: #22d3ee; padding: 0.75rem; border-radius: 0.5rem; font-weight: 600;">
-            📋 View Reservations
+            ?? View Reservations
         </a>
         <?php endif; ?>
         <div class="border-t border-white/20 my-2 pt-2">
             <?php if (!$isLoggedIn): ?>
-            <a href="login.php" class="text-sm font-semibold" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 0.5rem; display: block; margin-bottom: 0.5rem;">🔑 Login</a>
-            <a href="register.php" class="text-sm font-semibold" style="background: white; color: #667eea; padding: 0.5rem 1rem; border-radius: 0.5rem; display: block; margin-bottom: 0.5rem;">✨ Sign Up</a>
+            <a href="login.php" class="text-sm font-semibold" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 0.5rem; display: block; margin-bottom: 0.5rem;">?? Login</a>
+            <a href="register.php" class="text-sm font-semibold" style="background: white; color: #667eea; padding: 0.5rem 1rem; border-radius: 0.5rem; display: block; margin-bottom: 0.5rem;">? Sign Up</a>
             <?php else: ?>
-            <a href="#" class="text-sm">🔔 Notifications<?php if ($notificationCount > 0) echo " ($notificationCount)"; ?></a>
-            <a href="profile.php" class="text-sm">👤 Profile</a>
-            <a href="logout.php" class="text-sm text-red-400">🚪 Logout</a>
+            <a href="#" class="text-sm">?? Notifications<?php if ($notificationCount > 0) echo " ($notificationCount)"; ?></a>
+            <a href="profile.php" class="text-sm">?? Profile</a>
+            <a href="logout.php" class="text-sm text-red-400">?? Logout</a>
             <?php endif; ?>
-            <a href="#" class="text-sm">🌐 ES</a>
+            <a href="#" class="text-sm">?? ES</a>
         </div>
     </div>
 
@@ -1551,12 +1551,12 @@ if ($isLoggedIn) {
                     <!-- Destination Input -->
                     <div class="flex-1 min-w-[200px] relative">
                         <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-xl">
-                            📍
+                            ??
                         </div>
                         <input 
                             type="text" 
                             id="searchDestination" 
-                            placeholder="¿A dónde vas? (Ciudad, país...)" 
+                            placeholder="�A d�nde vas? (Ciudad, pa�s...)" 
                             class="w-full pl-12 pr-4 py-2.5 border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                     </div>
@@ -1564,7 +1564,7 @@ if ($isLoggedIn) {
                     <!-- Check-in Date -->
                     <div class="relative">
                         <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                            📅
+                            ??
                         </div>
                         <input 
                             type="date" 
@@ -1576,7 +1576,7 @@ if ($isLoggedIn) {
                     <!-- Check-out Date -->
                     <div class="relative">
                         <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                            📅
+                            ??
                         </div>
                         <input 
                             type="date" 
@@ -1588,17 +1588,17 @@ if ($isLoggedIn) {
                     <!-- Guests Selector -->
                     <div class="relative">
                         <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                            👥
+                            ??
                         </div>
                         <select 
                             id="searchGuests" 
                             class="pl-10 pr-8 py-2.5 border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white"
                         >
-                            <option value="1">1 huésped</option>
-                            <option value="2" selected>2 huéspedes</option>
-                            <option value="3">3 huéspedes</option>
-                            <option value="4">4 huéspedes</option>
-                            <option value="5">5+ huéspedes</option>
+                            <option value="1">1 hu�sped</option>
+                            <option value="2" selected>2 hu�spedes</option>
+                            <option value="3">3 hu�spedes</option>
+                            <option value="4">4 hu�spedes</option>
+                            <option value="5">5+ hu�spedes</option>
                         </select>
                     </div>
                     
@@ -1607,7 +1607,7 @@ if ($isLoggedIn) {
                         onclick="searchHotels()" 
                         class="px-6 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:opacity-90 transition font-semibold shadow-lg flex items-center gap-2"
                     >
-                        <span>✨</span>
+                        <span>?</span>
                         <span>Buscar</span>
                     </button>
                     
@@ -1618,13 +1618,13 @@ if ($isLoggedIn) {
                             onclick="toggleFilters()" 
                             class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:opacity-90 transition font-semibold flex items-center gap-2 shadow-lg"
                         >
-                            🔧 Filtros
+                            ?? Filtros
                         </button>
                         
                         <!-- Filter Dropdown -->
                         <div id="filterDropdown" class="filter-dropdown">
                             <div class="filter-section">
-                                <div class="filter-title">💰 Rango de Precio</div>
+                                <div class="filter-title">?? Rango de Precio</div>
                                 <input type="range" id="priceRange" class="filter-range" min="0" max="300" value="300" oninput="updatePriceRange(this.value)">
                                 <div class="filter-range-values">
                                     <span>$0</span>
@@ -1633,7 +1633,7 @@ if ($isLoggedIn) {
                             </div>
                             
                             <div class="filter-section">
-                                <div class="filter-title">? Calificación Mínima</div>
+                                <div class="filter-title">? Calificaci�n M�nima</div>
                                 <div class="filter-checkbox-group">
                                     <label class="filter-checkbox">
                                         <input type="radio" name="rating" value="0" checked onchange="applyFilters()">
@@ -1651,33 +1651,33 @@ if ($isLoggedIn) {
                             </div>
                             
                             <div class="filter-section">
-                                <div class="filter-title">⚡ Servicios</div>
+                                <div class="filter-title">? Servicios</div>
                                 <div class="filter-checkbox-group">
                                     <label class="filter-checkbox">
                                         <input type="checkbox" value="Piscina" onchange="applyFilters()">
-                                        <span>🏊 Piscina</span>
+                                        <span>?? Piscina</span>
                                     </label>
                                     <label class="filter-checkbox">
                                         <input type="checkbox" value="WiFi" onchange="applyFilters()">
-                                        <span>📶 WiFi</span>
+                                        <span>?? WiFi</span>
                                     </label>
                                     <label class="filter-checkbox">
                                         <input type="checkbox" value="Spa" onchange="applyFilters()">
-                                        <span>💆 Spa</span>
+                                        <span>?? Spa</span>
                                     </label>
                                     <label class="filter-checkbox">
                                         <input type="checkbox" value="Gimnasio" onchange="applyFilters()">
-                                        <span>🏋️ Gym</span>
+                                        <span>??? Gym</span>
                                     </label>
                                     <label class="filter-checkbox">
                                         <input type="checkbox" value="Estacionamiento" onchange="applyFilters()">
-                                        <span>🅿️ Parking</span>
+                                        <span>??? Parking</span>
                                     </label>
                                 </div>
                             </div>
                             
                             <div class="filter-section">
-                                <div class="filter-title">🪙 AiNi Coins Mínimos</div>
+                                <div class="filter-title">?? AiNi Coins M�nimos</div>
                                 <input type="range" id="coinsRange" class="filter-range" min="0" max="50" value="0" oninput="updateCoinsRange(this.value)">
                                 <div class="filter-range-values">
                                     <span>0 coins</span>
@@ -1699,7 +1699,7 @@ if ($isLoggedIn) {
             
             <!-- Map Toggle Button - Floating -->
             <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapVisibility()">
-                <span id="mapToggleIcon">🗺️</span>
+                <span id="mapToggleIcon">???</span>
                 <span id="mapToggleText">Ocultar Mapa</span>
             </button>
             
@@ -1711,7 +1711,7 @@ if ($isLoggedIn) {
             <!-- AI Response Bubble (Comic-style but professional) -->
             <div id="aiResponseBubble" class="ai-response-bubble" style="display: none;">
                 <div class="ai-response-header">
-                    <span class="font-bold">🤖 AiNi Assistant</span>
+                    <span class="font-bold">?? AiNi Assistant</span>
                     <button onclick="closeAIResponse()" class="text-white hover:text-gray-200">?</button>
                 </div>
                 <div id="aiResponseText" class="ai-response-text">
@@ -1725,7 +1725,7 @@ if ($isLoggedIn) {
                     
                     <!-- Header -->
                     <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">🏨 Propiedades Disponibles</h2>
+                        <h2 class="text-2xl font-bold text-gray-800">?? Propiedades Disponibles</h2>
                         <p class="text-gray-600" id="hotelCount">Cargando hoteles...</p>
                     </div>
                     
@@ -1734,7 +1734,7 @@ if ($isLoggedIn) {
                         <!-- Loading -->
                         <div class="text-center py-12">
                             <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-primary"></div>
-                            <p class="mt-4 text-gray-600">Cargando hoteles increíbles...</p>
+                            <p class="mt-4 text-gray-600">Cargando hoteles incre�bles...</p>
                         </div>
                     </div>
                     
@@ -1765,11 +1765,11 @@ if ($isLoggedIn) {
                 <!-- Hotel Info -->
                 <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
                     <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-4xl" id="modalHotelEmoji">
-                        🗺️
+                        ???
                     </div>
                     <div class="flex-1">
                         <h4 class="font-bold text-xl text-gray-800" id="modalHotelName">Ocean View Resort</h4>
-                        <p class="text-gray-600 text-sm" id="modalHotelLocation">📍 Miami Beach, FL</p>
+                        <p class="text-gray-600 text-sm" id="modalHotelLocation">?? Miami Beach, FL</p>
                         <p class="text-yellow-500 text-sm mt-1" id="modalHotelRating">? 4.8</p>
                     </div>
                 </div>
@@ -1778,28 +1778,28 @@ if ($isLoggedIn) {
                 <div class="space-y-4 mb-6">
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            📅 Check-in
+                            ?? Check-in
                         </label>
                         <input type="date" id="modalCheckin" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                     </div>
                     
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            📅 Check-out
+                            ?? Check-out
                         </label>
                         <input type="date" id="modalCheckout" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                     </div>
                     
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            ✨ Huéspedes
+                            ? Hu�spedes
                         </label>
                         <select id="modalGuests" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                            <option value="1">1 Huésped</option>
-                            <option value="2" selected>2 Huéspedes</option>
-                            <option value="3">3 Huéspedes</option>
-                            <option value="4">4 Huéspedes</option>
-                            <option value="5+">5+ Huéspedes</option>
+                            <option value="1">1 Hu�sped</option>
+                            <option value="2" selected>2 Hu�spedes</option>
+                            <option value="3">3 Hu�spedes</option>
+                            <option value="4">4 Hu�spedes</option>
+                            <option value="5+">5+ Hu�spedes</option>
                         </select>
                     </div>
                 </div>
@@ -1811,11 +1811,11 @@ if ($isLoggedIn) {
                         <span class="font-semibold text-gray-800" id="modalPricePerNight">$180</span>
                     </div>
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-700" id="modalNightsLabel">🌙 2 noches</span>
+                        <span class="text-gray-700" id="modalNightsLabel">?? 2 noches</span>
                         <span class="font-semibold text-gray-800" id="modalSubtotal">$360</span>
                     </div>
                     <div class="flex justify-between items-center pt-2 border-t border-gray-300">
-                        <span class="text-gray-700">🪙 Ganas AiNi Coins</span>
+                        <span class="text-gray-700">?? Ganas AiNi Coins</span>
                         <span class="font-bold text-yellow-600" id="modalAiniCoins">72</span>
                     </div>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t-2 border-gray-400">
@@ -1845,9 +1845,9 @@ if ($isLoggedIn) {
     <!-- Footer - FIXED BOTTOM -->
     <footer class="footer fixed bottom-0 left-0 right-0 z-30" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.75rem 0;">
         <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem; display: flex; justify-content: space-between; align-items: center;">
-            <p style="opacity: 0.9; font-size: 0.875rem; margin: 0;">✈️ AiNi Travel - Revolutionary hotel booking with AI-powered search © 2025</p>
+            <p style="opacity: 0.9; font-size: 0.875rem; margin: 0;">?? AiNi Travel - Revolutionary hotel booking with AI-powered search � 2025</p>
             <a href="partners/login.php" style="opacity: 0.9; font-size: 0.875rem; color: white; text-decoration: none; padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.2); border-radius: 0.5rem; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                🏨 Owner/Partner Login
+                ?? Owner/Partner Login
             </a>
         </div>
     </footer>
@@ -1872,11 +1872,11 @@ if ($isLoggedIn) {
                 <!-- Hotel Info -->
                 <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
                     <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-4xl" id="modalHotelEmoji">
-                        🗺️
+                        ???
                     </div>
                     <div class="flex-1">
                         <h4 class="font-bold text-xl text-gray-800" id="modalHotelName">Ocean View Resort</h4>
-                        <p class="text-gray-600 text-sm" id="modalHotelLocation">📍 Miami Beach, FL</p>
+                        <p class="text-gray-600 text-sm" id="modalHotelLocation">?? Miami Beach, FL</p>
                         <p class="text-yellow-500 text-sm mt-1" id="modalHotelRating">? 4.8</p>
                     </div>
                 </div>
@@ -1885,28 +1885,28 @@ if ($isLoggedIn) {
                 <div class="space-y-4 mb-6">
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            📅 Check-in
+                            ?? Check-in
                         </label>
                         <input type="date" id="modalCheckin" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                     </div>
                     
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            📅 Check-out
+                            ?? Check-out
                         </label>
                         <input type="date" id="modalCheckout" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                     </div>
                     
                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                         <label class="text-gray-700 font-medium flex items-center gap-2">
-                            ✨ Huéspedes
+                            ? Hu�spedes
                         </label>
                         <select id="modalGuests" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                            <option value="1">1 Huésped</option>
-                            <option value="2" selected>2 Huéspedes</option>
-                            <option value="3">3 Huéspedes</option>
-                            <option value="4">4 Huéspedes</option>
-                            <option value="5+">5+ Huéspedes</option>
+                            <option value="1">1 Hu�sped</option>
+                            <option value="2" selected>2 Hu�spedes</option>
+                            <option value="3">3 Hu�spedes</option>
+                            <option value="4">4 Hu�spedes</option>
+                            <option value="5+">5+ Hu�spedes</option>
                         </select>
                     </div>
                 </div>
@@ -1918,11 +1918,11 @@ if ($isLoggedIn) {
                         <span class="font-semibold text-gray-800" id="modalPricePerNight">$180</span>
                     </div>
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-700" id="modalNightsLabel">🌙 2 noches</span>
+                        <span class="text-gray-700" id="modalNightsLabel">?? 2 noches</span>
                         <span class="font-semibold text-gray-800" id="modalSubtotal">$360</span>
                     </div>
                     <div class="flex justify-between items-center pt-2 border-t border-gray-300">
-                        <span class="text-gray-700">🪙 Ganas AiNi Coins</span>
+                        <span class="text-gray-700">?? Ganas AiNi Coins</span>
                         <span class="font-bold text-yellow-600" id="modalAiniCoins">72</span>
                     </div>
                     <div class="flex justify-between items-center pt-3 mt-3 border-t-2 border-gray-400">
@@ -1948,17 +1948,17 @@ if ($isLoggedIn) {
             </div>
         </div>
     </div>
-                    ✨
+                    ?
                 </button>
             </div>
         </div>
         <div class="header-nav">
             <nav class="main-nav">
-                <a href="coming_soon_experiences.php" class="nav-item">🎯 Experiences</a>
-                <span class="nav-dot">●</span>
-                <a href="coming_soon_social.php" class="nav-item">🌍 Social</a>
-                <span class="nav-dot">●</span>
-                <a href="coming_soon_coins.php" class="nav-item">🪙 Coins</a>
+                <a href="coming_soon_experiences.php" class="nav-item">?? Experiences</a>
+                <span class="nav-dot">?</span>
+                <a href="coming_soon_social.php" class="nav-item">?? Social</a>
+                <span class="nav-dot">?</span>
+                <a href="coming_soon_coins.php" class="nav-item">?? Coins</a>
             </nav>
         </div>
     </header>
@@ -1966,25 +1966,25 @@ if ($isLoggedIn) {
     <!-- Hero Section -->
     <section class="hero" id="home">
         <div class="hero-content">
-            <h1>✨ Revolutionary Hotel Booking</h1>
+            <h1>? Revolutionary Hotel Booking</h1>
             <p>Book hotels through WhatsApp, earn AiNi coins, connect with travelers worldwide. Experience the future of travel with AI-powered assistance and social discovery.</p>
             
             <!-- Search Box -->
             <div class="search-box">
                 <div class="search-input">
-                    <label>✨ Destination</label>
+                    <label>? Destination</label>
                     <input type="text" id="destination" placeholder="Where are you going?">
                 </div>
                 <div class="search-input">
-                    <label>📅 Check-in</label>
+                    <label>?? Check-in</label>
                     <input type="date" id="checkin">
                 </div>
                 <div class="search-input">
-                    <label>📅 Check-out</label>
+                    <label>?? Check-out</label>
                     <input type="date" id="checkout">
                 </div>
                 <div class="search-input">
-                    <label>✨ Guests</label>
+                    <label>? Guests</label>
                     <select id="guests">
                         <option>1 Guest</option>
                         <option>2 Guests</option>
@@ -1994,7 +1994,7 @@ if ($isLoggedIn) {
                     </select>
                 </div>
                 <button class="search-btn" onclick="searchHotels()">
-                    ✨ Search Hotels
+                    ? Search Hotels
                 </button>
             </div>
         </div>
@@ -2004,35 +2004,35 @@ if ($isLoggedIn) {
     <section class="hotels-section" id="hotels">
         <div class="container">
             <div class="section-header">
-                <h2>✨ Propiedades Disponibles</h2>
-                <p>Descubre increíbles hoteles y gana monedas AiNi con cada estadía</p>
+                <h2>? Propiedades Disponibles</h2>
+                <p>Descubre incre�bles hoteles y gana monedas AiNi con cada estad�a</p>
             </div>
             
             <!-- Filters -->
             <div class="filters">
                 <button class="filter-btn active" onclick="filterHotels('all')">Todos</button>
-                <button class="filter-btn" onclick="filterHotels('luxury')">✨ Lujo</button>
-                <button class="filter-btn" onclick="filterHotels('budget')">✨ Económico</button>
-                <button class="filter-btn" onclick="filterHotels('business')">✨ Negocios</button>
-                <button class="filter-btn" onclick="filterHotels('family')">👨‍👩‍👧‍👦 Familiar</button>
-                <button class="filter-btn" onclick="filterHotels('beach')">🗺️ Playa</button>
+                <button class="filter-btn" onclick="filterHotels('luxury')">? Lujo</button>
+                <button class="filter-btn" onclick="filterHotels('budget')">? Econ�mico</button>
+                <button class="filter-btn" onclick="filterHotels('business')">? Negocios</button>
+                <button class="filter-btn" onclick="filterHotels('family')">??????????? Familiar</button>
+                <button class="filter-btn" onclick="filterHotels('beach')">??? Playa</button>
             </div>
 
             <!-- Map Toggle Button -->
             <div style="text-align: center; margin: 2rem 0;">
                 <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapVisibility()">
-                    <span id="mapToggleIcon">🗺️</span>
-                    <span id="mapToggleText">Ocultar Mapa - Ver Más Hoteles</span>
+                    <span id="mapToggleIcon">???</span>
+                    <span id="mapToggleText">Ocultar Mapa - Ver M�s Hoteles</span>
                 </button>
             </div>
 
             <!-- View Toggle -->
             <div class="view-toggle" id="viewToggle">
                 <button class="view-btn active" onclick="toggleView('list')">
-                    ✨ Vista Lista
+                    ? Vista Lista
                 </button>
                 <button class="view-btn" onclick="toggleView('map')">
-                    🗺️ Vista Mapa
+                    ??? Vista Mapa
                 </button>
             </div>
 
@@ -2041,7 +2041,7 @@ if ($isLoggedIn) {
                 <div class="map-wrapper">
                     <div id="hotelMap" class="hotel-map"></div>
                     <div class="map-sidebar">
-                        <h3>✨ Hoteles en el Mapa</h3>
+                        <h3>? Hoteles en el Mapa</h3>
                         <p class="map-info">Haz clic en los marcadores para ver detalles</p>
                         <div id="mapHotelList" class="map-hotel-list"></div>
                     </div>
@@ -2053,7 +2053,7 @@ if ($isLoggedIn) {
                 <div class="hotels-grid" id="hotelsGrid">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Cargando hoteles increíbles para ti...
+                        Cargando hoteles incre�bles para ti...
                     </div>
                 </div>
             </div>
@@ -2063,42 +2063,42 @@ if ($isLoggedIn) {
     <!-- Features Section -->
     <section class="features">
         <div class="container">
-            <h2>✨ Why Choose AiNi Travel?</h2>
+            <h2>? Why Choose AiNi Travel?</h2>
             <p class="features-subtitle">The world's first platform combining hotel booking, social travel, and digital rewards</p>
             
             <div class="features-grid">
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>WhatsApp Booking</h3>
                     <p>Book hotels directly through WhatsApp chat. No apps to download, just natural conversation with our AI assistant.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>Earn AiNi Coins</h3>
                     <p>Get rewarded with AiNi coins for every booking. Use them for future stays, upgrades, and exclusive experiences.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>Social Travel Network</h3>
                     <p>Connect with fellow travelers, join meetups, share experiences, and discover hidden gems together.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>AI Travel Assistant</h3>
                     <p>Get personalized recommendations, instant support, and smart travel planning powered by advanced AI.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>Best Price Guarantee</h3>
                     <p>We offer the lowest rates plus AiNi coin rewards. Find a better price? We'll match it and give you extra coins.</p>
                 </div>
                 
                 <div class="feature-card">
-                    <span class="feature-icon">✨</span>
+                    <span class="feature-icon">?</span>
                     <h3>Exclusive Experiences</h3>
                     <p>Access member-only deals, room upgrades, and unique local experiences you won't find anywhere else.</p>
                 </div>
@@ -2109,7 +2109,7 @@ if ($isLoggedIn) {
     <!-- WhatsApp Section -->
     <section class="whatsapp-section">
         <div class="whatsapp-content">
-            <h2>✨ Book Through WhatsApp - It's Revolutionary!</h2>
+            <h2>? Book Through WhatsApp - It's Revolutionary!</h2>
             <p>Experience the future of hotel booking with natural conversation and instant AI assistance</p>
             
             <div class="whatsapp-demo">
@@ -2118,27 +2118,27 @@ if ($isLoggedIn) {
                         Hi! I need a hotel in Miami for this weekend
                     </div>
                     <div class="message ai-message">
-                        ✨ Perfect! I found great options in Miami for this weekend:
+                        ? Perfect! I found great options in Miami for this weekend:
                         
                         ? Ocean View Resort - $180/night
                         Earn 36 AiNi coins per night!
                         
-                        Which dates work best for you? ✨
+                        Which dates work best for you? ?
                     </div>
                     <div class="message guest-message">
                         That sounds perfect! Book it please
                     </div>
                     <div class="message ai-message">
-                        ✨ Booked! Confirmation sent.
+                        ? Booked! Confirmation sent.
                         You earned 72 AiNi coins!
                         
-                        Connect with 12 travelers also visiting Miami this weekend? ✨
+                        Connect with 12 travelers also visiting Miami this weekend? ?
                     </div>
                 </div>
             </div>
             
             <a href="https://wa.me/1234567890" class="cta-button" style="font-size: 1.1rem; padding: 15px 30px;">
-                ✨ Start Booking on WhatsApp
+                ? Start Booking on WhatsApp
             </a>
         </div>
     </section>
@@ -2147,7 +2147,7 @@ if ($isLoggedIn) {
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
-                <h3>✈️ AiNi Travel</h3>
+                <h3>?? AiNi Travel</h3>
                 <p>Revolutionary hotel booking with AI, WhatsApp integration, and social travel features.</p>
                 <br>
                 <p>Earn AiNi coins, connect with travelers, experience the future of hospitality.</p>
@@ -2172,18 +2172,18 @@ if ($isLoggedIn) {
             
             <div class="footer-section">
                 <h3>Connect</h3>
-                <a href="https://wa.me/1234567890">✨ WhatsApp</a>
-                <a href="mailto:support@ainitravel.com">✨ Email</a>
-                <a href="tel:+1234567890">✨ Phone</a>
-                <a href="travel_social.php">🌍 Social Network</a>
+                <a href="https://wa.me/1234567890">? WhatsApp</a>
+                <a href="mailto:support@ainitravel.com">? Email</a>
+                <a href="tel:+1234567890">? Phone</a>
+                <a href="travel_social.php">?? Social Network</a>
             </div>
             
             <div class="footer-section">
                 <h3>For Partners</h3>
-                <a href="partner_register.php">📝 List Your Property</a>
-                <a href="partner_dashboard.php">📊 Partner Dashboard</a>
-                <a href="partner_support.php">💼 Partner Support</a>
-                <a href="partners/login.php">🏨 Owner/Partner Login</a>
+                <a href="partner_register.php">?? List Your Property</a>
+                <a href="partner_dashboard.php">?? Partner Dashboard</a>
+                <a href="partner_support.php">?? Partner Support</a>
+                <a href="partners/login.php">?? Owner/Partner Login</a>
             </div>
         </div>
     </footer>
@@ -2191,14 +2191,14 @@ if ($isLoggedIn) {
     <!-- AI Chat Assistant - Sofia Travel Agent v1.0.0.2 -->
     <div class="ai-chat-bubble">
         <div id="aiChatButton" class="ai-chat-button" onclick="toggleAIChat()">
-            ✨ Sofia IA
+            ? Sofia IA
         </div>
         
         <div id="aiChatWindow" class="ai-chat-window">
             <div class="ai-chat-header">
                 <div>
-                    <div class="font-bold text-lg">✨ Sofia - Tu Asistente de Viaje</div>
-                    <div class="text-xs text-white/80">Powered by AI ● Disponible 24/7</div>
+                    <div class="font-bold text-lg">? Sofia - Tu Asistente de Viaje</div>
+                    <div class="text-xs text-white/80">Powered by AI ? Disponible 24/7</div>
                 </div>
                 <button onclick="toggleAIChat()" class="text-white/80 hover:text-white text-2xl">
                 </button>
@@ -2206,31 +2206,31 @@ if ($isLoggedIn) {
             
             <div id="aiChatMessages" class="ai-chat-messages">
                 <div class="ai-message">
-                    ¡Hola! ✨ Soy Sofia, tu asistente de viaje de AiNi Travel. 
+                    �Hola! ? Soy Sofia, tu asistente de viaje de AiNi Travel. 
                     <br><br>
                     Puedo ayudarte a:
-                    <br>✓ Elegir el hotel perfecto ✨
-                    <br>✓ Responder preguntas sobre destinos ✨
-                    <br>✓ Guiarte en tu reserva ✨
+                    <br>? Elegir el hotel perfecto ?
+                    <br>? Responder preguntas sobre destinos ?
+                    <br>? Guiarte en tu reserva ?
                     <br><br>
-                    ✨ Tus conversaciones se guardan automáticamente.
+                    ? Tus conversaciones se guardan autom�ticamente.
                     <br><br>
-                    ¿En qué puedo ayudarte hoy?
+                    �En qu� puedo ayudarte hoy?
                 </div>
             </div>
             
             <div class="ai-suggestions" id="aiSuggestions">
-                <button class="suggestion-btn" onclick="askAI('¿Qué hoteles recomiendas para familias?')">
-                    🗺️🗺️?? Para familias
+                <button class="suggestion-btn" onclick="askAI('�Qu� hoteles recomiendas para familias?')">
+                    ???????? Para familias
                 </button>
-                <button class="suggestion-btn" onclick="askAI('¿Cuál es el hotel más económico?')">
-                    ✨ Más económico
+                <button class="suggestion-btn" onclick="askAI('�Cu�l es el hotel m�s econ�mico?')">
+                    ? M�s econ�mico
                 </button>
-                <button class="suggestion-btn" onclick="askAI('¿Hoteles cerca de la playa?')">
-                    🗺️ Cerca de playa
+                <button class="suggestion-btn" onclick="askAI('�Hoteles cerca de la playa?')">
+                    ??? Cerca de playa
                 </button>
                 <button class="suggestion-btn" onclick="askAI('Quiero reservar un hotel')">
-                    ✨ Hacer reserva
+                    ? Hacer reserva
                 </button>
             </div>
             
@@ -2245,7 +2245,7 @@ if ($isLoggedIn) {
                 <button 
                     onclick="sendAIMessage()" 
                     class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-full hover:opacity-90 transition">
-                    ✨
+                    ?
                 </button>
             </div>
         </div>
@@ -2311,7 +2311,7 @@ if ($isLoggedIn) {
             hotelMap = L.map('hotelMap').setView([25.7617, -80.1918], 3); // World view initially
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
+                attribution: '� OpenStreetMap contributors',
                 maxZoom: 18
             }).addTo(hotelMap);
         }
@@ -2344,13 +2344,13 @@ if ($isLoggedIn) {
         
         // Fallback function with sample data (in case DB is not available)
         function loadSampleHotels() {
-            console.warn('✨ Using fallback sample data');
+            console.warn('? Using fallback sample data');
             allHotels = [
                 {
                     id: 1,
                     name: "Ocean View Resort",
                     location: "Miami Beach, FL",
-                    emoji: "🗺️",
+                    emoji: "???",
                     rating: 4.8,
                     price: 180,
                     features: ["Vista al Mar", "Piscina", "WiFi", "Spa"],
@@ -2369,7 +2369,7 @@ if ($isLoggedIn) {
                     id: 2,
                     name: "Downtown Business Hotel",
                     location: "New York, NY",
-                    emoji: "🗺️",
+                    emoji: "???",
                     rating: 4.6,
                     price: 220,
                     features: ["Centro Negocios", "Gimnasio", "WiFi", "Restaurante"],
@@ -2388,7 +2388,7 @@ if ($isLoggedIn) {
                     id: 3,
                     name: "Budget Traveler Inn",
                     location: "Austin, TX",
-                    emoji: "✨",
+                    emoji: "?",
                     rating: 4.3,
                     price: 85,
                     features: ["WiFi", "Estacionamiento", "Desayuno"],
@@ -2407,7 +2407,7 @@ if ($isLoggedIn) {
                     id: 4,
                     name: "Family Paradise Resort",
                     location: "Orlando, FL",
-                    emoji: "🗺️🗺️🗺️??",
+                    emoji: "???????????",
                     rating: 4.7,
                     price: 195,
                     features: ["Kids Club", "Piscina", "Transporte Parques", "Restaurante"],
@@ -2425,8 +2425,8 @@ if ($isLoggedIn) {
                 {
                     id: 5,
                     name: "Beachfront Paradise",
-                    location: "Cancún, México",
-                    emoji: "✨",
+                    location: "Canc�n, M�xico",
+                    emoji: "?",
                     rating: 4.9,
                     price: 250,
                     features: ["Todo Incluido", "Playa", "Spa", "Varias Piscinas"],
@@ -2444,11 +2444,11 @@ if ($isLoggedIn) {
                 {
                     id: 6,
                     name: "Eco Lodge Retreat",
-                    location: "San José, Costa Rica",
-                    emoji: "✨",
+                    location: "San Jos�, Costa Rica",
+                    emoji: "?",
                     rating: 4.5,
                     price: 120,
-                    features: ["Tours Naturaleza", "Restaurante Orgánico", "WiFi", "Yoga"],
+                    features: ["Tours Naturaleza", "Restaurante Org�nico", "WiFi", "Yoga"],
                     aini_coins: 24,
                     category: "budget",
                     latitude: 9.9281,
@@ -2501,7 +2501,7 @@ if ($isLoggedIn) {
                 });
                 
                 // Update button
-                toggleIcon.textContent = '🗺️';
+                toggleIcon.textContent = '???';
                 toggleText.textContent = 'Solo Mapa';
                 
                 console.log('? HOTELS ONLY - Full width');
@@ -2520,7 +2520,7 @@ if ($isLoggedIn) {
                 mapPanel.style.opacity = '1';
                 
                 // Update button
-                toggleIcon.textContent = '✨';
+                toggleIcon.textContent = '?';
                 toggleText.textContent = 'Ver Ambos';
                 
                 // Refresh map size
@@ -2551,7 +2551,7 @@ if ($isLoggedIn) {
                 });
                 
                 // Update button
-                toggleIcon.textContent = '🗺️';
+                toggleIcon.textContent = '???';
                 toggleText.textContent = 'Solo Hoteles';
                 
                 // Refresh map size
@@ -2591,7 +2591,7 @@ if ($isLoggedIn) {
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <h3 class="font-bold text-lg text-gray-800 cursor-pointer hover:text-primary transition" onclick="viewHotelDetails(${hotel.id})">${hotel.name}</h3>
-                                    <p class="text-sm text-gray-600">✨ ${hotel.location}</p>
+                                    <p class="text-sm text-gray-600">? ${hotel.location}</p>
                                 </div>
                                 <div class="text-right">
                                     <div class="text-yellow-500 text-sm">? ${hotel.rating}</div>
@@ -2612,7 +2612,7 @@ if ($isLoggedIn) {
                                     <span class="text-gray-600 text-sm">/noche</span>
                                 </div>
                                 <div class="text-sm">
-                                    <span class="text-yellow-600 font-semibold">✨ ${hotel.aini_coins} AiNi</span>
+                                    <span class="text-yellow-600 font-semibold">? ${hotel.aini_coins} AiNi</span>
                                 </div>
                             </div>
                             
@@ -2620,11 +2620,11 @@ if ($isLoggedIn) {
                             <div class="flex gap-2 mt-3">
                                 <button onclick="viewHotelDetails(${hotel.id})" 
                                         class="flex-1 bg-purple-100 text-purple-700 py-2 rounded-lg hover:bg-purple-200 transition font-semibold">
-                                    ✨ Ver Cuartos
+                                    ? Ver Cuartos
                                 </button>
                                 <button onclick="viewHotelDetails(${hotel.id})" 
                                         class="flex-1 bg-gradient-to-r from-primary to-secondary text-white py-2 rounded-lg hover:opacity-90 transition font-semibold">
-                                    ✨ Reservar
+                                    ? Reservar
                                 </button>
                             </div>
                         </div>
@@ -2770,7 +2770,7 @@ if ($isLoggedIn) {
             const query = $('#aiSearchInput').val().trim();
             
             if (!query) {
-                showAIResponse('Por favor escribe qué tipo de hotel buscas ✨', 'warning');
+                showAIResponse('Por favor escribe qu� tipo de hotel buscas ?', 'warning');
                 return;
             }
             
@@ -2778,12 +2778,12 @@ if ($isLoggedIn) {
             $('#aiSearchInput').val('');
             
             // Show AI thinking
-            showAIResponse('✨ Vicky está analizando tu búsqueda...', 'loading');
+            showAIResponse('? Vicky est� analizando tu b�squeda...', 'loading');
             
             // Show loading in list
             $('#hotelsList').html(`
                 <div class="text-center py-12">
-                    <div class="text-5xl mb-4 animate-bounce">✨</div>
+                    <div class="text-5xl mb-4 animate-bounce">?</div>
                     <p class="text-xl font-semibold text-purple-600">Vicky buscando hoteles...</p>
                     <p class="text-gray-500 mt-2">"${query}"</p>
                 </div>
@@ -2821,13 +2821,13 @@ if ($isLoggedIn) {
                     console.warn('AI returned error:', trainedResult.error);
                     // Use fallback if available
                     if (trainedResult.note) {
-                        showAIResponse(`✨ ${trainedResult.note}: ${trainedResult.response || trainedResult.error}`, 'warning');
+                        showAIResponse(`? ${trainedResult.note}: ${trainedResult.response || trainedResult.error}`, 'warning');
                     } else {
                         showAIResponse(`? ${trainedResult.error}`, 'error');
                     }
                 } else if (trainedResult.response) {
-                    const emoji = trainedResult.method === 'training_direct' ? '✨' : 
-                                 trainedResult.method === 'training_fallback' ? '✨' : '✨';
+                    const emoji = trainedResult.method === 'training_direct' ? '?' : 
+                                 trainedResult.method === 'training_fallback' ? '?' : '?';
                     const confidence = trainedResult.confidence ? ` (${Math.round(trainedResult.confidence)}% match)` : '';
                     const note = trainedResult.note ? ` - ${trainedResult.note}` : '';
                     showAIResponse(`${emoji} ${trainedResult.response}${confidence}${note}`, 'info');
@@ -2866,7 +2866,7 @@ if ($isLoggedIn) {
                         id: h.id,
                         name: h.name,
                         location: h.location,
-                        emoji: h.emoji || '✨',
+                        emoji: h.emoji || '?',
                         rating: parseFloat(h.rating),
                         price: parseFloat(h.price),
                         features: h.features || [],
@@ -2879,7 +2879,7 @@ if ($isLoggedIn) {
                     
                     // Show success message
                     const hotelsText = dbHotels.slice(0, 3).map(h => `? ${h.name} ($${h.price})`).join('<br>');
-                    showAIResponse(`Encontré ${dbHotels.length} hoteles para ti:<br><br>${hotelsText}`, 'success');
+                    showAIResponse(`Encontr� ${dbHotels.length} hoteles para ti:<br><br>${hotelsText}`, 'success');
                     
                     // Display hotels
                     displayHotels(dbHotels);
@@ -2887,7 +2887,7 @@ if ($isLoggedIn) {
                     
                 } else {
                     // No results from database
-                    showAIResponse('No encontré hoteles con esos criterios. Te muestro todas las opciones disponibles.', 'info');
+                    showAIResponse('No encontr� hoteles con esos criterios. Te muestro todas las opciones disponibles.', 'info');
                     displayHotels(allHotels);
                     updateMapMarkers(allHotels);
                 }
@@ -2896,7 +2896,7 @@ if ($isLoggedIn) {
                 console.error('AI Search Error:', error);
                 
                 // Show error message
-                showAIResponse('Hmm, tuve un problema. Hice una búsqueda básica. ✨', 'error');
+                showAIResponse('Hmm, tuve un problema. Hice una b�squeda b�sica. ?', 'error');
                 
                 // Fallback to simple keyword search
                 const filtered = allHotels.filter(h => 
@@ -2920,9 +2920,9 @@ if ($isLoggedIn) {
             const textDiv = $('#aiResponseText');
             
             // Add emoji based on type
-            let emoji = '✨';
+            let emoji = '?';
             if (type === 'success') emoji = '?';
-            if (type === 'warning') emoji = '✨';
+            if (type === 'warning') emoji = '?';
             if (type === 'error') emoji = '?';
             if (type === 'loading') emoji = '?';
             
@@ -3011,7 +3011,7 @@ if ($isLoggedIn) {
             } else {
                 $('#hotelsList').html(`
                     <div class="text-center py-12 text-gray-500">
-                        <div class="text-5xl mb-4">✨</div>
+                        <div class="text-5xl mb-4">?</div>
                         <p>No se encontraron hoteles para "${destination}"</p>
                         <button onclick="clearSearch()" class="mt-4 px-6 py-2 bg-primary text-white rounded-lg">
                             Ver todos los hoteles
@@ -3027,11 +3027,11 @@ if ($isLoggedIn) {
             const summary = `
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between">
                     <div>
-                        <p class="font-semibold text-blue-900">✨ ${count} hoteles en "${destination}"</p>
-                        <p class="text-sm text-blue-700">✨ ${checkin} ? ${checkout} (${nights} noche${nights > 1 ? 's' : ''}) ● ✨ ${guests} huésped${guests > 1 ? 'es' : ''}</p>
+                        <p class="font-semibold text-blue-900">? ${count} hoteles en "${destination}"</p>
+                        <p class="text-sm text-blue-700">? ${checkin} ? ${checkout} (${nights} noche${nights > 1 ? 's' : ''}) ? ? ${guests} hu�sped${guests > 1 ? 'es' : ''}</p>
                     </div>
                     <button onclick="clearSearch()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        Limpiar búsqueda
+                        Limpiar b�squeda
                     </button>
                 </div>
             `;
@@ -3071,7 +3071,7 @@ if ($isLoggedIn) {
             // Populate modal with hotel data
             $('#modalHotelEmoji').text(selectedHotelData.emoji);
             $('#modalHotelName').text(selectedHotelData.name);
-            $('#modalHotelLocation').text(`✨ ${selectedHotelData.location}`);
+            $('#modalHotelLocation').text(`? ${selectedHotelData.location}`);
             $('#modalHotelRating').text(`? ${selectedHotelData.rating}`);
             
             // Set dates from search
@@ -3115,7 +3115,7 @@ if ($isLoggedIn) {
             const ainiCoins = selectedHotelData.aini_coins * nights;
             
             $('#modalPricePerNight').text(`$${pricePerNight}`);
-            $('#modalNightsLabel').text(`🌙 ${nights} ${nights === 1 ? 'noche' : 'noches'}`);
+            $('#modalNightsLabel').text(`?? ${nights} ${nights === 1 ? 'noche' : 'noches'}`);
             $('#modalSubtotal').text(`$${subtotal}`);
             $('#modalTotal').text(`$${subtotal}`);
             $('#modalAiniCoins').text(ainiCoins);
@@ -3152,21 +3152,21 @@ if ($isLoggedIn) {
             }
             
             // Create detailed WhatsApp message
-            const message = `Hola! ✨ Quiero hacer una reserva:
+            const message = `Hola! ? Quiero hacer una reserva:
 
 ? Hotel: ${selectedHotelData.name}
-✨ Ubicación: ${selectedHotelData.location}
+? Ubicaci�n: ${selectedHotelData.location}
 ? Rating: ${selectedHotelData.rating}
 
-📅 Check-in: ${checkin}
-📅 Check-out: ${checkout}
-🗺️ ${nights} ${nights === 1 ? 'noche' : 'noches'}
-✨ ${guests} ${guests === '1' ? 'huésped' : 'huéspedes'}
+?? Check-in: ${checkin}
+?? Check-out: ${checkout}
+??? ${nights} ${nights === 1 ? 'noche' : 'noches'}
+? ${guests} ${guests === '1' ? 'hu�sped' : 'hu�spedes'}
 
-✨ Precio Total: ${total}
-✨ Ganarás ${coins} AiNi Coins
+? Precio Total: ${total}
+? Ganar�s ${coins} AiNi Coins
 
-¿Puedes ayudarme a completar la reserva? ✨`;
+�Puedes ayudarme a completar la reserva? ?`;
             
             const encodedMessage = encodeURIComponent(message);
             
@@ -3315,7 +3315,7 @@ if ($isLoggedIn) {
                 addMessage(question, 'user');
             }
             
-            showAITyping();
+            // Note: showAITyping() already called in sendAIMessage() - DO NOT call it again
             
             try {
                 // Build conversation history (last 8 messages)
@@ -3370,22 +3370,22 @@ if ($isLoggedIn) {
                 } else {
                     // API returned error
                     $('.ai-typing').remove();
-                    addMessage(data.response || data.message || "Lo siento, estoy teniendo problemas técnicos. ✨", 'ai');
+                    addMessage(data.response || data.message || "Lo siento, estoy teniendo problemas t�cnicos. ?", 'ai');
                 }
                 
             } catch (error) {
                 console.error('Sofia API Error:', error);
                 $('.ai-typing').remove();
-                addMessage("Lo siento, estoy teniendo problemas para conectarme. Por favor, intenta de nuevo o usa WhatsApp para asistencia inmediata. ✨", 'ai');
+                addMessage("Lo siento, estoy teniendo problemas para conectarme. Por favor, intenta de nuevo o usa WhatsApp para asistencia inmediata. ?", 'ai');
             }
         }
         
         function buildAIPrompt(userQuestion) {
             const hotelsContext = allHotels.map(h => 
-                `${h.name} en ${h.location} - $${h.price}/noche, rating ${h.rating}, categoría: ${h.category}`
+                `${h.name} en ${h.location} - $${h.price}/noche, rating ${h.rating}, categor�a: ${h.category}`
             ).join('\n');
             
-            const prompt = `Eres un asistente de viajes amigable para AiNi Travel. Responde en Español de forma breve y útil.
+            const prompt = `Eres un asistente de viajes amigable para AiNi Travel. Responde en Espa�ol de forma breve y �til.
 
 Hoteles disponibles:
 ${hotelsContext}
@@ -3451,9 +3451,9 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
                     if (data.success) {
                         $('#aiChatMessages').html(`
                             <div class="ai-message">
-                                ¡Conversación reiniciada! ✨
+                                �Conversaci�n reiniciada! ?
                                 <br><br>
-                                ¿En qué puedo ayudarte hoy?
+                                �En qu� puedo ayudarte hoy?
                             </div>
                         `);
                     }
@@ -3464,16 +3464,16 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
         function addBookingOptions() {
             const bookingHTML = `
                 <div class="ai-message">
-                    ¿Te gustaría que te ayude a hacer la reserva? 
+                    �Te gustar�a que te ayude a hacer la reserva? 
                     <br><br>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <button onclick="startAIBooking()" 
                                 style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 20px; cursor: pointer;">
-                            Sí, reservar ahora
+                            S�, reservar ahora
                         </button>
-                        <button onclick="addMessage('Quiero ver más opciones', 'user'); askAI('Muéstrame más opciones de hoteles')" 
+                        <button onclick="addMessage('Quiero ver m�s opciones', 'user'); askAI('Mu�strame m�s opciones de hoteles')" 
                                 style="padding: 0.5rem 1rem; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 20px; cursor: pointer;">
-                            Ver más opciones
+                            Ver m�s opciones
                         </button>
                     </div>
                 </div>
@@ -3485,17 +3485,17 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
         }
         
         function startAIBooking() {
-            addMessage("Perfecto! Voy a ayudarte con la reserva. ✨", 'ai');
+            addMessage("Perfecto! Voy a ayudarte con la reserva. ?", 'ai');
             
             setTimeout(() => {
                 const hotelsHTML = `
                     <div class="ai-message">
-                        Aquí están nuestros hoteles disponibles. Haz click en "Reservar" en el que te guste:
+                        Aqu� est�n nuestros hoteles disponibles. Haz click en "Reservar" en el que te guste:
                         <br><br>
                         ${allHotels.slice(0, 3).map(h => `
                             <div style="border: 1px solid #e0e0e0; border-radius: 10px; padding: 0.75rem; margin-bottom: 0.5rem; background: white;">
                                 <div style="font-weight: bold;">${h.emoji} ${h.name}</div>
-                                <div style="font-size: 0.85rem; color: #666;">✨ ${h.location}</div>
+                                <div style="font-size: 0.85rem; color: #666;">? ${h.location}</div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
                                     <span style="color: #667eea; font-weight: bold;">$${h.price}/noche</span>
                                     <button onclick="bookHotelFromAI(${h.id})" 
@@ -3547,16 +3547,16 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
             const modalHTML = `
                 <div id="cartModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
                     <div style="background: white; border-radius: 20px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
-                        <button onclick="closeCart()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; cursor: pointer; color: #666;">×</button>
+                        <button onclick="closeCart()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; cursor: pointer; color: #666;">�</button>
                         
                         <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; color: #667eea;">
-                            ✨ My Reservations
+                            ? My Reservations
                         </h2>
                         
                         <div id="cartItems"></div>
                         
                         <div id="cartEmpty" style="text-align: center; padding: 3rem; color: #999;">
-                            <div style="font-size: 4rem; margin-bottom: 1rem;">✨</div>
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">?</div>
                             <p style="font-size: 1.2rem;">No reservations yet</p>
                             <p style="margin-top: 0.5rem;">Add hotels to your cart to get started!</p>
                         </div>
@@ -3567,7 +3567,7 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
                                 <span id="cartTotal" style="color: #667eea;">$0</span>
                             </div>
                             <button onclick="proceedToCheckout()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">
-                                ✨ Proceed to Payment
+                                ? Proceed to Payment
                             </button>
                         </div>
                     </div>
@@ -3611,12 +3611,12 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
                                     <h3 style="font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 0.5rem;">
                                         ${item.hotelEmoji} ${item.hotelName}
                                     </h3>
-                                    <p style="color: #666; margin-bottom: 0.25rem;">✨ ${item.checkIn} ? ${item.checkOut}</p>
-                                    <p style="color: #666; margin-bottom: 0.25rem;">✨ ${item.guests} guest(s) ● ${item.nights} night(s)</p>
+                                    <p style="color: #666; margin-bottom: 0.25rem;">? ${item.checkIn} ? ${item.checkOut}</p>
+                                    <p style="color: #666; margin-bottom: 0.25rem;">? ${item.guests} guest(s) ? ${item.nights} night(s)</p>
                                     <p style="font-weight: bold; color: #667eea; font-size: 1.1rem; margin-top: 0.5rem;">$${item.totalPrice}</p>
                                 </div>
                                 <button onclick="removeFromCart(${index})" style="background: #ff4444; color: white; border: none; border-radius: 5px; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem;">
-                                    🗺️ Remove
+                                    ??? Remove
                                 </button>
                             </div>
                         </div>
@@ -3663,7 +3663,7 @@ Responde de forma concisa y amigable. Si preguntan por reservas, ofrece ayuda pa
             }
             
             // For now, show a message. Later we'll integrate with payment API
-            alert('✨ Proceeding to payment...\n\nThis will integrate with Adyen payment gateway soon!');
+            alert('? Proceeding to payment...\n\nThis will integrate with Adyen payment gateway soon!');
             
             // TODO: Integrate with payment_api
             // window.location.href = '/payment_api/checkout.php';
