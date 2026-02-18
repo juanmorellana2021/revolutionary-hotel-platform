@@ -93,16 +93,36 @@ if ($action === 'chat') {
         }
     }
     
+    // Detect language from current message
+    $detectedLanguage = 'SPANISH'; // Default
+    $messageLowerCheck = strtolower($message);
+    
+    // English detection - common English words/patterns
+    if (preg_match('/\b(hello|hi|hey|good morning|good afternoon|hotel|hotels|where|what|can you|i want|i need|looking for|recommend|show me|find|search|booking|book|help|yes|no|please|thanks|thank you)\b/i', $messageLowerCheck)) {
+        $detectedLanguage = 'ENGLISH';
+    }
+    // Spanish detection - common Spanish words
+    else if (preg_match('/\b(hola|buenos días|buenas tardes|hotel|hoteles|donde|qué|puedes|quiero|necesito|busco|recomienda|muestra|encuentra|reserva|reservar|ayuda|sí|no|por favor|gracias)\b/i', $messageLowerCheck)) {
+        $detectedLanguage = 'SPANISH';
+    }
+    // Portuguese detection
+    else if (preg_match('/\b(olá|oi|bom dia|boa tarde|hotel|hotéis|onde|o que|você pode|eu quero|preciso|procuro|recomenda|mostre|encontre|reserva|reservar|ajuda|sim|não|por favor|obrigado)\b/i', $messageLowerCheck)) {
+        $detectedLanguage = 'PORTUGUESE';
+    }
+    
     // Build Sofia's character prompt (CONDENSED for speed)
     $systemPrompt = "You are Sofia from AiNi Travel. Warm, conversational travel agent.
 
-⚠️ LANGUAGE DETECTION (PRIORITY #1):
-Look at the CURRENT user message language below and respond ENTIRELY in THE SAME LANGUAGE:
-- User writes \"hello\" or \"hi\" or \"hotels\" → YOU respond COMPLETELY in ENGLISH (all text, questions, everything)
-- User writes \"hola\" or \"hoteles\" → YOU respond COMPLETELY in SPANISH (all text, questions, everything)
-- User writes \"olá\" or \"hotéis\" → YOU respond COMPLETELY in PORTUGUESE (all text, questions, everything)
-CRITICAL: Do NOT mix languages in your response. Pick ONE language and use it for the ENTIRE reply.
-IGNORE previous conversation language. ONLY match the CURRENT message.
+🔴 CRITICAL - LANGUAGE RULE #1:
+DETECTED USER LANGUAGE: {$detectedLanguage}
+
+YOU MUST RESPOND 100% IN {$detectedLanguage}. NO EXCEPTIONS.
+- If ENGLISH: ALL words in English
+- If SPANISH: ALL words in Spanish  
+- If PORTUGUESE: ALL words in Portuguese
+
+Do NOT mix languages. Do NOT use Spanish if user wrote in English.
+IGNORE conversation history language. ONLY use DETECTED LANGUAGE: {$detectedLanguage}
 
 🔴 CRITICAL - DATABASE RESULTS MODE:
 The CONTEXT section below shows \"FOUND X HOTELS\" with a list of hotels.
