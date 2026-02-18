@@ -1,0 +1,359 @@
+REVIEW & RATING SYSTEM PLAN
+AiNi Travel Platform
+Date: February 18, 2026
+
+================================================================================
+OVERVIEW
+================================================================================
+Two-way rating system:
+1. Guests rate Hotels/Properties (after stay)
+2. Hotels rate Guests (after checkout)
+
+================================================================================
+RATING CALCULATION FORMULA (Maximum Stability)
+================================================================================
+
+PURPOSE: Start perfect, keep ratings very stable - one review shouldn't 
+drop rating significantly. Maximum protection for hotel partners.
+
+FORMULA:
+    Hotel Display Rating = (10 × 10 + Σ ratings) / (10 + n)
+
+WHERE:
+    10 × 10 = Starting "seed" ratings (treat as 10 reviews of 10.0)
+    Σ ratings = Sum of all public reviews (7-10 scores only)
+    n = Number of actual public reviews this hotel has
+
+PHILOSOPHY: One bad experience shouldn't destroy reputation. Ratings should 
+reflect consistent quality over time, not be volatile from single reviews.
+
+EXAMPLES:
+
+Hotel with 0 reviews:
+    = (10 × 10) / 10 = 100 / 10 = 10.0 ★
+    - Display: "10.0 ★ New - No reviews yet"
+    - Perfect start
+
+Hotel with 1 review (8/10):
+    = (100 + 8) / (10 + 1)
+    = 108 / 11
+    = 9.82 ★ → Display "9.8 ★"
+    - Only drops 0.2 points ✓
+    - Shows "9.8 ★ (1 review)"
+
+Hotel with 1 review (7/10):
+    = (100 + 7) / (10 + 1)
+    = 107 / 11
+    = 9.73 ★ → Display "9.7 ★"
+    - Only drops 0.3 points (not catastrophic!) ✓
+    - Shows "9.7 ★ (1 review)"
+
+Hotel with 1 review (10/10):
+    = (100 + 10) / (10 + 1)
+    = 110 / 11
+    = 10.0 ★
+    - Perfect review maintains perfect rating
+    - Shows "10.0 ★ (1 review)"
+
+Hotel with 3 reviews (10, 9, 8):
+    = (100 + 10 + 9 + 8) / (10 + 3)
+    = 127 / 13
+    = 9.77 ★ → Display "9.8 ★"
+    - Very stable, strong protection
+    - Shows "9.8 ★ (3 reviews)"
+
+Hotel with 5 reviews (all 9/10):
+    = (100 + 45) / (10 + 5)
+    = 145 / 15
+    = 9.67 ★ → Display "9.7 ★"
+    - Consistent quality showing
+    - Shows "9.7 ★ (5 reviews)"
+
+Hotel with 10 reviews (all 9/10):
+    = (100 + 90) / (10 + 10)
+    = 190 / 20
+    = 9.5 ★
+    - Seed and real reviews equal weight now
+    - Shows "9.5 ★ (10 reviews)"
+
+Hotel with 20 reviews (all 9/10):
+    = (100 + 180) / (10 + 20)
+    = 280 / 30
+    = 9.33 ★ → Display "9.3 ★"
+    - True quality emerging
+    - Shows "9.3 ★ (20 reviews)"
+
+Hotel with 50+ reviews (all 9/10):
+    = (100 + 450) / (10 + 50)
+    = 550 / 60
+    = 9.17 ★ → Display "9.2 ★"
+    - Real rating clear, seed minimal impact
+    - Shows "9.2 ★ (50 reviews)"
+
+DISPLAY RULES:
+- 0 reviews: "10.0 ★ New - No reviews yet" (perfect start)
+- 1-2 reviews: Show rating with "Based on X review(s)" text
+- 3+ reviews: Show rating normally
+- Always display review count: "9.7 ★ (12 reviews)"
+- Round to 1 decimal place for display
+
+BENEFITS:
+✓ New hotels start with perfect 10.0 (maximum appeal)
+✓ One review only impacts rating by 0.2-0.3 points max (stable!)
+✓ Requires 10+ reviews before rating moves significantly
+✓ Maximum protection against fake/revenge reviews
+✓ Fair to partners - trust them, gradual adjustment
+✓ True quality emerges after 30+ reviews
+
+NOTES:
+- Only counts PUBLIC reviews (7-10 scores)
+- Private reviews (1-6) don't affect public rating at all
+- Seed acts as 10 perfect reviews in calculation
+- After 30+ reviews, seed influence becomes minimal
+- Hotels earn their rating through consistent feedback patterns
+
+================================================================================
+PHASE 1: GUEST → HOTEL REVIEWS
+================================================================================
+
+Rating Components:
+- Overall Rating: 1-10 scale (required)
+  * 8-10 = Excellent/Very Good
+  * 7 = Good  
+  * 1-6 = Issues/Problems
+- Cleanliness: 1-10
+- Location: 1-10
+- Service: 1-10
+- Value for Money: 1-10
+- Written Review: Text (optional, max 500 chars)
+- Photos: Upload 1-5 images (optional)
+
+When Can Review:
+- 24 hours AFTER checkout date (prevents emotional responses)
+- Within 30 days of checkout
+- One review per booking
+- Must be verified completed stay
+
+SMART PUBLISHING RULES:
+┌─────────────────────────────────────────────────────────────┐
+│ Score 8-10: ✅ AUTO-PUBLISH immediately                     │
+│             Display on hotel page, boost hotel visibility   │
+│                                                             │
+│ Score 7:    ⚠️  AUTO-PUBLISH but marked as "Average"       │
+│             Hotel can respond                               │
+│                                                             │
+│ Score 1-6:  🔒 PRIVATE RESOLUTION MODE                      │
+│             • Review NOT published publicly                 │
+│             • Hotel receives private notification           │
+│             • Hotel has 48 hours to:                        │
+│               - Contact guest                               │
+│               - Offer solution (refund/credit/apology)      │
+│               - Resolve the issue                           │
+│             • If resolved: Guest can update score OR remove │
+│             • If not resolved: Guest keeps private feedback │
+│             • Admin sees all low scores for quality control │
+└─────────────────────────────────────────────────────────────┘
+
+Where Reviews Display:
+- Hotel details page (public - only 7-10 scores)
+- Hotel dashboard (partner sees ALL scores including private 1-6)
+- User's booking history (user sees their own review)
+- Admin panel (sees everything for monitoring)
+
+Hotel Protection:
+- Low scores trigger resolution process, not public shame
+- Hotels can fix problems before reputation damage
+- Builds trust: guests know issues get resolved
+- Platform mediates disputes if needed
+
+================================================================================
+PHASE 2: HOTEL → GUEST RATINGS (Private System)
+================================================================================
+
+Rating Components:
+- Overall Rating: 1-10 score (required)
+- Cleanliness: 1-10 (how guest left room)
+- Communication: 1-10
+- Rule Compliance: 1-10
+- Private Notes: Text (visible to other hotels in network)
+
+When Can Rate:
+- After guest checks out
+- Within 15 days of checkout
+
+Where Ratings Display:
+- Guest profile (private - only visible to hotels)
+- Helps hotels make informed decisions on bookings
+- Admin panel for monitoring guest behavior
+
+Guest Reputation Score:
+- Average of all hotel ratings
+- Displayed to hotels during booking confirmation
+- "Trusted Guest" badge if 8.5+ rating with 3+ stays
+- "Problematic Guest" flag if average 6 or below
+
+================================================================================
+PHASE 3: REVIEW FEATURES & DISPLAY
+================================================================================
+
+Verification Badges:
+- "✓ Verified Stay" badge on all reviews from confirmed bookings
+- "Recent Stay" badge if within last 3 months
+- "Trusted Guest" badge if reviewer has 8.5+ reputation score
+
+Helpful Votes:
+- Other users can mark public reviews (7-10) as "Helpful"
+- Most helpful reviews shown first in list
+- Sorting options: Most Recent, Most Helpful, Highest Rating, Lowest Rating
+
+Hotel Response:
+- Hotels can publicly respond to 7-10 score reviews
+- Hotels can privately respond to 1-6 score reviews (resolution process)
+- Response shows "Hotel Response" badge with timestamp
+- Encourages service recovery and guest satisfaction
+
+Review Dashboard - Hotel Partners:
+- Overall average rating (from public 7-10 reviews only)
+- Category breakdown: Cleanliness, Location, Service, Value averages
+- Recent public reviews (7-10) with response option
+- PRIVATE FEEDBACK section showing 1-6 reviews for improvement
+- Resolution queue: Active 1-6 reviews needing response within 48h
+- Resolution success rate stats
+
+Review Dashboard - Admin:
+- All reviews (public + private) across all hotels
+- Hotels with high % of private (1-6) reviews get flagged
+- Resolution monitoring: Track which hotels respond quickly
+- Quality trends: Identify problematic properties
+- Spam/abuse detection for public reviews
+- Platform-wide statistics
+
+================================================================================
+DATABASE TABLES NEEDED
+================================================================================
+
+1. reviews:
+   - review_id, booking_id, user_id, hotel_id
+   - overall_rating (DECIMAL 3,1), cleanliness_rating, location_rating, 
+     service_rating, value_rating (all 1-10 scale)
+   - review_text (TEXT)
+   - status: 'published', 'private_resolution', 'resolved', 'admin_review'
+   - is_public (BOOLEAN) - TRUE if score >= 7
+   - resolution_deadline (TIMESTAMP) - 48h window for hotel to resolve
+   - verified_stay (BOOLEAN), helpful_count (INT)
+   - created_at, updated_at
+
+2. review_images:
+   - id, review_id, image_path, created_at
+
+3. guest_ratings (PRIVATE - Hotel rates Guest):
+   - rating_id, booking_id, hotel_id, guest_id
+   - overall_rating (DECIMAL 3,1), cleanliness_rating, communication_rating, 
+     compliance_rating (all 1-10 scale)
+   - private_notes (TEXT) - Visible to other hotels
+   - would_host_again (BOOLEAN)
+   - guest_issues: 'none', 'minor', 'major'
+   - created_at
+
+4. review_responses:
+   - id, review_id, partner_id, response_text, created_at
+   - Used for both public responses (7-10 scores) and private resolution (1-6)
+
+5. review_helpful_votes:
+   - id, review_id, user_id, created_at
+
+================================================================================
+IMPLEMENTATION ORDER
+================================================================================
+
+Priority 1 (Week 1) - Core Review System:
+✓ Database schema creation (all 5 tables with 1-10 scale)
+✓ Guest review submission form (after checkout + 24h)
+✓ Smart publishing logic (8-10 auto-publish, 7 publish as average, 1-6 private)
+✓ Display public reviews (7-10) on hotel details page
+✓ Calculate average ratings
+
+Priority 2 (Week 2) - Resolution System:
+✓ Hotel dashboard showing ALL reviews (public + private)
+✓ Private resolution workflow for 1-6 scores
+✓ 48-hour resolution window with notifications
+✓ Hotel response feature (both public and private)
+✓ Guest can update/remove review after resolution
+
+Priority 3 (Week 3) - Guest Reputation:
+✓ Hotel rates guest feature (1-10 scale, private)
+✓ Guest reputation score calculation
+✓ "Trusted Guest" / "Problematic Guest" badges
+✓ Review photos upload
+
+Priority 4 (Later) - Advanced Features:
+✓ Review filtering/sorting (by score, date, verified)
+✓ Email notifications (new review, resolution needed, response posted)
+✓ Review analytics/insights for hotels
+✓ Resolution success tracking
+✓ AiNi Coins incentive for leaving reviews
+
+================================================================================
+SUCCESS METRICS
+================================================================================
+- Review submission rate: Target 40%+ of completed bookings
+- Average hotel rating: Monitor quality (aim for 8.0+ average)
+- Published review rate: Track % of 7-10 vs 1-6 scores
+- Resolution success rate: % of 1-6 scores resolved within 48h
+- Hotel response time: Partners responding to private issues within 24h
+- Guest score improvement: Track if scores increase after resolution
+- Booking conversion: Hotels with 7-10 reviews vs no reviews
+- Platform trust: Monitor if guests trust the review system
+
+================================================================================
+PRIVATE RESOLUTION WORKFLOW (1-6 Scores)
+================================================================================
+
+Step 1 - Guest submits review with score 1-6:
+  → Review saved with status='private_resolution'
+  → is_public = FALSE
+  → resolution_deadline = now() + 48 hours
+  → Hotel receives instant notification
+
+Step 2 - Hotel has 48 hours to:
+  → View the private review in their dashboard
+  → Contact guest via platform messaging
+  → Offer solution:
+    * Partial/full refund
+    * AiNi Coins credit for next stay
+    * Sincere apology + explanation
+    * Request to resolve issue
+
+Step 3a - If RESOLVED:
+  → Guest can update score to 7+ (auto-publishes)
+  → OR guest can delete review entirely
+  → Hotel keeps good reputation
+  → Platform records "resolution success"
+
+Step 3b - If NOT resolved after 48h:
+  → Review stays private (never published)
+  → Admin sees it for quality monitoring
+  → Hotel dashboard shows private feedback
+  → Doesn't hurt hotel's public rating
+  → Guest feels heard, issue documented
+
+Benefits:
+✓ Hotels protected from public damage during resolution
+✓ Guests feel empowered (issues get addressed)
+✓ Platform mediates fairly (both sides win)
+✓ Quality control: admin sees all problems
+✓ Reputation earned through service recovery
+
+================================================================================
+NOTES & RULES
+================================================================================
+- Public reviews (7-10) are permanent but can be hidden by admin if spam/abuse
+- Guests cannot edit reviews after 48 hours (prevents manipulation)
+- Hotels cannot delete reviews, only respond
+- Private reviews (1-6) never publish, stay between hotel/guest/admin
+- Implement rate limiting: 1 review per booking
+- Incentives: "Leave a review, earn 10 AiNi Coins"
+- Photos must be appropriate (no nudity, violence, personal info)
+- Admin monitors all private resolutions to ensure hotel quality
+- Hotels with repeated low private scores get flagged for investigation
+- Score 7 reviews marked "Average" to signal room for improvement
