@@ -71,10 +71,12 @@ if ($action === 'chat') {
                 $hotelUrl = "https://ainitravel.com/hotel_details.php?id=" . $h['id'];
                 $hotelResults .= "- {$h['name']} in {$h['location']} - \${$h['price']}/night ⭐{$h['rating']} [View hotel]($hotelUrl)\n";
             }
-            $hotelResults .= "\n🚨 YOUR RESPONSE MUST INCLUDE THE HOTELS LISTED ABOVE.\n";
-            $hotelResults .= "Example responses:\n";
-            $hotelResults .= "SPANISH: \"Encontré " . count($hotels) . " hotel: \" then list each hotel with name, location, price, and [Ver hotel] link\n";
-            $hotelResults .= "ENGLISH: \"I found " . count($hotels) . " hotel: \" then list each hotel with name, location, price, and [View hotel] link\n";
+            $hotelResults .= "\n🚨 MANDATORY: Include ALL hotels above in your response.\n";
+            $hotelResults .= "🚨 KEEP THE MARKDOWN LINKS EXACT - do NOT change the format.\n";
+            $hotelResults .= "\nFormat based on language:\n";
+            $hotelResults .= "- ENGLISH: \"I found " . count($hotels) . " hotel(s): [list each with name, location, price, rating, and EXACT [View hotel](url) link]\"\n";
+            $hotelResults .= "- SPANISH: \"Encontré " . count($hotels) . " hotel(es): [list each with name, location, precio/noche, rating, and EXACT [Ver hotel](url) link]\"\n";
+            $hotelResults .= "- OTHER LANGUAGES: Translate naturally but KEEP [View hotel](url) or use translated text with SAME link format\n";
         } else {
             $hotelResults = "\n❌ DATABASE RETURNED: 0 HOTELS for this location\n";
             $hotelResults .= "\n🚨 MANDATORY response format:\n";
@@ -112,45 +114,36 @@ if ($action === 'chat') {
     if ($userLanguage !== 'auto' && isset($languageMap[$userLanguage])) {
         // User explicitly selected a language
         $responseLanguage = $languageMap[$userLanguage];
-        $languageInstruction = "🔴 CRITICAL - USER SELECTED LANGUAGE: {$responseLanguage}\nYOU MUST RESPOND 100% IN {$responseLanguage}. NO EXCEPTIONS.";
+        $languageInstruction = "� MANDATORY: Respond ONLY in {$responseLanguage}. Every single word must be in {$responseLanguage}.";
     } else {
         // Auto-detect from message
-        $languageInstruction = "🔴 CRITICAL - LANGUAGE RULE #1 (HIGHEST PRIORITY):\nRead the CURRENT user message below. Detect what language they wrote in.\nThen respond in THE EXACT SAME LANGUAGE - 100% of your response must be in that language.\n\nExamples:\n- User writes: \"hello where are good hotels\" → You detect: English → Respond ENTIRELY in English\n- User writes: \"hola donde hay hoteles\" → You detect: Spanish → Respond ENTIRELY in Spanish\n- User writes: \"bonjour où sont les hôtels\" → You detect: French → Respond ENTIRELY in French\n- User writes: \"你好哪里有酒店\" → You detect: Chinese → Respond ENTIRELY in Chinese\n- User writes: \"こんにちはホテルはどこですか\" → You detect: Japanese → Respond ENTIRELY in Japanese\n- User writes: \"wo sind hotels\" → You detect: German → Respond ENTIRELY in German\n\n⚠️ CRITICAL: Do NOT mix languages. Do NOT assume Spanish. MATCH the language of the CURRENT message.";
+        $languageInstruction = "🚨 MANDATORY LANGUAGE RULE:
+The user wrote: \"{$message}\"
+
+You can understand this message, right? That means you KNOW what language it is.
+Respond in THE EXACT SAME LANGUAGE you just understood.
+
+- If you understood it as English → Write your ENTIRE response in English
+- If you understood it as Spanish → Write your ENTIRE response in Spanish  
+- If you understood it as French → Write your ENTIRE response in French
+- If you understood it as Chinese → Write your ENTIRE response in Chinese
+- And so on for ANY language
+
+DO NOT default to Spanish. DO NOT mix languages. MATCH the language you understood.";
     }
     
     // Build Sofia's character prompt (CONDENSED for speed)
-    $systemPrompt = "You are Sofia from AiNi Travel. Warm, conversational travel agent.
+    $systemPrompt = "{$languageInstruction}
 
-{$languageInstruction}
-1. DO NOT mix languages in your response
-2. IGNORE previous conversation language - only look at CURRENT message
-3. Match the user's language EXACTLY - if they write in German, you respond in German
-4. If you cannot detect language clearly, default to English
+You are Sofia, a warm travel agent for AiNi Travel.
 
-🔴 CRITICAL - DATABASE RESULTS MODE:
-The CONTEXT section below shows \"FOUND X HOTELS\" with a list of hotels.
-
-YOU MUST:
-1. Read each hotel's details from the list (name, location, price, rating, link)
-2. Include those EXACT hotels in your response
-3. Keep the [View hotel] or [Ver hotel] markdown links
-
-Example for Spanish:
-If context shows: \"- Florencio Casa Hacienda in Pisac, Cusco - \$65/night ⭐4.0 [View hotel](url)\"
-You respond: \"Encontré 1 hotel: Florencio Casa Hacienda en Pisac, Cusco - \$65/noche ⭐4.0 [Ver hotel](url)\"
-
-Example for English:
-\"I found 1 hotel: Florencio Casa Hacienda in Pisac, Cusco - \$65/night ⭐4.0 [View hotel](url)\"
-
-🚨 ABSOLUTELY FORBIDDEN:
-- ❌ Using placeholder text like \"[paste the list here]\" or \"[insert hotels]\"
-- ❌ Asking questions instead of showing hotels
-- ❌ Making up hotel names not in the context
-- ❌ Being vague - include the actual hotel names and links from CONTEXT
+HOTELS FROM DATABASE:
+When the CONTEXT below shows hotel listings, include ALL of them in your response.
+Keep the markdown links EXACTLY as shown: [View hotel](url) or [Ver hotel](url)
 
 BOOKINGS:
-- If NOT logged in and want to BOOK: Ask to create account or login
-- If logged in: Confirm details and process booking
+- If user NOT logged in and wants to book: Ask them to create account or login
+- If logged in: Help them complete their booking
 
 CONTEXT: $userContext$contextText$databaseChecked$hotelResults
 
