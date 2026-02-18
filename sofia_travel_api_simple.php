@@ -38,6 +38,7 @@ if ($action === 'chat') {
     $input = json_decode(file_get_contents('php://input'), true);
     $message = $input['message'] ?? '';
     $conversationHistory = $input['history'] ?? []; // Get recent messages
+    $userLanguage = $input['language'] ?? 'auto'; // Get language preference (auto, en, es, pt, fr, de, zh, ja)
     
     if (empty($message)) {
         echo json_encode(['success' => false, 'error' => 'No message']);
@@ -93,36 +94,38 @@ if ($action === 'chat') {
         }
     }
     
-    // Detect language from current message
-    $detectedLanguage = 'SPANISH'; // Default
-    $messageLowerCheck = strtolower($message);
+    // Determine response language
+    $languageMap = [
+        'en' => 'ENGLISH',
+        'es' => 'SPANISH',
+        'pt' => 'PORTUGUESE',
+        'fr' => 'FRENCH',
+        'de' => 'GERMAN',
+        'zh' => 'CHINESE',
+        'ja' => 'JAPANESE',
+        'it' => 'ITALIAN',
+        'ko' => 'KOREAN',
+        'ru' => 'RUSSIAN'
+    ];
     
-    // English detection - common English words/patterns
-    if (preg_match('/\b(hello|hi|hey|good morning|good afternoon|hotel|hotels|where|what|can you|i want|i need|looking for|recommend|show me|find|search|booking|book|help|yes|no|please|thanks|thank you)\b/i', $messageLowerCheck)) {
-        $detectedLanguage = 'ENGLISH';
-    }
-    // Spanish detection - common Spanish words
-    else if (preg_match('/\b(hola|buenos días|buenas tardes|hotel|hoteles|donde|qué|puedes|quiero|necesito|busco|recomienda|muestra|encuentra|reserva|reservar|ayuda|sí|no|por favor|gracias)\b/i', $messageLowerCheck)) {
-        $detectedLanguage = 'SPANISH';
-    }
-    // Portuguese detection
-    else if (preg_match('/\b(olá|oi|bom dia|boa tarde|hotel|hotéis|onde|o que|você pode|eu quero|preciso|procuro|recomenda|mostre|encontre|reserva|reservar|ajuda|sim|não|por favor|obrigado)\b/i', $messageLowerCheck)) {
-        $detectedLanguage = 'PORTUGUESE';
+    $responseLanguage = '';
+    if ($userLanguage !== 'auto' && isset($languageMap[$userLanguage])) {
+        // User explicitly selected a language
+        $responseLanguage = $languageMap[$userLanguage];
+        $languageInstruction = "🔴 CRITICAL - USER SELECTED LANGUAGE: {$responseLanguage}\nYOU MUST RESPOND 100% IN {$responseLanguage}. NO EXCEPTIONS.";
+    } else {
+        // Auto-detect from message
+        $languageInstruction = "🔴 CRITICAL - LANGUAGE RULE #1 (HIGHEST PRIORITY):\nRead the CURRENT user message below. Detect what language they wrote in.\nThen respond in THE EXACT SAME LANGUAGE - 100% of your response must be in that language.\n\nExamples:\n- User writes: \"hello where are good hotels\" → You detect: English → Respond ENTIRELY in English\n- User writes: \"hola donde hay hoteles\" → You detect: Spanish → Respond ENTIRELY in Spanish\n- User writes: \"bonjour où sont les hôtels\" → You detect: French → Respond ENTIRELY in French\n- User writes: \"你好哪里有酒店\" → You detect: Chinese → Respond ENTIRELY in Chinese\n- User writes: \"こんにちはホテルはどこですか\" → You detect: Japanese → Respond ENTIRELY in Japanese\n- User writes: \"wo sind hotels\" → You detect: German → Respond ENTIRELY in German\n\n⚠️ CRITICAL: Do NOT mix languages. Do NOT assume Spanish. MATCH the language of the CURRENT message.";
     }
     
     // Build Sofia's character prompt (CONDENSED for speed)
     $systemPrompt = "You are Sofia from AiNi Travel. Warm, conversational travel agent.
 
-🔴 CRITICAL - LANGUAGE RULE #1:
-DETECTED USER LANGUAGE: {$detectedLanguage}
-
-YOU MUST RESPOND 100% IN {$detectedLanguage}. NO EXCEPTIONS.
-- If ENGLISH: ALL words in English
-- If SPANISH: ALL words in Spanish  
-- If PORTUGUESE: ALL words in Portuguese
-
-Do NOT mix languages. Do NOT use Spanish if user wrote in English.
-IGNORE conversation history language. ONLY use DETECTED LANGUAGE: {$detectedLanguage}
+{$languageInstruction}
+1. DO NOT mix languages in your response
+2. IGNORE previous conversation language - only look at CURRENT message
+3. Match the user's language EXACTLY - if they write in German, you respond in German
+4. If you cannot detect language clearly, default to English
 
 🔴 CRITICAL - DATABASE RESULTS MODE:
 The CONTEXT section below shows \"FOUND X HOTELS\" with a list of hotels.
