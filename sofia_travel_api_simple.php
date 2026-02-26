@@ -1,7 +1,9 @@
-<?php
+﻿<?php
 // Minimal Sofia API - Just make it work!
 session_start();
 header('Content-Type: application/json');
+
+// AI runs on flat-rate VPS (72.60.1.16) - no RunPod needed
 
 // Database connection
 function getHotels($searchTerm = '') {
@@ -15,11 +17,11 @@ function getHotels($searchTerm = '') {
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
         if (empty($searchTerm)) {
-            // Return top 5 hotels
+            // Return top 5 hotels when no search term
             $stmt = $conn->prepare("SELECT id, name, location, price, rating FROM hotel_properties WHERE status = 'approved' AND is_active = 1 ORDER BY rating DESC LIMIT 5");
             $stmt->execute();
         } else {
-            // Search hotels
+            // Search hotels - show top 5 highest-rated matches
             $searchTerm = "%$searchTerm%";
             $stmt = $conn->prepare("SELECT id, name, location, price, rating FROM hotel_properties WHERE status = 'approved' AND is_active = 1 AND (name LIKE ? OR location LIKE ?) ORDER BY rating DESC LIMIT 5");
             $stmt->execute([$searchTerm, $searchTerm]);
@@ -66,17 +68,17 @@ if ($action === 'chat') {
         $databaseChecked = "\n\n🔍 DATABASE QUERY EXECUTED: YES";
         
         if (!empty($hotels)) {
-            $hotelResults = "\n✅ FOUND " . count($hotels) . " HOTELS IN DATABASE:\n";
+            $hotelResults = "\n✅ AVAILABLE HOTELS (sorted by rating):\n\n";
             foreach ($hotels as $h) {
                 $hotelUrl = "https://ainitravel.com/hotel_details.php?id=" . $h['id'];
                 $hotelResults .= "- {$h['name']} in {$h['location']} - \${$h['price']}/night ⭐{$h['rating']} [View hotel]($hotelUrl)\n";
             }
-            $hotelResults .= "\n🚨 MANDATORY: Include ALL hotels above in your response.\n";
-            $hotelResults .= "🚨 KEEP THE MARKDOWN LINKS EXACT - do NOT change the format.\n";
-            $hotelResults .= "\nFormat based on language:\n";
-            $hotelResults .= "- ENGLISH: \"I found " . count($hotels) . " hotel(s): [list each with name, location, price, rating, and EXACT [View hotel](url) link]\"\n";
-            $hotelResults .= "- SPANISH: \"Encontré " . count($hotels) . " hotel(es): [list each with name, location, precio/noche, rating, and EXACT [Ver hotel](url) link]\"\n";
-            $hotelResults .= "- OTHER LANGUAGES: Translate naturally but KEEP [View hotel](url) or use translated text with SAME link format\n";
+            $hotelResults .= "\n💡 Be intelligent:\n";
+            $hotelResults .= "- Recommend hotels that best match the user's request (budget, location, preferences)\n";
+            $hotelResults .= "- If user asks for cheap/budget: recommend lower-priced options\n";
+            $hotelResults .= "- If user asks for luxury/best: recommend highest-rated options\n";
+            $hotelResults .= "- If user just asks 'show hotels': show the top 2-3 options\n";
+            $hotelResults .= "- Always include the EXACT [View hotel](https://ainitravel.com/hotel_details.php?id=X) link for each recommendation\n";
         } else {
             $hotelResults = "\n❌ DATABASE RETURNED: 0 HOTELS for this location\n";
             $hotelResults .= "\n🚨 MANDATORY response format:\n";
@@ -116,76 +118,64 @@ if ($action === 'chat') {
         $responseLanguage = $languageMap[$userLanguage];
         $languageInstruction = "� MANDATORY: Respond ONLY in {$responseLanguage}. Every single word must be in {$responseLanguage}.";
     } else {
-        // Auto-detect using PHP keyword matching
-        $messageLower = strtolower($message);
+        // Auto-detect - CHECK FIRST WORDS for immediate language detection
+        $messageLower = strtolower(trim($message));
+        $firstWords = substr($messageLower, 0, 50); // Check first 50 chars
         
-        // English detection
-        if (preg_match('/\b(hello|hi|hey|how are you|good morning|good afternoon|hotel|hotels|where|what|can you|i am|im|i\'m|do you have|looking for|need|want|recommend|show me|find|search|book|help|yes|no|please|thanks|thank you|any)\b/i', $messageLower)) {
-            $responseLanguage = 'ENGLISH';
-        }
-        // Spanish detection
-        else if (preg_match('/\b(hola|cómo estás|buenos días|buenas tardes|hotel|hoteles|dónde|donde|qué|que|puedes|quiero|necesito|busco|tienes|recomienda|muestra|encuentra|reserva|reservar|ayuda|sí|si|no|por favor|gracias)\b/i', $messageLower)) {
+        // SPANISH DETECTION FIRST (priority for Peru market)
+        if (preg_match('/^(hola|buenos|buenas|muestra|muéstrame|muestrame|busco|quiero|necesito|encuentra|dónde|donde|qué|que|cuál|cual|hay|tienes|puedes|recomienda|reserva|dame|ayuda)\b/i', $firstWords) ||
+            preg_match('/\b(hoteles|habitación|habitacion|desayuno|incluye|precio|disponible|reservar|ubicado|centro|cerca)\b/i', $messageLower)) {
             $responseLanguage = 'SPANISH';
         }
+        // ENGLISH DETECTION
+        else if (preg_match('/^(hello|hi|hey|show|find|search|looking|i need|i want|where|what|can you|do you|get me|help)\b/i', $firstWords) ||
+                 preg_match('/\b(hotels|rooms|breakfast|price|available|booking|located|downtown|near)\b/i', $messageLower)) {
+            $responseLanguage = 'ENGLISH';
+        }
         // Portuguese
-        else if (preg_match('/\b(olá|oi|como está|bom dia|boa tarde|hotel|hotéis|onde|você pode|eu quero|preciso|procuro|tem|recomenda|mostre|encontre|ajuda|sim|não|nao|por favor)\b/i', $messageLower)) {
+        else if (preg_match('/^(olá|oi|mostre|procuro|quero|preciso|onde|bom dia|boa tarde)\b/i', $firstWords)) {
             $responseLanguage = 'PORTUGUESE';
         }
         // French
-        else if (preg_match('/\b(bonjour|salut|hôtel|hotel|où|ou|quoi|pouvez-vous|je veux|je cherche|avez-vous|recommandez|montrez|trouvez|réserver|reserver|oui|non|merci)\b/i', $messageLower)) {
+        else if (preg_match('/^(bonjour|salut|montrez|cherche|où|je veux)\b/i', $firstWords)) {
             $responseLanguage = 'FRENCH';
         }
         // German  
-        else if (preg_match('/\b(hallo|guten tag|hotel|wo|was|können sie|ich möchte|ich brauche|suche|haben sie|empfehlen|zeigen|finden|buchen|ja|nein|bitte|danke)\b/i', $messageLower)) {
+        else if (preg_match('/^(hallo|guten|zeigen|suche|ich möchte|wo)\b/i', $firstWords)) {
             $responseLanguage = 'GERMAN';
         }
-        // Default to English
+        // Default to SPANISH for Peru
         else {
-            $responseLanguage = 'ENGLISH';
+            $responseLanguage = 'SPANISH';
         }
         
-        $languageInstruction = "LANGUAGE DETECTED: {$responseLanguage}\n\nYou MUST respond ONLY in {$responseLanguage}. Every word must be in {$responseLanguage}.\nDo NOT mix languages. Do NOT use Spanish unless detected language is SPANISH.";
+        // STRONG language enforcement instruction
+        $languageInstruction = "RESPOND IN: {$responseLanguage}\n\n⚠️ STRICT RULE: Every single word MUST be in {$responseLanguage}. No mixing languages. No English if SPANISH detected.";
     }
     
-    // Build Sofia's character prompt (CONDENSED for speed)
-    $systemPrompt = "{$languageInstruction}
-
-You are Sofia, a warm travel agent for AiNi Travel.
-
-HOTELS FROM DATABASE:
-When the CONTEXT below shows hotel listings, include ALL of them in your response.
-Keep the markdown links EXACTLY as shown: [View hotel](url) or [Ver hotel](url)
-
-BOOKINGS:
-- If user NOT logged in and wants to book: Ask them to create account or login
-- If logged in: Help them complete their booking
-
-CONTEXT: $userContext$contextText$databaseChecked$hotelResults
-
-Current user message: $message
-
-Sofia:";
+    // Build Sofia's character prompt - LANGUAGE FIRST for enforcement
+    $systemPrompt = "⚠️ {$languageInstruction}\n\nYou are Sofia, AiNi Travel's friendly AI assistant. Be helpful, concise, and warm.\n\nUSER STATUS: {$userContext}\n\nRULES:\n1. When showing hotels from CONTEXT: List ALL of them with exact [View hotel](url) links from the context.\n2. When user wants to BOOK and is NOT logged in: tell them to login first and provide this link: [Login here](https://ainitravel.com/login.php)\n3. When user says they want to LOGIN (e.g. 'let me login', 'i need to login', 'quiero iniciar sesión', 'login', 'iniciar sesión'): respond with 'Great! Click here to login: [Login here](https://ainitravel.com/login.php) — once logged in I can help you book your stay!'\n4. Stay focused on travel, hotels, and bookings.\n5. Keep responses short and friendly.{$contextText}\n\nCONTEXT:{$hotelResults}\n\nUser: {$message}\nSofia:";
 
     // Call Ollama with optimal balance of speed and quality
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "http://72.60.1.16:11434/api/generate");
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'model' => 'qwen2.5:7b',  // 7B model (4.7GB) - reliable multilingual language detection
+        'model' => 'qwen2.5:7b',
         'prompt' => $systemPrompt,
         'stream' => false,
-        'keep_alive' => '1h',        // CRITICAL: Keep model in memory for 1 hour
+        'keep_alive' => '5m',       // Free GPU after 5 min idle
         'options' => [
-            'temperature' => 0.9,
-            'top_p' => 0.95,
-            'num_predict' => 120,
-            'num_ctx' => 1024
+            'temperature' => 0.7,
+            'top_p' => 0.9,
+            'num_predict' => 350,    // Room for full hotel listings with URLs
+            'num_ctx' => 2048        // Larger context for better comprehension
         ]
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 90);  // AI responses can take 20-30 seconds
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 45);  // 7B still fast on GPU
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -193,20 +183,18 @@ Sofia:";
     curl_close($ch);
     
     if ($error || $httpCode !== 200) {
-        // Check if it's a timeout (likely busy)
-        if (strpos($error, 'timeout') !== false || strpos($error, 'timed out') !== false) {
-            echo json_encode([
-                'success' => true,
-                'response' => "One moment! 🤖 I'm processing many queries right now. Give me a few seconds and try again, please. Or message me on WhatsApp: +51 987 654 321 for immediate help. 😊",
-                'session_id' => session_id()
-            ]);
-            exit;
-        }
+        // Log the error for debugging
+        error_log("Sofia AI Error: " . ($error ?: "HTTP $httpCode"));
+        
+        // Friendly response instead of technical error
+        $friendlyResponse = $responseLanguage === 'SPANISH' || $responseLanguage === '' 
+            ? "¡Hola! ✨ Estoy aquí para ayudarte. En este momento estoy procesando tu consulta. Si necesitas ayuda inmediata, contáctanos:\n\n📱 WhatsApp: +51 987 654 321\n📧 Email: hola@ainitravel.com\n\n¿En qué más puedo ayudarte mientras tanto?"
+            : "Hi there! ✨ I'm here to help you. I'm processing your request right now. If you need immediate assistance, contact us:\n\n📱 WhatsApp: +51 987 654 321\n📧 Email: hola@ainitravel.com\n\nHow else can I help you in the meantime?";
         
         echo json_encode([
-            'success' => false,
-            'error' => $error ?: "HTTP $httpCode",
-            'response' => "Sorry, I'm having technical issues. 😔 Please contact our team:\n\n📱 WhatsApp: +51 987 654 321\n📧 hola@ainitravel.com"
+            'success' => true,  // Changed to true so it displays nicely
+            'response' => $friendlyResponse,
+            'session_id' => session_id()
         ]);
         exit;
     }

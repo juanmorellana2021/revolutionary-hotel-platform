@@ -1,0 +1,391 @@
+/* AiNi Travel — Mobile CSS (Bootstrap 5 overrides only) */
+:root {
+    --aini-primary:   #667eea;
+    --aini-secondary: #764ba2;
+    --aini-gradient:  linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --aini-coin:      #f59e0b;
+    --aini-radius:    12px;
+    --nav-bottom-h:   64px;
+}
+
+/* ── Body ── */
+body {
+    background: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ── Top navbar ── */
+.aini-topnav {
+    height: 56px;
+    border-bottom: 1px solid #e9ecef;
+    z-index: 1030;
+}
+.aini-logo {
+    font-weight: 800;
+    font-size: 1.1rem;
+    background: var(--aini-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+}
+.lang-btn {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-color: #dee2e6;
+}
+.aini-avatar-btn {
+    background: none;
+    border: none;
+    color: var(--aini-primary);
+    padding: 2px 6px;
+}
+
+/* ── Bottom tab bar ── */
+.aini-bottom-nav {
+    background: white;
+    border-top: 1px solid #e9ecef;
+    height: var(--nav-bottom-h);
+    z-index: 1030;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+}
+.aini-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0 4px;
+    color: #6c757d;
+    text-decoration: none;
+    font-size: 0.65rem;
+    gap: 2px;
+    height: var(--nav-bottom-h);
+    transition: color 0.2s;
+}
+.aini-tab i { font-size: 1.2rem; }
+.aini-tab.active { color: var(--aini-primary); }
+.aini-tab.active i { color: var(--aini-primary); }
+.aini-badge {
+    position: absolute;
+    top: 8px;
+    right: calc(50% - 18px);
+    background: #ef4444;
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* ── Buttons ── */
+.aini-btn-primary {
+    background: var(--aini-gradient);
+    border: none;
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+}
+.aini-btn-primary:hover { opacity: 0.9; color: white; }
+.aini-btn-outline {
+    border: 1.5px solid var(--aini-primary);
+    color: var(--aini-primary);
+    background: transparent;
+    border-radius: 20px;
+    font-weight: 600;
+}
+.aini-btn-outline:hover {
+    background: var(--aini-primary);
+    color: white;
+}
+
+/* ── Search bar ── */
+.aini-search-card {
+    background: white;
+    border-radius: var(--aini-radius);
+    box-shadow: 0 2px 12px rgba(102,126,234,0.12);
+    padding: 16px;
+    margin: 12px;
+}
+.aini-search-card .form-control,
+.aini-search-card .form-select {
+    border-radius: 8px;
+    border: 1.5px solid #e9ecef;
+    font-size: 0.9rem;
+}
+.aini-search-card .form-control:focus,
+.aini-search-card .form-select:focus {
+    border-color: var(--aini-primary);
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+.aini-search-btn {
+    background: var(--aini-gradient);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    font-weight: 700;
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+}
+
+/* ── Filter pills ── */
+.aini-filters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 12px 8px;
+    scrollbar-width: none;
+}
+.aini-filters::-webkit-scrollbar { display: none; }
+.aini-filter-pill {
+    white-space: nowrap;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1.5px solid #dee2e6;
+    background: white;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.aini-filter-pill.active,
+.aini-filter-pill:hover {
+    background: var(--aini-gradient);
+    border-color: transparent;
+    color: white;
+}
+
+/* ── Hotel card ── */
+.aini-hotel-card {
+    background: white;
+    border-radius: var(--aini-radius);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin: 0 12px 14px;
+    transition: box-shadow 0.2s;
+}
+.aini-hotel-card:active { box-shadow: 0 4px 16px rgba(102,126,234,0.2); }
+.aini-hotel-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+.aini-hotel-body { padding: 12px; }
+.aini-hotel-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a1a2e;
+    margin-bottom: 2px;
+}
+.aini-hotel-location {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 6px;
+}
+.aini-hotel-rating {
+    color: var(--aini-coin);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.aini-hotel-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 8px 0;
+}
+.aini-feature-pill {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    background: #ede9fe;
+    color: #5b21b6;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.aini-hotel-price {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--aini-primary);
+}
+.aini-hotel-price small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #6c757d;
+}
+.aini-coins-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--aini-coin);
+}
+.aini-hotel-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+.aini-hotel-btns .btn {
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 8px 4px;
+}
+
+/* ── Loading spinner ── */
+.aini-loading {
+    text-align: center;
+    padding: 48px 0;
+    color: var(--aini-primary);
+}
+.aini-loading .spinner-border { width: 2.5rem; height: 2.5rem; }
+
+/* ── Auth card ── */
+.aini-auth-card {
+    background: white;
+    border-radius: 20px;
+    padding: 28px 24px;
+    margin: 20px 16px;
+    box-shadow: 0 4px 24px rgba(102,126,234,0.12);
+}
+.aini-auth-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: var(--aini-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+}
+.aini-auth-sub {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 24px;
+}
+.aini-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px;
+    border: 1.5px solid #dee2e6;
+    border-radius: 10px;
+    background: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    text-decoration: none;
+}
+.aini-google-btn:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    color: #333;
+}
+.aini-divider {
+    text-align: center;
+    color: #adb5bd;
+    font-size: 0.8rem;
+    margin: 16px 0;
+    position: relative;
+}
+.aini-divider::before,
+.aini-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 42%;
+    height: 1px;
+    background: #dee2e6;
+}
+.aini-divider::before { left: 0; }
+.aini-divider::after  { right: 0; }
+
+/* ── Section title ── */
+.aini-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    padding: 12px 12px 4px;
+}
+.aini-count-badge {
+    font-size: 0.75rem;
+    background: var(--aini-gradient);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-left: 6px;
+    font-weight: 700;
+}
+
+/* ── No results ── */
+.aini-empty {
+    text-align: center;
+    padding: 60px 24px;
+    color: #6c757d;
+}
+.aini-empty i { font-size: 3rem; color: #dee2e6; margin-bottom: 12px; }
+
+/* ── Sofia FAB button ── */
+.aini-sofia-fab {
+    position: fixed;
+    bottom: calc(var(--nav-bottom-h) + 16px);
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--aini-gradient);
+    border: none;
+    color: white;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.aini-sofia-fab:active { transform: scale(0.92); }
+
+/* ── Offcanvas hotel detail ── */
+.offcanvas.aini-detail-canvas {
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+}
+.aini-detail-img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+/* ── Card entrance animation ── */
+@keyframes cardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.aini-hotel-card.aini-animate {
+    animation: cardSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Count badge pulse ── */
+@keyframes badgePop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.45); background: var(--aini-primary); color: white; }
+    100% { transform: scale(1); }
+}
+.aini-count-badge.aini-pop {
+    animation: badgePop 0.45s ease;
+}
