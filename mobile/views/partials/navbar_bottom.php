@@ -3,19 +3,6 @@ $currentPage = $_GET['page'] ?? 'hotels';
 
 // Unread message count (quick query)
 $unreadMessages = 0;
-if ($isLoggedIn || $isPartner) {
-    try {
-        require_once __DIR__ . '/../../../db_connection_pdo.php';
-        if ($isLoggedIn) {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM booking_messages WHERE recipient_id = ? AND is_read = 0");
-            $stmt->execute([$_SESSION['user_id']]);
-        } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM booking_messages WHERE partner_id = ? AND is_read = 0 AND sender_type='user'");
-            $stmt->execute([$partnerId]);
-        }
-        $unreadMessages = (int)$stmt->fetchColumn();
-    } catch(Exception $e) { /* silently fail */ }
-}
 ?>
 <!-- BOTTOM TAB BAR -->
 <nav class="navbar fixed-bottom aini-bottom-nav">

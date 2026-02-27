@@ -61,29 +61,29 @@
 
 <!-- Filter Pills -->
 <div class="aini-filters">
-    <button class="aini-filter-pill active" onclick="filterCategory('all', this)">
+    <button class="aini-filter-pill active" onclick="filterCategory('all', this)" data-i18n>
         Todos
     </button>
-    <button class="aini-filter-pill" onclick="filterCategory('luxury', this)">
+    <button class="aini-filter-pill" onclick="filterCategory('luxury', this)" data-i18n>
         Lujo
     </button>
-    <button class="aini-filter-pill" onclick="filterCategory('budget', this)">
+    <button class="aini-filter-pill" onclick="filterCategory('budget', this)" data-i18n>
         Economico
     </button>
-    <button class="aini-filter-pill" onclick="filterCategory('beach', this)">
+    <button class="aini-filter-pill" onclick="filterCategory('beach', this)" data-i18n>
         Playa
     </button>
-    <button class="aini-filter-pill" onclick="filterCategory('business', this)">
+    <button class="aini-filter-pill" onclick="filterCategory('business', this)" data-i18n>
         Negocios
     </button>
-    <button class="aini-filter-pill" onclick="filterCategory('family', this)">
+    <button class="aini-filter-pill" onclick="filterCategory('family', this)" data-i18n>
         Familiar
     </button>
 </div>
 
 <!-- Section title -->
 <div class="aini-section-title">
-    Propiedades Disponibles
+    <span data-i18n>Propiedades Disponibles</span>
     <span class="aini-count-badge" id="hotelCount">...</span>
 </div>
 
@@ -154,7 +154,7 @@
 </div>
 
 <!-- JS: hotels + search + sofia -->
-<script src="/mobile/js/hotels.js?v=2.0"></script>
+<script src="/mobile/js/hotels.js?v=2.2"></script>
 <script src="/mobile/js/sofia.js?v=2.0"></script>
 <script>
 function toggleGroupInput(sel) {

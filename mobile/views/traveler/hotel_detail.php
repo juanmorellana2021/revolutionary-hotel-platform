@@ -80,6 +80,93 @@ if (!$hotel) {
 $images   = json_decode($hotel['images'] ?? '[]', true) ?: [];
 $features = json_decode($hotel['features'] ?? '[]', true) ?: [];
 $currency_sym = ($hotel['currency'] ?? 'USD') === 'PEN' ? 'S/' : '$';
+
+// ── Server-side translation for long content ─────────────────────────────────
+// Always runs — handles owners who wrote descriptions in English/other languages
+$lang = $_SESSION['lang'] ?? 'es';
+$langNames = ['es'=>'Spanish','en'=>'English','pt'=>'Portuguese','fr'=>'French',
+              'de'=>'German','it'=>'Italian','zh'=>'Chinese','ja'=>'Japanese'];
+$targetLanguage = $langNames[$lang] ?? 'Spanish';
+
+// Gather all strings needing translation
+$toTranslate = [];
+if (!empty($hotel['description']))   $toTranslate[] = $hotel['description'];
+foreach ($features as $f)            $toTranslate[] = $f;
+foreach ($rooms_by_type as $rt) {
+    if (!empty($rt['description']))  $toTranslate[] = $rt['description'];
+    foreach ($rt['amenities'] as $a) $toTranslate[] = $a;
+}
+$toTranslate = array_values(array_unique(array_filter($toTranslate)));
+
+// Check DB cache for each
+$translated = [];
+$needsAI    = [];
+foreach ($toTranslate as $str) {
+    try {
+        $st = $pdo->prepare("SELECT translated_text FROM translations_cache
+            WHERE content_type='ui_mobile' AND content_id=0 AND target_lang=? AND original_text=? LIMIT 1");
+        $st->execute([$lang, $str]);
+        $row = $st->fetch();
+        if ($row) $translated[$str] = $row['translated_text'];
+        else       $needsAI[] = $str;
+    } catch(Exception $e) { $needsAI[] = $str; }
+}
+
+// Batch AI call for cache misses — no source language assumed, AI auto-detects
+if (!empty($needsAI)) {
+    $BATCH = 8;
+    for ($bi = 0; $bi < count($needsAI); $bi += $BATCH) {
+        $batch  = array_slice($needsAI, $bi, $BATCH);
+        $jlist  = json_encode(array_values($batch), JSON_UNESCAPED_UNICODE);
+        $prompt = "Translate the following JSON array of strings to {$targetLanguage}. "
+                . "Auto-detect the source language of each string. "
+                . "Output ONLY a valid JSON array with exactly the same number of elements in the same order. "
+                . "No explanations, no extra text, just the JSON array.\n\n{$jlist}";
+        $payload = json_encode(['model'=>'qwen2.5:7b','prompt'=>$prompt,'stream'=>false,
+                                'keep_alive'=>'5m','options'=>['temperature'=>0.2,'num_predict'=>4096,'num_ctx'=>4096]]);
+        $ch = curl_init('http://72.60.1.16:11434/api/generate');
+        curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_POSTFIELDS=>$payload,
+            CURLOPT_RETURNTRANSFER=>true, CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
+            CURLOPT_TIMEOUT=>120, CURLOPT_CONNECTTIMEOUT=>10]);
+        $resp = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if (!$err && $code === 200) {
+            $aiResult = json_decode($resp, true);
+            $raw = trim($aiResult['response'] ?? '');
+            if (preg_match('/\[.*\]/s', $raw, $m)) {
+                $parsed = json_decode($m[0], true);
+                if (is_array($parsed) && count($parsed) === count($batch)) {
+                    foreach ($batch as $i => $orig) {
+                        $tr = trim($parsed[$i] ?? $orig);
+                        $translated[$orig] = $tr;
+                        // Always cache — even if text looks same (e.g. Spanish→Spanish)
+                        // so we skip AI on future visits
+                        try {
+                            $pdo->prepare("INSERT INTO translations_cache
+                                (content_type,content_id,original_text,target_lang,translated_text)
+                                VALUES('ui_mobile',0,?,?,?)
+                                ON DUPLICATE KEY UPDATE translated_text=VALUES(translated_text),created_at=NOW()"
+                            )->execute([$orig, $lang, $tr]);
+                        } catch(Exception $e) {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Apply translations to data structures
+if (!empty($hotel['description'])) {
+    $hotel['description'] = $translated[$hotel['description']] ?? $hotel['description'];
+}
+$features = array_map(fn($f) => $translated[$f] ?? $f, $features);
+foreach ($rooms_by_type as $type => &$rt) {
+    if (!empty($rt['description'])) {
+        $rt['description'] = $translated[$rt['description']] ?? $rt['description'];
+    }
+    $rt['amenities'] = array_map(fn($a) => $translated[$a] ?? $a, $rt['amenities']);
+}
+unset($rt);
 ?>
 
 <!-- Back nav override -->
@@ -192,7 +279,6 @@ $currency_sym = ($hotel['currency'] ?? 'USD') === 'PEN' ? 'S/' : '$';
     <div class="text-center py-4 text-muted">
         <div style="font-size:2.5rem;">😔</div>
         <div class="mt-2 small">No hay habitaciones disponibles en este momento</div>
-        <div class="small">Contáctanos por WhatsApp para más info</div>
     </div>
     <?php else: ?>
     <div class="d-flex flex-column gap-3">
@@ -261,15 +347,7 @@ $currency_sym = ($hotel['currency'] ?? 'USD') === 'PEN' ? 'S/' : '$';
     <?php endif; ?>
 </div>
 
-<!-- WhatsApp CTA -->
-<div class="px-3 py-3 mb-5">
-    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $hotel['phone'] ?? '51938118436') ?>?text=<?= urlencode('Hola! Me interesa reservar en ' . $hotel['name'] . ' (' . $hotel['location'] . ')') ?>"
-       target="_blank"
-       class="btn w-100 fw-bold py-2"
-       style="background:#25D366;color:white;border-radius:12px;">
-        💬 Consultar por WhatsApp
-    </a>
-</div>
+
 
 <script>
 function bookRoom(hotelId, roomType, price, currency, roomId) {

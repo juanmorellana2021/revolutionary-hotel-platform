@@ -78,6 +78,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') === 'api') {
     echo json_encode(['success'=>false,'message'=>'Acción desconocida']); exit();
 }
 
+// ── Partner login POST handler (must be before HTML output) ─────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') === 'partner_login') {
+    $pl_email = trim($_POST['email'] ?? '');
+    $pl_pass  = $_POST['password'] ?? '';
+    $pl_error = '';
+    try {
+        $pl_pdo = new PDO('mysql:host=localhost;dbname=hotel_booking_system;charset=utf8mb4',
+            'hoteluser', 'hotelpass123',
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+        $st = $pl_pdo->prepare("SELECT * FROM aini_partner_businesses WHERE email = ?");
+        $st->execute([$pl_email]);
+        $partner = $st->fetch();
+        if ($partner && password_verify($pl_pass, $partner['password_hash'])) {
+            $_SESSION['partner_id']    = $partner['id'];
+            $_SESSION['partner_name']  = $partner['business_name'];
+            $_SESSION['partner_email'] = $partner['email'];
+            $_SESSION['partner_type']  = $partner['business_type'] ?? '';
+            $_SESSION['email_verified_at'] = time();
+            $redirect = $_POST['redirect'] ?? 'partner_dashboard';
+            header('Location: ?page=' . urlencode($redirect));
+            exit();
+        } else {
+            $pl_error = 'Email o contraseña incorrectos.';
+        }
+    } catch (Exception $e) {
+        $pl_error = 'Error al conectar. Intenta de nuevo.';
+    }
+    // Fall through — render the page with $pl_error set
+    $_SESSION['partner_login_error'] = $pl_error;
+    header('Location: ?page=partner_login');
+    exit();
+}
+
+// Pick up error from redirect
+$partnerLoginError = $_SESSION['partner_login_error'] ?? '';
+unset($_SESSION['partner_login_error']);
+
 require_once __DIR__ . '/views/partials/icons.php';
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────

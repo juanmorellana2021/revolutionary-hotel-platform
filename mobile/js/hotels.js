@@ -42,10 +42,11 @@ function displayHotels(hotels) {
         el.innerHTML = `
             <div class="aini-empty">
                 ${SVG.search}
-                <div class="mt-2 fw-semibold">Sin resultados</div>
-                <div class="small mt-1">Intenta con otro destino</div>
-                <button class="btn aini-btn-outline mt-3" onclick="clearSearch()">Ver todos</button>
+                <div class="mt-2 fw-semibold" data-i18n>Sin resultados</div>
+                <div class="small mt-1" data-i18n>Intenta con otro destino</div>
+                <button class="btn aini-btn-outline mt-3" onclick="clearSearch()" data-i18n>Ver todos</button>
             </div>`;
+        if (window.AiniTranslate) window.AiniTranslate.translateMarked(el);
         if (countEl) countEl.textContent = 0;
         return;
     }
@@ -70,6 +71,9 @@ function displayHotels(hotels) {
         void countEl.offsetWidth; // reflow to restart animation
         countEl.classList.add('aini-pop');
     }
+
+    // Translate the newly injected cards using data-i18n markers
+    if (window.AiniTranslate) window.AiniTranslate.translateMarked(el);
 }
 
 function buildCard(h, i = 0) {
@@ -107,7 +111,7 @@ function buildCard(h, i = 0) {
             <div class="d-flex justify-content-between align-items-center mt-1">
                 <div>
                     <span class="aini-hotel-price">$${h.price}</span>
-                    <small>/noche</small>
+                    <small><span data-i18n>/noche</span></small>
                 </div>
                 <div class="aini-coins-badge">
                     ${SVG.coin} ${h.aini_coins} AiNi
@@ -116,10 +120,10 @@ function buildCard(h, i = 0) {
 
             <div class="aini-hotel-btns">
                 <button class="btn btn-outline-primary" onclick="event.stopPropagation(); viewHotel(${h.id})">
-                    ${SVG.door} Ver Cuartos
+                    ${SVG.door} <span data-i18n>Ver Cuartos</span>
                 </button>
                 <button class="btn aini-btn-primary" onclick="event.stopPropagation(); viewHotel(${h.id})">
-                    ${SVG.cal} Reservar
+                    ${SVG.cal} <span data-i18n>Reservar</span>
                 </button>
             </div>
         </div>

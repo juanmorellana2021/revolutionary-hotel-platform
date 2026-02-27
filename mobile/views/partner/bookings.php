@@ -173,6 +173,15 @@ try {
                     $<?= number_format($b['total_price'],2) ?> <?= htmlspecialchars($b['currency']??'USD') ?>
                 </div>
                 <div class="d-flex gap-1">
+                    <?php
+                    $msgUrl = '?page=partner_messages'
+                        . '&booking_id=' . intval($b['id'])
+                        . '&guest_name=' . urlencode($b['guest_name'] ?? '')
+                        . '&hotel_name=' . urlencode($b['hotel_name'] ?? '')
+                        . '&guest_phone=' . urlencode($b['guest_phone'] ?? '')
+                        . '&booking_ref=' . urlencode($b['booking_reference'] ?? '');
+                    ?>
+                    <a href="<?= $msgUrl ?>" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:.72rem">Mensaje</a>
                     <?php if ($canConfirm): ?>
                     <button class="btn btn-sm btn-success py-0 px-2 rounded-pill" style="font-size:.72rem"
                         onclick="updateStatus(<?= $b['id'] ?>,'confirmed',this,'Confirmada','bg-success')">✅ Confirmar</button>

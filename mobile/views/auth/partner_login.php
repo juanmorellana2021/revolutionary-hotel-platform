@@ -15,8 +15,8 @@
     </div>
     <?php endif; ?>
 
-    <form method="POST" action="/partners/login.php">
-        <input type="hidden" name="mobile_redirect" value="/mobile/?page=partner_dashboard">
+    <form method="POST" action="?page=partner_login">
+        <input type="hidden" name="redirect" value="partner_dashboard">
 
         <div class="mb-3">
             <label class="form-label small fw-semibold">Email</label>

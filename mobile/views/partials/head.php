@@ -15,4 +15,4 @@
 </head>
 <body data-lang="<?php echo $_SESSION['lang'] ?? 'es'; ?>">
 <!-- Translation engine: runs after page renders, no-op if lang=es -->
-<script src="/mobile/js/mobile_translate.js?v=1.0" defer></script>
+<script src="/mobile/js/mobile_translate.js?v=1.6" defer></script>
