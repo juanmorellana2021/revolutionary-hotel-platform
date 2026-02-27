@@ -96,6 +96,14 @@ $firstName     = htmlspecialchars(explode(' ', $pname)[0]);
         </div>
     </div>
 
+    <?php if (($activeHotelId ?? 0) > 0): ?>
+    <div class="alert border-0 rounded-3 mb-2 py-2 px-3 d-flex align-items-center gap-2" style="background:#f0eaff;font-size:.80rem">
+        <span style="color:var(--aini-purple)">&#9679;</span>
+        <span class="fw-semibold text-truncate" style="color:var(--aini-purple);flex:1"><?= htmlspecialchars($activeHotelName ?: 'Propiedad seleccionada') ?></span>
+        <a href="/mobile/?page=partner_dashboard&clear_hotel=1" class="text-muted text-decoration-none" style="font-size:.72rem;white-space:nowrap">Ver todas &times;</a>
+    </div>
+    <?php endif; ?>
+
     <div class="fw-semibold mb-2 d-flex justify-content-between align-items-center" style="font-size:.9rem">
         <span>Mis propiedades</span>
         <span class="text-muted" style="font-size:.75rem">
@@ -130,7 +138,7 @@ $firstName     = htmlspecialchars(explode(' ', $pname)[0]);
         if ($hs === 'pending')   { $sc = 'bg-warning text-dark'; $sl = 'Pendiente'; }
         if ($hs === 'rejected')  { $sc = 'bg-danger';            $sl = 'Rechazado'; }
     ?>
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-2">
+    <a href="/mobile/?page=partner_bookings&hotel_id=<?= $hotel['id'] ?>&hotel_name=<?= urlencode($hotel['name']) ?>" class="card border-0 shadow-sm rounded-3 overflow-hidden mb-2 text-decoration-none text-dark" style="display:block">
         <div class="d-flex align-items-center">
             <?php if ($img): ?>
             <div style="width:70px;height:70px;background:url('<?= htmlspecialchars($img) ?>') center/cover no-repeat;flex-shrink:0"></div>
@@ -142,8 +150,9 @@ $firstName     = htmlspecialchars(explode(' ', $pname)[0]);
                 <div class="text-muted text-truncate" style="font-size:.73rem"><?= htmlspecialchars($hotel['location']) ?></div>
                 <div class="mt-1"><span class="badge <?= $sc ?>" style="font-size:.65rem"><?= $sl ?></span></div>
             </div>
+            <div class="pe-3 text-muted">&rsaquo;</div>
         </div>
-    </div>
+    </a>
     <?php endforeach; ?>
 
     <div class="row g-2 mb-3 mt-1">

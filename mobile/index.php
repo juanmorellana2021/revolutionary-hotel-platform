@@ -68,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') === 'api') {
         if (!$booking_id || !in_array($new_status, ['confirmed','cancelled','completed'])) {
             echo json_encode(['success'=>false,'message'=>'Parámetros inválidos']); exit();
         }
-        $stmt = $pdo->prepare('SELECT b.* FROM guest_bookings b JOIN hotel_properties h ON b.hotel_id=h.id WHERE b.id=? AND h.partner_id=?');
-        $stmt->execute([$booking_id, $pid]);
+        $stmt = $pdo->prepare('SELECT b.* FROM guest_bookings b JOIN hotel_properties h ON b.hotel_id=h.id WHERE b.id=? AND (h.partner_business_id=? OR h.email=(SELECT email FROM aini_partner_businesses WHERE id=?))');
+        $stmt->execute([$booking_id, $pid, $pid]);
         if (!$stmt->fetch()) { echo json_encode(['success'=>false,'message'=>'Reserva no encontrada']); exit(); }
         $pdo->prepare('UPDATE guest_bookings SET status=? WHERE id=?')->execute([$new_status, $booking_id]);
         echo json_encode(['success'=>true,'message'=>'Estado actualizado']); exit();
@@ -124,6 +124,20 @@ $userName     = $_SESSION['user_name']  ?? '';
 $ainiCoins    = $_SESSION['aini_coins'] ?? 0;
 $partnerId    = $_SESSION['partner_id'] ?? null;
 $partnerName  = $_SESSION['partner_name'] ?? '';
+
+// ── Active hotel context (partner only) ───────────────────────────────────────
+$activeHotelId   = 0;
+$activeHotelName = '';
+if ($isPartner) {
+    if (isset($_GET['hotel_id']) && intval($_GET['hotel_id']) > 0) {
+        $_SESSION['active_hotel_id']   = intval($_GET['hotel_id']);
+        $_SESSION['active_hotel_name'] = trim($_GET['hotel_name'] ?? '');
+    } elseif (isset($_GET['clear_hotel'])) {
+        unset($_SESSION['active_hotel_id'], $_SESSION['active_hotel_name']);
+    }
+    $activeHotelId   = (int)($_SESSION['active_hotel_id']   ?? 0);
+    $activeHotelName = (string)($_SESSION['active_hotel_name'] ?? '');
+}
 
 // "View desktop site" cookie — skip all mobile logic
 if (isset($_COOKIE['force_desktop'])) {

@@ -9,7 +9,9 @@ $unreadMessages = 0;
     <div class="container-fluid p-0">
         <div class="row g-0 w-100 text-center">
 
-        <?php if ($isPartner): ?>
+        <?php if ($isPartner):
+            $hSuffix = ($activeHotelId ?? 0) > 0 ? '&hotel_id=' . $activeHotelId : '';
+        ?>
             <!-- PARTNER bottom nav -->
             <div class="col">
                 <a href="/mobile/?page=partner_dashboard" class="aini-tab <?php echo $currentPage==='partner_dashboard'?'active':''; ?>">
@@ -17,19 +19,19 @@ $unreadMessages = 0;
                 </a>
             </div>
             <div class="col">
-                <a href="/mobile/?page=partner_bookings" class="aini-tab <?php echo $currentPage==='partner_bookings'?'active':''; ?>">
+                <a href="/mobile/?page=partner_bookings<?php echo $hSuffix; ?>" class="aini-tab <?php echo $currentPage==='partner_bookings'?'active':''; ?>">
                     <?php echo icon('calendar', '20'); ?><span>Reservas</span>
                 </a>
             </div>
             <div class="col position-relative">
-                <a href="/mobile/?page=partner_messages" class="aini-tab <?php echo $currentPage==='partner_messages'?'active':''; ?>">
+                <a href="/mobile/?page=partner_messages<?php echo $hSuffix; ?>" class="aini-tab <?php echo $currentPage==='partner_messages'?'active':''; ?>">
                     <?php echo icon('chat', '20'); ?>
                     <?php if($unreadMessages > 0): ?><span class="aini-badge"><?php echo $unreadMessages; ?></span><?php endif; ?>
                     <span>Mensajes</span>
                 </a>
             </div>
             <div class="col">
-                <a href="/mobile/?page=partner_rooms" class="aini-tab <?php echo $currentPage==='partner_rooms'?'active':''; ?>">
+                <a href="/mobile/?page=partner_rooms<?php echo $hSuffix; ?>" class="aini-tab <?php echo $currentPage==='partner_rooms'?'active':''; ?>">
                     <?php echo icon('door', '20'); ?><span>Cuartos</span>
                 </a>
             </div>

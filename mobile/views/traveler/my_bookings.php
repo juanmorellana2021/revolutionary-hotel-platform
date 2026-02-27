@@ -265,7 +265,7 @@ document.getElementById('confirmCancelBtn').addEventListener('click', function()
     fd.append('booking_id', activeCancelId);
     fd.append('uid', AINI_UID);
     fd.append('tok', AINI_TOK);
-    fetch('/cancel_booking.php', { method: 'POST', body: fd })
+    fetch('/mobile/?page=api', { method: 'POST', body: fd })
         .then(r => r.text())
         .then(txt => {
             let d;

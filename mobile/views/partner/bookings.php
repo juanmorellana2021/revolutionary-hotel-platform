@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action']) && $_POST['ac
 // Load data
 $bookings = [];
 $filterStatus = $_GET['status'] ?? 'all';
-$filterHotel  = intval($_GET['hotel_id'] ?? 0);
+$filterHotel  = intval($_GET['hotel_id'] ?? $activeHotelId ?? 0);
 $hotels = [];
 
 try {

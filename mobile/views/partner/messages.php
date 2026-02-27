@@ -7,6 +7,7 @@
  * - Send as sender_type=owner
  */
 $pid = intval($_SESSION['partner_id'] ?? 0);
+$filterMsgHotel = intval($_GET['hotel_id'] ?? $activeHotelId ?? 0);
 $conversations = [];
 
 try {
@@ -18,6 +19,13 @@ try {
     $st = $pdo->prepare('SELECT email FROM aini_partner_businesses WHERE id = ?');
     $st->execute([$pid]);
     $partnerEmail = $st->fetchColumn() ?: '';
+
+    $hotelFilter = '';
+    $extraParams = [];
+    if ($filterMsgHotel > 0) {
+        $hotelFilter = ' AND b.hotel_id = ?';
+        $extraParams[] = $filterMsgHotel;
+    }
 
     $sql = "SELECT
                 b.id AS booking_id,
@@ -35,11 +43,12 @@ try {
             LEFT JOIN booking_conversations bc ON bc.booking_id = b.id
             WHERE (h.partner_business_id = ? OR h.email = ?)
               AND bc.id IS NOT NULL
+              $hotelFilter
             ORDER BY sort_time DESC
             LIMIT 80";
 
     $st = $pdo->prepare($sql);
-    $st->execute([$pid, $partnerEmail]);
+    $st->execute(array_merge([$pid, $partnerEmail], $extraParams));
     $conversations = $st->fetchAll();
 } catch (Exception $e) {
     $conversations = [];
@@ -47,6 +56,15 @@ try {
 ?>
 
 <div style="padding: 72px 12px 80px;">
+
+    <?php if (($activeHotelId ?? 0) > 0): ?>
+    <div class="d-flex align-items-center mb-2 px-1" style="gap:6px">
+        <a href="/mobile/?page=partner_messages&clear_hotel=1" class="text-muted text-decoration-none d-flex align-items-center" style="font-size:.80rem">
+            <span style="font-size:1rem">&larr;</span>&nbsp;Todas las propiedades
+        </a>
+        <span class="ms-auto fw-semibold text-truncate" style="font-size:.80rem;color:var(--aini-purple);max-width:55%"><?= htmlspecialchars($activeHotelName ?: '') ?></span>
+    </div>
+    <?php endif; ?>
 
     <div id="partnerConvList">
         <?php foreach ($conversations as $c):
